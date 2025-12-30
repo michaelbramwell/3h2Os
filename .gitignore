@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables (Sensitive data)
+.env
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
