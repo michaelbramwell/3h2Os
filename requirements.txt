@@ -1,0 +1,2 @@
+garminconnect>=0.2.36
+python-dotenv>=1.0.0
