@@ -2,8 +2,9 @@ import logging
 import os
 import re
 import sys
+import time
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from dotenv import load_dotenv
 from garminconnect import Garmin
@@ -21,105 +22,183 @@ class MarathonPlanSync:
         load_dotenv()
         self.email = os.getenv("GARMIN_EMAIL")
         self.password = os.getenv("GARMIN_PASSWORD")
-        self.client: Optional[Garmin] = None
-
-    def authenticate(self):
-        """Authenticate with Garmin Connect."""
-        if not self.email or not self.password or self.email == "your_email@example.com":
-            logger.error("Missing credentials. Please check your .env file.")
-            sys.exit(1)
         
+        if not self.email or not self.password:
+            logger.error("GARMIN_EMAIL or GARMIN_PASSWORD not set in .env")
+            sys.exit(1)
+
         try:
             self.client = Garmin(self.email, self.password)
             self.client.login()
             logger.info(f"Successfully logged in as {self.client.display_name}")
         except Exception as e:
-            logger.error(f"Authentication failed: {e}")
+            logger.error(f"Login failed: {e}")
             sys.exit(1)
 
-    def parse_distance(self, text: str) -> int:
-        """Extract total distance in meters from plan text."""
-        matches = re.findall(r'(\d+)k', text)
-        return sum(int(m) for m in matches) * 1000 if matches else 0
-
-    def get_plan_data(self) -> List[dict]:
-        """Parse marathon_plan.md and return structured data."""
-        try:
-            with open("marathon_plan.md", "r") as f:
-                content = f.read()
-        except FileNotFoundError:
-            logger.error("marathon_plan.md not found.")
-            return []
-
-        # Extract target paces for descriptions
-        paces_match = re.search(r'## Target Training Paces\n(.*?)\n\n', content, re.DOTALL)
-        target_paces = paces_match.group(1).strip() if paces_match else ""
+    def parse_plan(self, file_path: str) -> List[Dict[str, Any]]:
+        with open(file_path, "r") as f:
+            content = f.read()
 
         # Find the table
-        table_match = re.search(r'\| Week Starting \|.*?\|\n\| :--- \|.*?\|\n((?:\|.*?\|\n)+)', content, re.DOTALL)
+        table_match = re.search(r"\| Week Starting \| Mon \| Tue \| Wed \(AM/PM\) \| Thu \(Trail\) \| Fri \| Sat \| Sun \(Long Run\) \| Total \|\n\|[-| :]+\|\n(.*?)(?=\n\n|\Z)", content, re.DOTALL)
         if not table_match:
-            logger.error("Could not find training plan table.")
+            logger.error("Could not find training plan table in markdown.")
             return []
 
-        rows = table_match.group(1).strip().split('\n')
-        plan_entries = []
+        rows = table_match.group(1).strip().split("\n")
+        entries = []
+
+        days_offset = {
+            "Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6
+        }
 
         for row in rows:
-            cols = [c.strip() for c in row.split('|')[1:-1]]
-            if not cols: continue
-            
+            cols = [c.strip() for c in row.split("|") if c.strip()]
+            if len(cols) < 8:
+                continue
+
+            week_start_str = cols[0] # e.g. "Jan 5"
             try:
-                week_start = datetime.strptime(f"{cols[0]} 2026", "%b %d %Y")
+                week_start = datetime.strptime(f"{week_start_str} 2026", "%b %d %Y")
             except ValueError:
                 continue
 
-            for i, day_text in enumerate(cols[1:8]):
-                if day_text.lower() == "rest" or not day_text:
+            # Days: Mon (1), Tue (2), Wed (3), Thu (4), Fri (5), Sat (6), Sun (7)
+            for i, day_name in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]):
+                workout_str = cols[i+1]
+                if "Rest" in workout_str or workout_str == "-":
                     continue
+
+                current_date = (week_start + timedelta(days=i)).strftime("%Y-%m-%d")
                 
-                plan_entries.append({
-                    "date": (week_start + timedelta(days=i)).strftime("%Y-%m-%d"),
-                    "name": day_text,
-                    "distance_m": self.parse_distance(day_text),
-                    "description": f"Plan: {day_text}\n\nTarget Paces:\n{target_paces}"
-                })
+                # Handle doubles (Wed)
+                sub_workouts = [w.strip() for w in workout_str.split("/") if w.strip()]
+                for sub_w in sub_workouts:
+                    # Parse distance
+                    dist_m = 0
+                    dist_match = re.search(r"(\d+\.?\d*)k", sub_w)
+                    if dist_match:
+                        dist_m = int(float(dist_match.group(1)) * 1000)
+                    elif "Marathon" in sub_w or "BUNBURY" in sub_w:
+                        dist_m = 42195
+                    elif "BUSSO 1/2" in sub_w:
+                        dist_m = 21100
+
+                    if dist_m > 0:
+                        entries.append({
+                            "date": current_date,
+                            "name": sub_w,
+                            "distance_m": dist_m
+                        })
+
+        return entries
+
+    def get_pace_target(self, name: str) -> Optional[Dict[str, Any]]:
+        """Returns pace target in m/s for different workout types."""
+        if "MP" in name:
+            return {
+                "workoutTargetTypeId": 6,
+                "workoutTargetTypeKey": "pace.zone",
+                "targetValueOne": 1000 / (5.5 * 60),
+                "targetValueTwo": 1000 / (5.66 * 60)
+            }
+        elif "Thresh" in name:
+            return {
+                "workoutTargetTypeId": 6,
+                "workoutTargetTypeKey": "pace.zone",
+                "targetValueOne": 1000 / (4.66 * 60),
+                "targetValueTwo": 1000 / (4.83 * 60)
+            }
+        elif "Steady" in name:
+            return {
+                "workoutTargetTypeId": 6,
+                "workoutTargetTypeKey": "pace.zone",
+                "targetValueOne": 1000 / (5.16 * 60),
+                "targetValueTwo": 1000 / (5.33 * 60)
+            }
+        elif "Easy" in name or "Recov" in name or "Trail" in name or "PLR" in name:
+            return {
+                "workoutTargetTypeId": 6,
+                "workoutTargetTypeKey": "pace.zone",
+                "targetValueOne": 1000 / (6.25 * 60), # 6:15
+                "targetValueTwo": 1000 / (6.75 * 60)  # 6:45
+            }
         
-        return plan_entries
+        return {
+            "workoutTargetTypeId": 1,
+            "workoutTargetTypeKey": "no.target"
+        }
+
+    def cleanup_existing_workouts(self, entries: List[Dict[str, Any]]):
+        """Deletes existing workouts that match names in the plan to avoid duplicates."""
+        logger.info("Checking for existing workouts to clean up...")
+        plan_names = set(e["name"][:30] for e in entries)
+        try:
+            workouts = self.client.get_workouts()
+            for w in workouts:
+                if w['workoutName'] in plan_names:
+                    # Use garth to delete since delete_workout is missing from high-level API
+                    delete_url = f"/workout-service/workout/{w['workoutId']}"
+                    self.client.garth.delete("connectapi", delete_url)
+                    logger.info(f"Deleted existing workout: {w['workoutName']}")
+        except Exception as e:
+            logger.warning(f"Cleanup failed (non-critical): {e}")
 
     def sync(self):
-        """Main sync execution."""
-        self.authenticate()
-        entries = self.get_plan_data()
-        
+        plan_path = os.path.join(os.getcwd(), "marathon_plan.md")
+        entries = self.parse_plan(plan_path)
+
         if not entries:
             logger.warning("No entries found to sync.")
             return
+
+        # Cleanup first
+        self.cleanup_existing_workouts(entries)
 
         logger.info(f"Found {len(entries)} workouts to sync.")
 
         for entry in entries:
             try:
-                workout_payload = {
-                    "workoutName": entry["name"],
-                    "description": entry["description"],
+                target = self.get_pace_target(entry["name"])
+                
+                # Calculate estimated duration based on target pace or default 6:30 min/km
+                if target.get("targetValueOne") and target.get("targetValueTwo"):
+                    avg_speed = (target["targetValueOne"] + target["targetValueTwo"]) / 2
+                else:
+                    avg_speed = 1000 / (6.5 * 60) # 6:30 min/km default
+                
+                est_duration = int(entry["distance_m"] / avg_speed)
+
+                workout_dict = {
+                    "workoutName": entry["name"][:30],
                     "sportType": {"sportTypeId": 1, "sportTypeKey": "running"},
-                    "workoutSegments": [{
-                        "segmentOrder": 1,
-                        "sportType": {"sportTypeId": 1, "sportTypeKey": "running"},
-                        "workoutSteps": [{
-                            "type": "ExecutableStepDTO",
-                            "stepOrder": 1,
-                            "stepType": {"stepTypeId": 3, "stepTypeKey": "interval"},
-                            "endCondition": {"conditionTypeId": 2, "conditionTypeKey": "distance"},
-                            "endConditionValue": entry["distance_m"],
-                            "targetType": {"targetTypeId": 1, "targetTypeKey": "no_target"}
-                        }]
-                    }]
+                    "estimatedDurationInSecs": est_duration,
+                    "workoutSegments": [
+                        {
+                            "segmentOrder": 1,
+                            "sportType": {"sportTypeId": 1, "sportTypeKey": "running"},
+                            "workoutSteps": [
+                                {
+                                    "type": "ExecutableStepDTO",
+                                    "stepOrder": 1,
+                                    "stepType": {"stepTypeId": 3, "stepTypeKey": "interval"},
+                                    "endCondition": {"conditionTypeId": 2, "conditionTypeKey": "distance"},
+                                    "endConditionValue": float(entry["distance_m"]),
+                                    "targetType": target,
+                                    "estimatedDurationInSecs": est_duration
+                                }
+                            ]
+                        }
+                    ]
                 }
 
-                uploaded = self.client.upload_workout(workout_payload)
-                self.client.schedule_workout(uploaded['workoutId'], entry["date"])
+                uploaded = self.client.upload_workout(workout_dict)
+                schedule_url = f"/workout-service/schedule/{uploaded['workoutId']}"
+                self.client.garth.post("connectapi", schedule_url, json={"date": entry["date"]})
+                
                 logger.info(f"Synced: {entry['date']} - {entry['name']}")
+                time.sleep(1)
+                
             except Exception as e:
                 logger.error(f"Failed to sync {entry['date']}: {e}")
 

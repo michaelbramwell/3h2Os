@@ -1,5 +1,8 @@
 # Training Context: Bunbury Marathon 2026
 
+## Project Rules
+- **Strictly no emojis** in any documentation or code comments.
+
 ## Runner Profile
 - **Age/Gender:** 48-year-old Male
 - **Physicals:** 6'1" (185cm), 97kg (Current) -> **Target: 90kg** by Race Day.
@@ -38,4 +41,6 @@
 ## Current Status
 - **Date:** December 30, 2025
 - **Phase:** Pre-season / Final prep before Week 1 start (Jan 5).
+- **Garmin Sync:** Full 14-week plan (95 workouts) synced to Garmin Connect calendar.
+- **Tooling:** Migrated to `uv` for dependency management and execution.
 - **Next Action:** Start Week 1 on Jan 5 (66k total).
