@@ -1,10 +1,14 @@
 # Project Roadmap: 3h2Os
 
+## Current Version: v0.0.2
+
 ## Phase 1: Foundation (Complete)
 - [x] Structured 14-week training plan in Markdown.
 - [x] Automated sync to Garmin Connect calendar.
 - [x] Local HTML dashboard for plan visualization.
 - [x] Migration to `uv` for modern dependency management.
+- [x] **JSON-First Architecture:** `plan.json` as the single source of truth.
+- [x] **Automated Documentation:** `generate_plan_md.py` to keep `marathon_plan.md` in sync.
 
 ## Phase 2: Data Integration (Weeks 1-4)
 - [ ] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard.

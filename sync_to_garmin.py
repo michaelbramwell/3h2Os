@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -36,60 +37,19 @@ class MarathonPlanSync:
             sys.exit(1)
 
     def parse_plan(self, file_path: str) -> List[Dict[str, Any]]:
+        """Reads the plan from plan.json."""
         with open(file_path, "r") as f:
-            content = f.read()
+            plan_data = json.load(f)
 
-        # Find the table
-        table_match = re.search(r"\| Week Starting \| Mon \| Tue \| Wed \(AM/PM\) \| Thu \(Trail\) \| Fri \| Sat \| Sun \(Long Run\) \| Total \|\n\|[-| :]+\|\n(.*?)(?=\n\n|\Z)", content, re.DOTALL)
-        if not table_match:
-            logger.error("Could not find training plan table in markdown.")
-            return []
-
-        rows = table_match.group(1).strip().split("\n")
         entries = []
-
-        days_offset = {
-            "Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6
-        }
-
-        for row in rows:
-            cols = [c.strip() for c in row.split("|") if c.strip()]
-            if len(cols) < 8:
-                continue
-
-            week_start_str = cols[0] # e.g. "Jan 5"
-            try:
-                week_start = datetime.strptime(f"{week_start_str} 2026", "%b %d %Y")
-            except ValueError:
-                continue
-
-            # Days: Mon (1), Tue (2), Wed (3), Thu (4), Fri (5), Sat (6), Sun (7)
-            for i, day_name in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]):
-                workout_str = cols[i+1]
-                if "Rest" in workout_str or workout_str == "-":
-                    continue
-
-                current_date = (week_start + timedelta(days=i)).strftime("%Y-%m-%d")
-                
-                # Handle doubles (Wed)
-                sub_workouts = [w.strip() for w in workout_str.split("/") if w.strip()]
-                for sub_w in sub_workouts:
-                    # Parse distance
-                    dist_m = 0
-                    dist_match = re.search(r"(\d+\.?\d*)k", sub_w)
-                    if dist_match:
-                        dist_m = int(float(dist_match.group(1)) * 1000)
-                    elif "Marathon" in sub_w or "BUNBURY" in sub_w:
-                        dist_m = 42195
-                    elif "BUSSO 1/2" in sub_w:
-                        dist_m = 21100
-
-                    if dist_m > 0:
-                        entries.append({
-                            "date": current_date,
-                            "name": sub_w,
-                            "distance_m": dist_m
-                        })
+        for week in plan_data:
+            for day_name, day_info in week["days"].items():
+                for workout in day_info["workouts"]:
+                    entries.append({
+                        "date": day_info["date"],
+                        "name": workout["name"],
+                        "distance_m": workout["distance_m"]
+                    })
 
         return entries
 
@@ -145,7 +105,7 @@ class MarathonPlanSync:
             logger.warning(f"Cleanup failed (non-critical): {e}")
 
     def sync(self):
-        plan_path = os.path.join(os.getcwd(), "marathon_plan.md")
+        plan_path = os.path.join(os.getcwd(), "plan.json")
         entries = self.parse_plan(plan_path)
 
         if not entries:

@@ -13,9 +13,11 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 
 ## Structure
 
-- `marathon_plan.md`: The master 14-week training schedule.
+- `plan.json`: The source of truth for training data (used by sync tool and dashboard).
+- `generate_plan_md.py`: Script to generate the Markdown plan from JSON.
+- `marathon_plan.md`: Human-readable reference (auto-generated).
 - `context.md`: Runner profile, PBs, and high-level strategy.
-- `dashboard.html`: Local browser visualization of the plan.
+- `index.html`: The dashboard (hosted on GitHub Pages).
 - `sync_to_garmin.py`: Python script to sync the plan to your Garmin Calendar.
 - `roadmap.md`: Future features and development phases.
 - `pyproject.toml`: Project configuration and dependencies (managed by `uv`).
@@ -37,8 +39,12 @@ To view the plan in your browser:
 ```bash
 # Start a local server
 uv run python -m http.server 8000
-# Open http://localhost:8000/dashboard.html
+# Open http://localhost:8000/index.html
 ```
+
+### 3. GitHub Pages
+The dashboard is automatically hosted at:
+`https://michaelbramwell.github.io/3h2Os/`
 
 ### 3. Sync to Garmin
 1. Copy `.env.example` to `.env`.
@@ -47,6 +53,18 @@ uv run python -m http.server 8000
 ```bash
 uv run sync_to_garmin.py
 ```
+
+### 4. Updating the Plan
+If you need to modify the training schedule:
+1. Edit `plan.json`.
+2. Update the Markdown reference:
+   ```bash
+   uv run generate_plan_md.py
+   ```
+3. Sync to Garmin:
+   ```bash
+   uv run sync_to_garmin.py
+   ```
 
 ## Training Philosophy
 - **Monday:** Rest & Recovery.
