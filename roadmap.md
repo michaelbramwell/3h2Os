@@ -7,8 +7,9 @@
 - [x] Automated sync to Garmin Connect calendar.
 - [x] Local HTML dashboard for plan visualization.
 - [x] Migration to `uv` for modern dependency management.
-- [x] **JSON-First Architecture:** `plan.json` as the single source of truth.
-- [x] **Automated Documentation:** `generate_plan_md.py` to keep `marathon_plan.md` in sync.
+- [x] **JSON-First Architecture:** `plan.json` and `context.json` as the single sources of truth.
+- [x] **Automated Documentation:** `generate_plan_md.py` to keep `marathon_plan.md` and `context.md` in sync.
+- [x] **Secure Deployment:** Configured SSH for GitHub authentication.
 
 ## Phase 2: Data Integration (Weeks 1-4)
 - [ ] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard.

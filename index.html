@@ -118,15 +118,62 @@
                 const planData = await planResponse.json();
                 renderPlan(planData);
 
-                // Load Context
-                const contextResponse = await fetch('context.md');
-                const contextMd = await contextResponse.text();
-                document.getElementById('context-area').innerHTML = marked.parse(contextMd);
+                // Load Context JSON
+                const contextResponse = await fetch('context.json');
+                const contextData = await contextResponse.json();
+                updateSidebar(contextData);
 
                 highlightCurrentWeek();
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
+        }
+
+        function updateSidebar(data) {
+            // Update Goal
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(1) p:nth-child(2)').innerText = data.project.goal;
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(1) p:nth-child(3)').innerText = `${data.project.event} • ${new Date(data.project.eventDate).toLocaleDateString('en-AU', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+
+            // Update Phase
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(2) p:nth-child(2)').innerText = data.status.phase;
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(2) p:nth-child(3)').innerText = data.status.nextAction;
+
+            // Update Weight
+            const currentWeight = data.runner.weight_kg.current;
+            const targetWeight = data.runner.weight_kg.target;
+            const startWeight = 97; // Hardcoded for now as a baseline
+            const weightToLose = currentWeight - targetWeight;
+            const totalToLose = startWeight - targetWeight;
+            const progress = totalToLose > 0 ? Math.max(0, Math.min(100, ((startWeight - currentWeight) / totalToLose) * 100)) : 0;
+
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) p:nth-child(1)').innerText = `${currentWeight}kg`;
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) p:nth-child(2)').innerText = `/ ${targetWeight}kg target`;
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) .bg-orange-500').style.width = `${progress}%`;
+            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) p.text-xs').innerText = `${weightToLose}kg to lose (${Math.round(progress)}% progress)`;
+
+            // Update Context Area with Philosophy
+            const contextArea = document.getElementById('context-area');
+            contextArea.innerHTML = `
+                <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Strategy</h2>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-xs uppercase">Cramp Prevention</h3>
+                        <ul class="list-disc pl-4 mt-1 text-slate-600">
+                            <li>${data.philosophy.crampPrevention.mechanical}</li>
+                            <li>${data.philosophy.crampPrevention.metabolic}</li>
+                            <li>${data.philosophy.crampPrevention.fueling}</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-xs uppercase">Weekly Structure</h3>
+                        <ul class="list-disc pl-4 mt-1 text-slate-600">
+                            <li><strong>Wed:</strong> ${data.philosophy.weeklyStructure.Wednesday}</li>
+                            <li><strong>Thu:</strong> ${data.philosophy.weeklyStructure.Thursday}</li>
+                            <li><strong>Sun:</strong> ${data.philosophy.weeklyStructure.Sunday}</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
         }
 
         function renderPlan(weeks) {

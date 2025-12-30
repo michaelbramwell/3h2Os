@@ -14,9 +14,10 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 ## Structure
 
 - `plan.json`: The source of truth for training data (used by sync tool and dashboard).
-- `generate_plan_md.py`: Script to generate the Markdown plan from JSON.
+- `context.json`: The source of truth for runner profile and goals.
+- `generate_plan_md.py`: Script to generate Markdown files from JSON.
 - `marathon_plan.md`: Human-readable reference (auto-generated).
-- `context.md`: Runner profile, PBs, and high-level strategy.
+- `context.md`: Runner profile and strategy (auto-generated).
 - `index.html`: The dashboard (hosted on GitHub Pages).
 - `sync_to_garmin.py`: Python script to sync the plan to your Garmin Calendar.
 - `roadmap.md`: Future features and development phases.

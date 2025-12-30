@@ -1,0 +1,68 @@
+{
+  "project": {
+    "name": "3h2Os",
+    "goal": "Sub-4 Marathon",
+    "event": "Bunbury Marathon",
+    "eventDate": "2026-04-12"
+  },
+  "runner": {
+    "age": 48,
+    "gender": "Male",
+    "height_cm": 185,
+    "weight_kg": {
+      "current": 97,
+      "target": 90
+    },
+    "personalBests": {
+      "5km": "22:06 (May 2025)",
+      "10km": "46:48 (Oct 2025)",
+      "halfMarathon": "1:44:08 (May 2025)",
+      "marathon": "3:55:39 (Oct 2024)"
+    }
+  },
+  "planOverview": {
+    "durationWeeks": 14,
+    "startDate": "2026-01-05",
+    "endDate": "2026-04-12",
+    "peakVolume_km": 111,
+    "frequencyDaysPerWeek": 6,
+    "strategy": "Smoothed ramp-up to minimize injury risk"
+  },
+  "milestones": [
+    {
+      "name": "Busso 1/2",
+      "date": "2026-02-07",
+      "description": "Tune-up race, target Sub-1:45"
+    },
+    {
+      "name": "The Attack",
+      "date": "2026-03-15",
+      "description": "32k with 15k @ 5:35"
+    },
+    {
+      "name": "Final Peak/Vest Test",
+      "date": "2026-03-22",
+      "description": "35k"
+    }
+  ],
+  "philosophy": {
+    "crampPrevention": {
+      "mechanical": "Heavy slow resistance (Weighted Calf Raises) to handle 97kg load.",
+      "metabolic": "Threshold Wednesdays (4:45 pace) to improve lactate clearance.",
+      "fueling": "90g Carbs/hr + 900mg Sodium/hr (Bix gels and drink mix)."
+    },
+    "weeklyStructure": {
+      "Wednesday": "Double-intensity days (Threshold AM / Intervals PM).",
+      "Thursday": "Trail volume for quad strength (descending technique).",
+      "Sunday": "Progressive Long Runs (PLR) and 'Vest Tests' using Salomon trail vest."
+    }
+  },
+  "status": {
+    "lastUpdated": "2025-12-31",
+    "phase": "Pre-season",
+    "architecture": "JSON-first data layer (plan.json, context.json) with automated Markdown generation.",
+    "garminSync": "Full 14-week plan (98 workouts) synced.",
+    "tooling": "uv for dependency management.",
+    "nextAction": "Start Week 1 on Jan 5 (65k total)."
+  }
+}
