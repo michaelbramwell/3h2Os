@@ -38,6 +38,11 @@
 - **Thursdays:** Trail volume for quad strength (descending technique).
 - **Sundays:** Progressive Long Runs (PLR) and "Vest Tests" using Salomon trail vest.
 
+## Maintenance & Self-Update
+- **Interval Review:** The AI assistant must review the entire project structure and progress at the start of every session.
+- **Context Refresh:** Update the `Current Status` section in this file whenever a milestone is reached, a week is completed, or the architecture changes.
+- **Roadmap Alignment:** Ensure the `roadmap.md` is updated to reflect completed tasks and shifting priorities.
+
 ## Current Status
 - **Date:** December 31, 2025
 - **Phase:** Pre-season / Final prep before Week 1 start (Jan 5).

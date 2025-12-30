@@ -13,3 +13,4 @@ When working in this workspace, always refer to the following files to maintain 
 - **Weight Management:** Keep in mind the 97kg -> 90kg target and how it affects mechanical load and fueling needs.
 - Maintain the "Training Philosophy" (e.g., Monday Rest, Wednesday Doubles, Thursday Trails) when suggesting adjustments.
 - Update [context.md](context.md) when milestones are reached or goals change.
+- **Self-Update Protocol:** At the start of each session, review the project structure, `plan.json`, and `roadmap.md`. Proactively suggest updates to `context.md` to ensure the "Current Status" remains accurate.
