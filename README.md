@@ -9,6 +9,7 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 - **Goal:** Sub-4:00 Marathon (5:41 min/km pace).
 - **Secondary Goal:** Sub-22:00 Parkrun.
 - **Strategy:** Progressive Long Runs (PLR), 90/900 Fueling Rule, and Mechanical Resilience (Strength).
+- **Status:** 14-week plan synced to Garmin Connect.
 
 ## Structure
 
@@ -16,6 +17,7 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 - `context.md`: Runner profile, PBs, and high-level strategy.
 - `dashboard.html`: Local browser visualization of the plan.
 - `sync_to_garmin.py`: Python script to sync the plan to your Garmin Calendar.
+- `roadmap.md`: Future features and development phases.
 - `pyproject.toml`: Project configuration and dependencies (managed by `uv`).
 
 ## Getting Started

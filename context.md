@@ -43,4 +43,5 @@
 - **Phase:** Pre-season / Final prep before Week 1 start (Jan 5).
 - **Garmin Sync:** Full 14-week plan (95 workouts) synced to Garmin Connect calendar.
 - **Tooling:** Migrated to `uv` for dependency management and execution.
+- **Roadmap:** Phase 1 complete; Phase 2 (Data Integration) starting Jan 5.
 - **Next Action:** Start Week 1 on Jan 5 (66k total).
