@@ -143,15 +143,22 @@
 
         async function loadDashboard() {
             try {
-                const [planRes, contextRes, actualsRes] = await Promise.all([
-                    fetch('plan.json').then(r => r.json()),
-                    fetch('context.json').then(r => r.json()),
-                    fetch('actuals.json').then(r => r.json()).catch(() => [])
+                const fetchJson = async (url) => {
+                    const r = await fetch(url);
+                    if (!r.ok) throw new Error(`Failed to fetch ${url}`);
+                    return r.json();
+                };
+
+                const [planData, contextData, actualsData] = await Promise.all([
+                    fetchJson('plan.json').catch(() => []),
+                    fetchJson('context.json').catch(() => ({})),
+                    fetchJson('actuals.json').catch(() => [])
                 ]);
 
-                const planData = planRes;
-                const contextData = contextRes;
-                const actualsData = Array.isArray(actualsRes) ? actualsRes : [];
+                if (Object.keys(contextData).length === 0) {
+                    console.error('Context data is empty');
+                    return;
+                }
 
                 updateSidebar(contextData);
                 renderPlan(planData, actualsData);
@@ -160,7 +167,9 @@
                 highlightCurrentWeek();
 
                 // Update Sync Status
-                document.getElementById('sync-meta').textContent = `Last updated: ${contextData.status.lastUpdated}`;
+                if (contextData.status) {
+                    document.getElementById('sync-meta').textContent = `Last updated: ${contextData.status.lastUpdated}`;
+                }
                 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
@@ -168,6 +177,8 @@
         }
 
         function updateSidebar(data) {
+            if (!data || !data.project || !data.runner || !data.status) return;
+
             // Update Goal
             document.querySelector('.lg\\:col-span-1 > div:nth-child(1) p:nth-child(2)').innerText = data.project.goal;
             document.querySelector('.lg\\:col-span-1 > div:nth-child(1) p:nth-child(3)').innerText = `${data.project.event} • ${new Date(data.project.eventDate).toLocaleDateString('en-AU', { month: 'long', day: 'numeric', year: 'numeric' })}`;
@@ -177,9 +188,11 @@
             document.querySelector('.lg\\:col-span-1 > div:nth-child(2) p:nth-child(3)').innerText = data.status.nextAction;
 
             // Update Weight Tracker Card
-            const current = data.runner.weight_kg.current;
-            const target = data.runner.weight_kg.target;
-            const start = data.runner.weight_kg.history[0].weight;
+            const weight = data.runner.weight_kg || { current: 0, target: 0, history: [] };
+            const current = weight.current;
+            const target = weight.target;
+            const history = weight.history || [];
+            const start = history.length > 0 ? history[0].weight : current;
             const totalToLose = start - target;
             const lostSoFar = start - current;
             const progressPercent = totalToLose > 0 ? Math.max(0, Math.min(100, (lostSoFar / totalToLose) * 100)) : 0;
@@ -191,27 +204,29 @@
 
             // Update Context Area with Philosophy
             const contextArea = document.getElementById('context-area');
-            contextArea.innerHTML = `
-                <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Strategy</h2>
-                <div class="space-y-4">
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-xs uppercase">Cramp Prevention</h3>
-                        <ul class="list-disc pl-4 mt-1 text-slate-600">
-                            <li>${data.philosophy.crampPrevention.mechanical}</li>
-                            <li>${data.philosophy.crampPrevention.metabolic}</li>
-                            <li>${data.philosophy.crampPrevention.fueling}</li>
-                        </ul>
+            if (data.philosophy) {
+                contextArea.innerHTML = `
+                    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Strategy</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-xs uppercase">Cramp Prevention</h3>
+                            <ul class="list-disc pl-4 mt-1 text-slate-600">
+                                <li>${data.philosophy.crampPrevention.mechanical}</li>
+                                <li>${data.philosophy.crampPrevention.metabolic}</li>
+                                <li>${data.philosophy.crampPrevention.fueling}</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-xs uppercase">Weekly Structure</h3>
+                            <ul class="list-disc pl-4 mt-1 text-slate-600">
+                                <li><strong>Wed:</strong> ${data.philosophy.weeklyStructure.Wednesday}</li>
+                                <li><strong>Thu:</strong> ${data.philosophy.weeklyStructure.Thursday}</li>
+                                <li><strong>Sun:</strong> ${data.philosophy.weeklyStructure.Sunday}</li>
+                            </ul>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-slate-900 text-xs uppercase">Weekly Structure</h3>
-                        <ul class="list-disc pl-4 mt-1 text-slate-600">
-                            <li><strong>Wed:</strong> ${data.philosophy.weeklyStructure.Wednesday}</li>
-                            <li><strong>Thu:</strong> ${data.philosophy.weeklyStructure.Thursday}</li>
-                            <li><strong>Sun:</strong> ${data.philosophy.weeklyStructure.Sunday}</li>
-                        </ul>
-                    </div>
-                </div>
-            `;
+                `;
+            }
         }
 
         function renderWeightChart(weightData) {
