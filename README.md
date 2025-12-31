@@ -20,6 +20,7 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 - `context.md`: Runner profile and strategy (auto-generated).
 - `index.html`: The dashboard (hosted on GitHub Pages).
 - `sync_to_garmin.py`: Python script to sync the plan to your Garmin Calendar.
+- `fetch_actuals.py`: Python script to fetch completed activities from Garmin.
 - `roadmap.md`: Future features and development phases.
 - `pyproject.toml`: Project configuration and dependencies (managed by `uv`).
 
@@ -66,6 +67,25 @@ If you need to modify the training schedule:
    ```bash
    uv run sync_to_garmin.py
    ```
+
+### 5. Tracking Progress
+To pull your actual running data from Garmin and update the dashboard:
+```bash
+uv run fetch_actuals.py
+```
+This will update `actuals.json` and the dashboard will display your completed runs (distance and pace) alongside the planned workouts.
+
+### 6. Weight Management
+To update your current weight and track progress:
+```bash
+uv run python update_weight.py 96.5
+```
+
+### 7. Running Tests
+To ensure the system is working correctly:
+```bash
+uv run pytest
+```
 
 ## Training Philosophy
 - **Monday:** Rest & Recovery.

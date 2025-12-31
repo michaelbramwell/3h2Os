@@ -10,8 +10,18 @@
     "gender": "Male",
     "height_cm": 185,
     "weight_kg": {
-      "current": 97,
-      "target": 90
+      "current": 96.5,
+      "target": 90,
+      "history": [
+        {
+          "date": "2025-12-30",
+          "weight": 97.0
+        },
+        {
+          "date": "2025-12-31",
+          "weight": 96.5
+        }
+      ]
     },
     "personalBests": {
       "5km": "22:06 (May 2025)",
@@ -61,7 +71,7 @@
     "lastUpdated": "2025-12-31",
     "phase": "Pre-season",
     "architecture": "JSON-first data layer (plan.json, context.json) with automated Markdown generation.",
-    "garminSync": "Full 14-week plan (98 workouts) synced.",
+    "garminSync": "Plan synced. 3 actuals recorded.",
     "tooling": "uv for dependency management.",
     "nextAction": "Start Week 1 on Jan 5 (65k total)."
   }

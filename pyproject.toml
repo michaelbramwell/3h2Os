@@ -8,3 +8,12 @@ dependencies = [
     "garminconnect>=0.2.36",
     "python-dotenv>=1.2.1",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
