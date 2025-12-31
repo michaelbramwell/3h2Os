@@ -6,6 +6,7 @@
     <title>Marathon Training Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .markdown-body table {
             width: 100%;
@@ -55,27 +56,56 @@
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Weight Tracker</h2>
                     <div class="flex items-end gap-2">
-                        <p class="text-2xl font-bold text-slate-900">97kg</p>
-                        <p class="text-sm text-slate-500 mb-1">/ 90kg target</p>
+                        <p id="current-weight" class="text-2xl font-bold text-slate-900">--kg</p>
+                        <p id="target-weight" class="text-sm text-slate-500 mb-1">/ --kg target</p>
                     </div>
                     <div class="w-full bg-slate-100 h-2 rounded-full mt-3">
-                        <div class="bg-orange-500 h-2 rounded-full" style="width: 0%"></div>
+                        <div id="weight-progress-bar" class="bg-orange-500 h-2 rounded-full" style="width: 0%"></div>
                     </div>
-                    <p class="text-xs text-slate-400 mt-2">7kg to lose (0% progress)</p>
+                    <p id="weight-meta" class="text-xs text-slate-400 mt-2">--kg to lose (0% progress)</p>
+                    <div class="mt-4 h-32">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Fueling Audit</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <p class="text-xs text-slate-600">90g Carbs / hour (Long Runs)</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <p class="text-xs text-slate-600">900mg Sodium / hour</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <p class="text-xs text-slate-600">Pre-run: 50g Carbs</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Garmin Status</h2>
                     <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <p class="text-sm font-medium text-slate-900">Synced</p>
+                        <div id="sync-indicator" class="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <p id="sync-status" class="text-sm font-medium text-slate-900">Synced</p>
                     </div>
-                    <p class="text-xs text-slate-500 mt-1">95 workouts uploaded</p>
+                    <p id="sync-meta" class="text-xs text-slate-500 mt-1">Loading...</p>
                 </div>
 
                 <div id="context-area" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 prose prose-sm max-w-none">
                     <!-- Context will be loaded here -->
                     Loading context...
+                </div>
+
+                <div id="recent-activities" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Recent Activities</h2>
+                    <div id="activities-list" class="space-y-3">
+                        <!-- Activities will be loaded here -->
+                        <p class="text-xs text-slate-400 italic">No recent activities found.</p>
+                    </div>
                 </div>
             </div>
 
@@ -113,17 +143,25 @@
 
         async function loadDashboard() {
             try {
-                // Load Plan JSON
-                const planResponse = await fetch('plan.json');
-                const planData = await planResponse.json();
-                renderPlan(planData);
+                const [planRes, contextRes, actualsRes] = await Promise.all([
+                    fetch('plan.json').then(r => r.json()),
+                    fetch('context.json').then(r => r.json()),
+                    fetch('actuals.json').then(r => r.json()).catch(() => [])
+                ]);
 
-                // Load Context JSON
-                const contextResponse = await fetch('context.json');
-                const contextData = await contextResponse.json();
+                const planData = planRes;
+                const contextData = contextRes;
+                const actualsData = Array.isArray(actualsRes) ? actualsRes : [];
+
                 updateSidebar(contextData);
-
+                renderPlan(planData, actualsData);
+                renderRecentActivities(actualsData);
+                renderWeightChart(contextData.runner.weight_kg);
                 highlightCurrentWeek();
+
+                // Update Sync Status
+                document.getElementById('sync-meta').textContent = `Last updated: ${contextData.status.lastUpdated}`;
+                
             } catch (error) {
                 console.error('Error loading dashboard:', error);
             }
@@ -138,18 +176,18 @@
             document.querySelector('.lg\\:col-span-1 > div:nth-child(2) p:nth-child(2)').innerText = data.status.phase;
             document.querySelector('.lg\\:col-span-1 > div:nth-child(2) p:nth-child(3)').innerText = data.status.nextAction;
 
-            // Update Weight
-            const currentWeight = data.runner.weight_kg.current;
-            const targetWeight = data.runner.weight_kg.target;
-            const startWeight = 97; // Hardcoded for now as a baseline
-            const weightToLose = currentWeight - targetWeight;
-            const totalToLose = startWeight - targetWeight;
-            const progress = totalToLose > 0 ? Math.max(0, Math.min(100, ((startWeight - currentWeight) / totalToLose) * 100)) : 0;
+            // Update Weight Tracker Card
+            const current = data.runner.weight_kg.current;
+            const target = data.runner.weight_kg.target;
+            const start = data.runner.weight_kg.history[0].weight;
+            const totalToLose = start - target;
+            const lostSoFar = start - current;
+            const progressPercent = totalToLose > 0 ? Math.max(0, Math.min(100, (lostSoFar / totalToLose) * 100)) : 0;
 
-            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) p:nth-child(1)').innerText = `${currentWeight}kg`;
-            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) p:nth-child(2)').innerText = `/ ${targetWeight}kg target`;
-            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) .bg-orange-500').style.width = `${progress}%`;
-            document.querySelector('.lg\\:col-span-1 > div:nth-child(3) p.text-xs').innerText = `${weightToLose}kg to lose (${Math.round(progress)}% progress)`;
+            document.getElementById('current-weight').textContent = `${current}kg`;
+            document.getElementById('target-weight').textContent = `/ ${target}kg target`;
+            document.getElementById('weight-progress-bar').style.width = `${progressPercent}%`;
+            document.getElementById('weight-meta').textContent = `${(current - target).toFixed(1)}kg to lose (${progressPercent.toFixed(0)}% progress)`;
 
             // Update Context Area with Philosophy
             const contextArea = document.getElementById('context-area');
@@ -176,9 +214,61 @@
             `;
         }
 
-        function renderPlan(weeks) {
+        function renderWeightChart(weightData) {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            const history = weightData.history || [];
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: history.map(h => new Date(h.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })),
+                    datasets: [{
+                        label: 'Weight (kg)',
+                        data: history.map(h => h.weight),
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPlan(weeks, actuals) {
             const tbody = document.getElementById('plan-body');
             tbody.innerHTML = '';
+
+            if (!Array.isArray(weeks)) {
+                console.error('Plan data is not an array:', weeks);
+                return;
+            }
+
+            // Group actuals by date
+            const actualsByDate = (Array.isArray(actuals) ? actuals : []).reduce((acc, act) => {
+                if (!acc[act.date]) acc[act.date] = [];
+                acc[act.date].push(act);
+                return acc;
+            }, {});
 
             weeks.forEach(week => {
                 const row = document.createElement('tr');
@@ -193,7 +283,10 @@
                 // Day Cells
                 ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].forEach(day => {
                     const dayData = week.days[day];
-                    const workouts = dayData.workouts.map(w => {
+                    const dayDate = dayData.date;
+                    
+                    // Planned Workouts
+                    const plannedHtml = dayData.workouts.map(w => {
                         let color = 'text-slate-600';
                         if (w.type === 'Intervals') color = 'text-purple-600 font-semibold';
                         if (w.type === 'Threshold') color = 'text-red-600 font-semibold';
@@ -201,13 +294,64 @@
                         if (w.type === 'Race') color = 'text-orange-600 font-bold';
                         return `<div class="${color}">${w.name}</div>`;
                     }).join('');
+
+                    // Actual Activities
+                    const dayActuals = actualsByDate[dayDate] || [];
+                    const actualHtml = dayActuals.map(act => {
+                        const distKm = (act.distance_m / 1000).toFixed(1);
+                        const paceMinKm = act.average_pace_m_s > 0 ? 
+                            formatPace(1000 / act.average_pace_m_s) : '--:--';
+                        
+                        return `
+                            <div class="mt-2 pt-2 border-t border-slate-50 text-[10px] text-slate-400 flex flex-col">
+                                <span class="font-bold text-green-600">✓ ${distKm}k @ ${paceMinKm}</span>
+                                <span>${act.name}</span>
+                            </div>
+                        `;
+                    }).join('');
                     
-                    html += `<td class="p-4">${workouts || '<span class="text-slate-300">Rest</span>'}</td>`;
+                    html += `
+                        <td class="p-4 align-top">
+                            ${plannedHtml || '<span class="text-slate-300">Rest</span>'}
+                            ${actualHtml}
+                        </td>
+                    `;
                 });
 
                 row.innerHTML = html;
                 tbody.appendChild(row);
             });
+        }
+
+        function renderRecentActivities(actuals) {
+            const list = document.getElementById('activities-list');
+            if (!actuals || actuals.length === 0) return;
+
+            list.innerHTML = actuals.slice(0, 5).map(act => {
+                const distKm = (act.distance_m / 1000).toFixed(1);
+                const paceMinKm = act.average_pace_m_s > 0 ? 
+                    formatPace(1000 / act.average_pace_m_s) : '--:--';
+                const date = new Date(act.date).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
+                
+                return `
+                    <div class="flex justify-between items-start border-b border-slate-50 pb-2 last:border-0">
+                        <div>
+                            <p class="text-xs font-bold text-slate-900">${act.name}</p>
+                            <p class="text-[10px] text-slate-500">${date} • ${act.type}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-bold text-green-600">${distKm}k</p>
+                            <p class="text-[10px] text-slate-400">${paceMinKm}/k</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatPace(secondsPerKm) {
+            const mins = Math.floor(secondsPerKm / 60);
+            const secs = Math.round(secondsPerKm % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
         function highlightCurrentWeek() {

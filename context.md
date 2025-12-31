@@ -4,7 +4,7 @@
 
 ## Runner Profile
 - **Age/Gender:** 48-year-old Male
-- **Physicals:** 185cm, 97kg (Current) -> **Target: 90kg** by Race Day.
+- **Physicals:** 185cm, 96.5kg (Current) -> **Target: 90kg** by Race Day.
 - **Personal Bests:**
   - 5km: 22:06 (May 2025)
   - 10km: 46:48 (Oct 2025)
@@ -41,6 +41,6 @@
 - **Date:** 2025-12-31
 - **Phase:** Pre-season
 - **Architecture:** JSON-first data layer (plan.json, context.json) with automated Markdown generation.
-- **Garmin Sync:** Full 14-week plan (98 workouts) synced.
+- **Garmin Sync:** Plan synced. 3 actuals recorded.
 - **Tooling:** uv for dependency management.
 - **Next Action:** Start Week 1 on Jan 5 (65k total).

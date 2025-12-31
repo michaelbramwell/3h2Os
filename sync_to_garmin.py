@@ -53,41 +53,41 @@ class MarathonPlanSync:
 
         return entries
 
-    def get_pace_target(self, name: str) -> Optional[Dict[str, Any]]:
-        """Returns pace target in m/s for different workout types."""
-        if "MP" in name:
-            return {
-                "workoutTargetTypeId": 6,
-                "workoutTargetTypeKey": "pace.zone",
-                "targetValueOne": 1000 / (5.5 * 60),
-                "targetValueTwo": 1000 / (5.66 * 60)
-            }
-        elif "Thresh" in name:
-            return {
-                "workoutTargetTypeId": 6,
-                "workoutTargetTypeKey": "pace.zone",
-                "targetValueOne": 1000 / (4.66 * 60),
-                "targetValueTwo": 1000 / (4.83 * 60)
-            }
-        elif "Steady" in name:
-            return {
-                "workoutTargetTypeId": 6,
-                "workoutTargetTypeKey": "pace.zone",
-                "targetValueOne": 1000 / (5.16 * 60),
-                "targetValueTwo": 1000 / (5.33 * 60)
-            }
-        elif "Easy" in name or "Recov" in name or "Trail" in name or "PLR" in name:
-            return {
-                "workoutTargetTypeId": 6,
-                "workoutTargetTypeKey": "pace.zone",
-                "targetValueOne": 1000 / (6.25 * 60), # 6:15
-                "targetValueTwo": 1000 / (6.75 * 60)  # 6:45
-            }
-        
+def get_pace_target(name: str) -> Optional[Dict[str, Any]]:
+    """Returns pace target in m/s for different workout types."""
+    if "MP" in name:
         return {
-            "workoutTargetTypeId": 1,
-            "workoutTargetTypeKey": "no.target"
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (5.5 * 60),
+            "targetValueTwo": 1000 / (5.66 * 60)
         }
+    elif "Thresh" in name:
+        return {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (4.66 * 60),
+            "targetValueTwo": 1000 / (4.83 * 60)
+        }
+    elif "Steady" in name:
+        return {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (5.16 * 60),
+            "targetValueTwo": 1000 / (5.33 * 60)
+        }
+    elif "Easy" in name or "Recov" in name or "Trail" in name or "PLR" in name:
+        return {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (6.25 * 60), # 6:15
+            "targetValueTwo": 1000 / (6.75 * 60)  # 6:45
+        }
+    
+    return {
+        "workoutTargetTypeId": 1,
+        "workoutTargetTypeKey": "no.target"
+    }
 
     def cleanup_existing_workouts(self, entries: List[Dict[str, Any]]):
         """Deletes existing workouts that match names in the plan to avoid duplicates."""
@@ -119,7 +119,7 @@ class MarathonPlanSync:
 
         for entry in entries:
             try:
-                target = self.get_pace_target(entry["name"])
+                target = get_pace_target(entry["name"])
                 
                 # Calculate estimated duration based on target pace or default 6:30 min/km
                 if target.get("targetValueOne") and target.get("targetValueTwo"):

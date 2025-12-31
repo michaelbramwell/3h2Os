@@ -1,0 +1,35 @@
+[
+  {
+    "date": "2025-12-30",
+    "name": "Perth - Threshold",
+    "type": "running",
+    "distance_m": 11225.33984375,
+    "duration_s": 3856.742919921875,
+    "average_pace_m_s": 2.9110000133514404,
+    "average_hr": 135.0,
+    "calories": 998.0,
+    "activityId": 21388559916
+  },
+  {
+    "date": "2025-12-28",
+    "name": "Perth Running",
+    "type": "running",
+    "distance_m": 17154.759765625,
+    "duration_s": 6394.5390625,
+    "average_pace_m_s": 2.683000087738037,
+    "average_hr": 131.0,
+    "calories": 1581.0,
+    "activityId": 21369366278
+  },
+  {
+    "date": "2025-12-27",
+    "name": "Perth Running",
+    "type": "running",
+    "distance_m": 5032.1201171875,
+    "duration_s": 1576.9630126953125,
+    "average_pace_m_s": 3.190999984741211,
+    "average_hr": 173.0,
+    "calories": 595.0,
+    "activityId": 21359816980
+  }
+]
