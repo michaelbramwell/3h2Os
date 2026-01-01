@@ -69,11 +69,13 @@ If you need to modify the training schedule:
    ```
 
 ### 5. Tracking Progress
-To pull your actual running data from Garmin and update the dashboard:
+You can manually pull your actual running data from Garmin:
 ```bash
 uv run fetch_actuals.py
 ```
-This will update `actuals.json` and the dashboard will display your completed runs (distance and pace) alongside the planned workouts.
+This updates `actuals.json` and the dashboard.
+
+**Automation:** This project includes a GitHub Action that runs nightly to fetch your latest Garmin activities and update the dashboard automatically. To enable this, add `GARMIN_EMAIL` and `GARMIN_PASSWORD` to your repository secrets.
 
 ### 6. Weight Management
 To update your current weight and track progress:
