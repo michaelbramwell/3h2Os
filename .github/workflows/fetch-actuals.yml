@@ -1,0 +1,43 @@
+name: Fetch Garmin Actuals
+
+on:
+  schedule:
+    # Run every night at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    # Allow manual triggering from the GitHub Actions tab
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Fetch Actuals from Garmin
+        env:
+          GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
+          GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
+        run: uv run fetch_actuals.py
+
+      - name: Regenerate Documentation
+        run: uv run generate_plan_md.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add actuals.json context.json context.md marathon_plan.md
+          # Only commit if there are changes
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated Garmin actuals fetch and doc regeneration" && git push)

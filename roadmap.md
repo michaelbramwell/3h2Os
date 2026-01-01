@@ -14,7 +14,7 @@
 ## Phase 2: Data Integration (Weeks 1-4)
 - [x] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard.
 - [x] **Weight Integration:** Mechanism to update current weight and track history via `update_weight.py`.
-- [ ] **GitHub Actions Automation:** Automate `fetch_actuals.py` to run nightly and update the dashboard.
+- [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` to run nightly and update the dashboard.
 - [ ] **Fueling Audit:** Log actual carb/sodium intake for Sunday PLRs to ensure 90/900 compliance.
 
 ## Phase 3: Performance Analytics (Weeks 5-10)
