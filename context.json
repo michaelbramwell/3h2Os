@@ -68,10 +68,10 @@
     }
   },
   "status": {
-    "lastUpdated": "2025-12-31",
+    "lastUpdated": "2026-01-01",
     "phase": "Pre-season",
     "architecture": "JSON-first data layer (plan.json, context.json) with automated Markdown generation.",
-    "garminSync": "Plan synced. 3 actuals recorded.",
+    "garminSync": "Plan synced. 4 actuals recorded.",
     "tooling": "uv for dependency management.",
     "nextAction": "Start Week 1 on Jan 5 (65k total)."
   }

@@ -1,5 +1,16 @@
 [
   {
+    "date": "2025-12-31",
+    "name": "Perth Running",
+    "type": "running",
+    "distance_m": 6650.14013671875,
+    "duration_s": 2705.93994140625,
+    "average_pace_m_s": 2.4579999446868896,
+    "average_hr": 137.0,
+    "calories": 686.0,
+    "activityId": 21397967214
+  },
+  {
     "date": "2025-12-30",
     "name": "Perth - Threshold",
     "type": "running",
