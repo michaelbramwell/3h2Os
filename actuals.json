@@ -1,46 +1,24 @@
 [
   {
-    "date": "2025-12-31",
-    "name": "Perth Running",
-    "type": "running",
-    "distance_m": 6650.14013671875,
-    "duration_s": 2705.93994140625,
-    "average_pace_m_s": 2.4579999446868896,
-    "average_hr": 137.0,
-    "calories": 686.0,
-    "activityId": 21397967214
+    "date": "2026-01-05",
+    "name": "Perth Cycling",
+    "type": "cycling",
+    "distance_m": 30063.0390625,
+    "duration_s": 5992.05908203125,
+    "average_pace_m_s": 5.017000198364257,
+    "average_hr": 121.0,
+    "calories": 1099.0,
+    "activityId": 21449289882
   },
   {
-    "date": "2025-12-30",
-    "name": "Perth - Threshold",
-    "type": "running",
-    "distance_m": 11225.33984375,
-    "duration_s": 3856.742919921875,
-    "average_pace_m_s": 2.9110000133514404,
-    "average_hr": 135.0,
-    "calories": 998.0,
-    "activityId": 21388559916
-  },
-  {
-    "date": "2025-12-28",
-    "name": "Perth Running",
-    "type": "running",
-    "distance_m": 17154.759765625,
-    "duration_s": 6394.5390625,
-    "average_pace_m_s": 2.683000087738037,
-    "average_hr": 131.0,
-    "calories": 1581.0,
-    "activityId": 21369366278
-  },
-  {
-    "date": "2025-12-27",
-    "name": "Perth Running",
-    "type": "running",
-    "distance_m": 5032.1201171875,
-    "duration_s": 1576.9630126953125,
-    "average_pace_m_s": 3.190999984741211,
-    "average_hr": 173.0,
-    "calories": 595.0,
-    "activityId": 21359816980
+    "date": "2026-01-05",
+    "name": "Perth Cycling",
+    "type": "cycling",
+    "distance_m": 30259.109375,
+    "duration_s": 5202.77587890625,
+    "average_pace_m_s": 5.815999984741211,
+    "average_hr": 122.0,
+    "calories": 996.0,
+    "activityId": 21446203643
   }
 ]

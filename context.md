@@ -41,6 +41,6 @@
 - **Date:** 2026-01-06
 - **Phase:** Week 1
 - **Architecture:** JSON-first data layer (plan.json, context.json) with automated Markdown generation.
-- **Garmin Sync:** v0.0.6: Automated nightly sync at 00:00 AWST.
+- **Garmin Sync:** Plan synced. 2 actuals recorded.
 - **Tooling:** uv and GitHub Actions.
 - **Next Action:** Monitor Garmin actuals for 8k Easy tomorrow.
