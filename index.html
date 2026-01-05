@@ -26,11 +26,31 @@
             background-color: #fef3c7 !important;
             border: 2px solid #f59e0b !important;
         }
+        @media print {
+            /* Hide everything by default */
+            body > * {
+                display: none !important;
+            }
+            /* Explicitly show the print section */
+            #print-section {
+                display: block !important;
+                position: relative !important;
+                width: 100% !important;
+                background: white !important;
+                color: black !important;
+            }
+            /* Clean up backgrounds for printing */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 md:p-8">
+    <div id="print-section" class="hidden"></div>
     <div class="max-w-6xl mx-auto">
-        <header class="mb-8 flex justify-between items-center">
+        <header class="mb-8 flex justify-between items-center no-print">
             <div>
                 <h1 class="text-3xl font-bold text-slate-900">Bunbury Marathon 2026</h1>
                 <p class="text-slate-600">Training Dashboard & Progress Tracker</p>
@@ -154,6 +174,8 @@
                     fetchJson('context.json').catch(() => ({})),
                     fetchJson('actuals.json').catch(() => [])
                 ]);
+
+                window.trainingPlan = planData;
 
                 if (Object.keys(contextData).length === 0) {
                     console.error('Context data is empty');
@@ -285,7 +307,7 @@
                 return acc;
             }, {});
 
-            weeks.forEach(week => {
+            weeks.forEach((week, index) => {
                 const row = document.createElement('tr');
                 row.className = 'border-b border-slate-100 hover:bg-slate-50 transition-colors';
                 row.dataset.start = week.weekStarting;
@@ -293,7 +315,15 @@
                 // Week Starting Cell
                 const date = new Date(week.weekStarting);
                 const dateStr = date.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' });
-                let html = `<td class="p-4 font-medium text-slate-900">${dateStr}</td>`;
+                let html = `
+                    <td class="p-4 align-top">
+                        <div class="font-medium text-slate-900">${dateStr}</div>
+                        <div class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Week ${index + 1}</div>
+                        <button onclick='printWeek(${index})' class="mt-2 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded no-print">
+                            Fridge
+                        </button>
+                    </td>
+                `;
 
                 // Day Cells
                 ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].forEach(day => {
@@ -383,6 +413,83 @@
                     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             });
+        }
+
+        function printWeek(index) {
+            const week = window.trainingPlan[index];
+            const weekNum = index + 1;
+            const printSection = document.getElementById('print-section');
+            const dateStr = new Date(week.weekStarting).toLocaleDateString('en-AU', { month: 'long', day: 'numeric', year: 'numeric' });
+            
+            let html = `
+                <div class="p-6 border-4 border-slate-900 min-h-screen bg-white text-sm">
+                    <div class="flex justify-between items-baseline mb-6 border-b-4 border-slate-900 pb-3">
+                        <h1 class="text-3xl font-black uppercase">Week ${weekNum}</h1>
+                        <p class="text-lg font-bold text-slate-600">Starting ${dateStr}</p>
+                    </div>
+
+                    <div class="space-y-3">
+            `;
+
+            ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].forEach(day => {
+                const dayData = week.days[day];
+                const workouts = dayData.workouts;
+                const date = new Date(dayData.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                
+                html += `
+                    <div class="flex items-start gap-6 border-b border-slate-100 pb-2">
+                        <div class="w-20 flex-shrink-0">
+                            <p class="text-lg font-black uppercase leading-none">${day}</p>
+                            <p class="text-[11px] font-bold text-slate-400 mt-1">${date}</p>
+                        </div>
+                        <div class="flex-grow">
+                            ${workouts.length > 0 ? workouts.map(w => `
+                                <div class="flex items-center gap-3 mb-1">
+                                    <div class="w-5 h-5 border-2 border-slate-900 flex-shrink-0"></div>
+                                    <div>
+                                        <p class="text-base font-bold leading-tight">${w.name}</p>
+                                    </div>
+                                </div>
+                            `).join('') : `
+                                <div class="flex items-center gap-3">
+                                    <div class="w-5 h-5 border border-slate-200 flex-shrink-0"></div>
+                                    <p class="text-base font-bold text-slate-300 uppercase italic">Rest Day</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+
+                    <div class="mt-8 grid grid-cols-2 gap-8 pt-6 border-t-4 border-slate-900">
+                        <div>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Paces</h3>
+                            <p class="font-bold">Easy: 5:45-6:15 | Steady: 5:10-5:20</p>
+                            <p class="font-bold">MP: 5:30-5:40 | <span class="text-red-600">Threshold: 4:40-4:50</span></p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">90/900 Rule</h3>
+                            <p class="font-bold text-base">90g Carbs + 900mg Sodium / hr</p>
+                            <p class="italic text-slate-500 text-xs">Practice on Sunday PLR.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Notes / Vitals</h3>
+                        <div class="h-20 w-full border-2 border-dashed border-slate-200"></div>
+                    </div>
+                </div>
+            `;
+
+            printSection.innerHTML = html;
+            
+            // Add a small delay for Chrome to render the new content
+            setTimeout(() => {
+                window.print();
+            }, 250);
         }
 
         loadDashboard();

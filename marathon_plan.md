@@ -4,20 +4,20 @@
 
 | Week Starting | Mon | Tue | Wed (AM/PM) | Thu (Trail) | Fri | Sat | Sun (Long Run) | Total |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Jan 5 | Rest | 8k Easy | 6k Steady / 10k Int | 17k Trail | Rest | 6k (Tempo PR) | 18k PLR (Last 3k @ 5:30) | 65k |
-| Jan 12 | Rest | 10k Steady | 8k Steady / 10k Int | 17k Trail | 5k Recov | 6k (Sub-22 Attempt #1) | 20k PLR (Last 5k @ 5:25) | 76k |
-| Jan 19 | Rest | 12k Easy | 10k (5k S / 5k T) / 10k Int | 17k Trail | 7k Recov | 7k (Tempo PR) | 24k PLR VEST TEST (Last 8k @ 5:20) | 92k |
-| Jan 26 | Rest | 8k Easy | 6k Easy / 10k Int | 17k Trail | Rest | 7k (Sub-22 Attempt #2) | 18k Easy (Recov week) | 66k |
-| Feb 2 | Rest | 8k Easy | 6k Easy / 10k Int | 17k Trail | Rest | BUSSO 1 / 2 | 5k Walk / Jog | 46k |
-| Feb 9 | Rest | 10k Easy | 8k Steady / 10k Int | 17k Trail | 6k Recov | 7k (Easy PR) | 18k Easy (Post-race) | 76k |
-| Feb 16 | Rest | 12k Easy | 12k (6k S / 6k T) / 10k Int | 17k Trail | 8k Recov | 10k (Tempo PR) | 26k PLR (Last 10k @ 5:30) | 101k |
-| Feb 23 | Rest | 14k Easy | 14k (7k S / 7k T) / 10k Int | 17k Trail | 10k Recov | 10k (Sub-22 Attempt #3) | 22k PLR VEST TEST (Last 6k @ 5:25) | 104k |
-| Mar 2 | Rest | 10k Easy | 10k Steady / 10k Int | 17k Trail | 5k Recov | 7k (Tempo PR) | 18k Easy (Recov week) | 77k |
-| Mar 9 | Rest | 14k Easy | 15k (5k S / 10k T) / 10k Int | 17k Trail | 10k Recov | 10k (Tempo PR) | 32k THE ATTACK (15k @ 5:35) | 118k |
-| Mar 16 | Rest | 14k Easy | 15k Thresh / 10k Int | 17k Trail | 10k Recov | 10k (Tempo PR) | 35k VEST TEST (Final Peak) | 111k |
-| Mar 23 | Rest | 10k Easy | 10k Thresh / 10k Int | 17k Trail | 6k Recov | 7k (Sub-22 Final Attempt) | 21k PLR (Last 5k @ 5:15) | 81k |
-| Mar 30 | Rest | 8k Easy | 8k Thresh / 10k Int | 17k Trail | Rest | 7k (Easy PR) | 15k Easy (Taper) | 65k |
-| Apr 6 | Rest | 6k Easy | 5k Thresh / 10k Int | Rest | 4k Recov | Rest | BUNBURY 42.2k | 67k |
+| Jan 5<br>[Fridge](fridge/Week_01.md) | Rest | 8k Easy | 6k Steady / 10k Int | 17k Trail | Rest | 6k (Tempo PR) | 18k PLR (Last 3k @ 5:30) | 65k |
+| Jan 12<br>[Fridge](fridge/Week_02.md) | Rest | 10k Steady | 8k Steady / 10k Int | 17k Trail | 5k Recov | 6k (Sub-22 Attempt #1) | 20k PLR (Last 5k @ 5:25) | 76k |
+| Jan 19<br>[Fridge](fridge/Week_03.md) | Rest | 12k Easy | 10k (5k S / 5k T) / 10k Int | 17k Trail | 7k Recov | 7k (Tempo PR) | 24k PLR VEST TEST (Last 8k @ 5:20) | 92k |
+| Jan 26<br>[Fridge](fridge/Week_04.md) | Rest | 8k Easy | 6k Easy / 10k Int | 17k Trail | Rest | 7k (Sub-22 Attempt #2) | 18k Easy (Recov week) | 66k |
+| Feb 2<br>[Fridge](fridge/Week_05.md) | Rest | 8k Easy | 6k Easy / 10k Int | 17k Trail | Rest | BUSSO 1 / 2 | 5k Walk / Jog | 46k |
+| Feb 9<br>[Fridge](fridge/Week_06.md) | Rest | 10k Easy | 8k Steady / 10k Int | 17k Trail | 6k Recov | 7k (Easy PR) | 18k Easy (Post-race) | 76k |
+| Feb 16<br>[Fridge](fridge/Week_07.md) | Rest | 12k Easy | 12k (6k S / 6k T) / 10k Int | 17k Trail | 8k Recov | 10k (Tempo PR) | 26k PLR (Last 10k @ 5:30) | 101k |
+| Feb 23<br>[Fridge](fridge/Week_08.md) | Rest | 14k Easy | 14k (7k S / 7k T) / 10k Int | 17k Trail | 10k Recov | 10k (Sub-22 Attempt #3) | 22k PLR VEST TEST (Last 6k @ 5:25) | 104k |
+| Mar 2<br>[Fridge](fridge/Week_09.md) | Rest | 10k Easy | 10k Steady / 10k Int | 17k Trail | 5k Recov | 7k (Tempo PR) | 18k Easy (Recov week) | 77k |
+| Mar 9<br>[Fridge](fridge/Week_10.md) | Rest | 14k Easy | 15k (5k S / 10k T) / 10k Int | 17k Trail | 10k Recov | 10k (Tempo PR) | 32k THE ATTACK (15k @ 5:35) | 118k |
+| Mar 16<br>[Fridge](fridge/Week_11.md) | Rest | 14k Easy | 15k Thresh / 10k Int | 17k Trail | 10k Recov | 10k (Tempo PR) | 35k VEST TEST (Final Peak) | 111k |
+| Mar 23<br>[Fridge](fridge/Week_12.md) | Rest | 10k Easy | 10k Thresh / 10k Int | 17k Trail | 6k Recov | 7k (Sub-22 Final Attempt) | 21k PLR (Last 5k @ 5:15) | 81k |
+| Mar 30<br>[Fridge](fridge/Week_13.md) | Rest | 8k Easy | 8k Thresh / 10k Int | 17k Trail | Rest | 7k (Easy PR) | 15k Easy (Taper) | 65k |
+| Apr 6<br>[Fridge](fridge/Week_14.md) | Rest | 6k Easy | 5k Thresh / 10k Int | Rest | 4k Recov | Rest | BUNBURY 42.2k | 67k |
 
 ---
 

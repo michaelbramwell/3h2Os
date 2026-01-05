@@ -18,11 +18,12 @@ def generate_marathon_plan():
     md_content.append(header)
     md_content.append(separator)
 
-    for week in plan_data:
+    for i, week in enumerate(plan_data):
         date_obj = datetime.strptime(week["weekStarting"], "%Y-%m-%d")
         date_str = date_obj.strftime("%b %-d")
+        week_num = i + 1
         
-        row = [date_str]
+        row = [f"{date_str}<br>[Fridge](fridge/Week_{week_num:02d}.md)"]
         total_dist = 0
         
         for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]:

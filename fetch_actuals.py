@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 
 from dotenv import load_dotenv
@@ -82,7 +82,9 @@ class GarminActualsFetcher:
             with open("context.json", "r") as f:
                 context = json.load(f)
             
-            context["status"]["lastUpdated"] = datetime.now().strftime("%Y-%m-%d")
+            # Use AWST (UTC+8) for the update timestamp
+            awst_now = get_awst_now()
+            context["status"]["lastUpdated"] = awst_now.strftime("%Y-%m-%d")
             context["status"]["garminSync"] = f"Plan synced. {len(activities)} actuals recorded."
             
             with open("context.json", "w") as f:
@@ -91,19 +93,24 @@ class GarminActualsFetcher:
         except Exception as e:
             logger.error(f"Failed to update context.json: {e}")
 
+def get_awst_now():
+    """Returns the current time in AWST (UTC+8)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)
+
 def main():
     fetcher = GarminActualsFetcher()
     
+    # Use AWST (UTC+8) for "today"
+    awst_now = get_awst_now()
+    
     # Plan starts Jan 5, 2026. We'll fetch from then until today.
-    # Since today is Dec 31, 2025, we'll fetch a small range for testing if needed,
-    # but the logic should target the plan dates.
     start_date = "2026-01-05"
-    end_date = datetime.now().strftime("%Y-%m-%d")
+    end_date = awst_now.strftime("%Y-%m-%d")
     
     # If today is before the plan start, let's just fetch the last 7 days for testing
     if end_date < start_date:
         logger.info("Today is before plan start. Fetching last 7 days for testing purposes.")
-        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+        start_date = (awst_now - timedelta(days=7)).strftime("%Y-%m-%d")
 
     activities = fetcher.fetch_activities(start_date, end_date)
     fetcher.save_actuals(activities)

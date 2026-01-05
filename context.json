@@ -36,7 +36,8 @@
     "endDate": "2026-04-12",
     "peakVolume_km": 111,
     "frequencyDaysPerWeek": 6,
-    "strategy": "Smoothed ramp-up to minimize injury risk"
+    "strategy": "Smoothed ramp-up to minimize injury risk",
+    "timezone": "AWST (UTC+8)"
   },
   "milestones": [
     {
@@ -68,11 +69,11 @@
     }
   },
   "status": {
-    "lastUpdated": "2026-01-01",
-    "phase": "Pre-season",
+    "lastUpdated": "2026-01-05",
+    "phase": "Week 1",
     "architecture": "JSON-first data layer (plan.json, context.json) with automated Markdown generation.",
-    "garminSync": "Plan synced. 4 actuals recorded.",
+    "garminSync": "Plan synced. All systems aligned with Perth time.",
     "tooling": "uv for dependency management.",
-    "nextAction": "Start Week 1 on Jan 5 (65k total)."
+    "nextAction": "Monitor Garmin actuals for 8k Easy tomorrow."
   }
 }

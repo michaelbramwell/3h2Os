@@ -38,9 +38,9 @@
   - **Sunday:** Progressive Long Runs (PLR) and 'Vest Tests' using Salomon trail vest.
 
 ## Current Status
-- **Date:** 2026-01-01
-- **Phase:** Pre-season
+- **Date:** 2026-01-05
+- **Phase:** Week 1
 - **Architecture:** JSON-first data layer (plan.json, context.json) with automated Markdown generation.
-- **Garmin Sync:** Plan synced. 4 actuals recorded.
+- **Garmin Sync:** Plan synced. All systems aligned with Perth time.
 - **Tooling:** uv for dependency management.
-- **Next Action:** Start Week 1 on Jan 5 (65k total).
+- **Next Action:** Monitor Garmin actuals for 8k Easy tomorrow.
