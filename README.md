@@ -48,7 +48,7 @@ uv run python -m http.server 8000
 The dashboard is automatically hosted at:
 `https://michaelbramwell.github.io/3h2Os/`
 
-### 3. Sync to Garmin
+### 4. Sync to Garmin
 1. Copy `.env.example` to `.env`.
 2. Add your Garmin Connect credentials.
 3. Run the sync script:
@@ -56,7 +56,7 @@ The dashboard is automatically hosted at:
 uv run sync_to_garmin.py
 ```
 
-### 4. Updating the Plan
+### 5. Updating the Plan
 If you need to modify the training schedule:
 1. Edit `plan.json`.
 2. Update the Markdown reference:

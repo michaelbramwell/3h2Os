@@ -9,12 +9,11 @@
 - [x] Migration to `uv` for modern dependency management.
 - [x] **JSON-First Architecture:** `plan.json` and `context.json` as the single sources of truth.
 - [x] **Automated Documentation:** `generate_plan_md.py` to keep `marathon_plan.md` and `context.md` in sync.
-- [x] **Secure Deployment:** Configured SSH for GitHub authentication.
 
 ## Phase 2: Data Integration (Weeks 1-4)
 - [x] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard.
 - [x] **Weight Integration:** Mechanism to update current weight and track history via `update_weight.py`.
-- [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` to run nightly and update the dashboard.
+- [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` to run nightly at 00:00 AWST.
 - [x] **Fridge Mode:** Print-friendly weekly sheets available via dashboard and CLI.
 - [ ] **Fueling Audit:** Log actual carb/sodium intake for Sunday PLRs to ensure 90/900 compliance.
 

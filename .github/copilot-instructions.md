@@ -16,3 +16,7 @@ When working in this workspace, always refer to the following files to maintain 
 - Maintain the "Training Philosophy" (e.g., Monday Rest, Wednesday Doubles, Thursday Trails) when suggesting adjustments.
 - Update [context.json](context.json) when milestones are reached or goals change.
 - **Self-Update Protocol:** At the start of each session, review the project structure, `plan.json`, `context.json`, and `roadmap.md`. Proactively suggest updates to `context.json` to ensure the "status" remains accurate.
+
+### Infrastructure:
+- **Timezone:** All automated logic and date-logging MUST use AWST (Perth, UTC+8).
+
