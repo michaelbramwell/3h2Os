@@ -1,6 +1,6 @@
 # Project Roadmap: 3h2Os
 
-## Current Version: v0.0.2
+## Current Version: v0.0.6 (Training Block Kickoff)
 
 ## Phase 1: Foundation (Complete)
 - [x] Structured 14-week training plan in Markdown.
