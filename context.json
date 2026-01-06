@@ -10,7 +10,7 @@
     "gender": "Male",
     "height_cm": 185,
     "weight_kg": {
-      "current": 96.5,
+      "current": 95.4,
       "target": 90,
       "history": [
         {
@@ -20,6 +20,10 @@
         {
           "date": "2025-12-31",
           "weight": 96.5
+        },
+        {
+          "date": "2026-01-06",
+          "weight": 95.4
         }
       ]
     },
@@ -63,8 +67,9 @@
       "fueling": "90g Carbs/hr + 900mg Sodium/hr (Bix gels and drink mix)."
     },
     "weeklyStructure": {
+      "Monday": "Rest from running. Optional 60km bike commute for low-impact aerobic base.",
       "Wednesday": "Double-intensity days (Threshold AM / Intervals PM).",
-      "Thursday": "Trail volume for quad strength (descending technique).",
+      "Thursday": "PM/Evening Trail volume for quad strength (descending technique).",
       "Sunday": "Progressive Long Runs (PLR) and 'Vest Tests' using Salomon trail vest."
     }
   },
@@ -72,8 +77,9 @@
     "lastUpdated": "2026-01-06",
     "phase": "Week 1",
     "architecture": "JSON-first data layer (plan.json, context.json) with automated Markdown generation.",
-    "garminSync": "Plan synced. 2 actuals recorded.",
+    "garminSync": "Plan synced. 3 actuals recorded.",
     "tooling": "uv and GitHub Actions.",
-    "nextAction": "Monitor Garmin actuals for 8k Easy tomorrow."
+    "recentNotes": "Barefoot beach 8k completed. Strong mechanical resilience after 60k bike commute.",
+    "nextAction": "Wednesday Double: 6k Steady (AM) / 10k Intervals (PM)."
   }
 }

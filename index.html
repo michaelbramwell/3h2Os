@@ -337,7 +337,12 @@
                         if (w.type === 'Threshold') color = 'text-red-600 font-semibold';
                         if (w.type === 'Steady') color = 'text-blue-600 font-semibold';
                         if (w.type === 'Race') color = 'text-orange-600 font-bold';
-                        return `<div class="${color}">${w.name}</div>`;
+                        return `
+                            <div class="mb-1 pb-1 ${dayData.workouts.length > 1 ? 'border-b border-slate-50 last:border-0' : ''}">
+                                <div class="text-[9px] uppercase font-black text-slate-400 leading-none mb-0.5">${w.timeOfDay || ''}</div>
+                                <div class="${color} leading-tight">${w.name}</div>
+                            </div>
+                        `;
                     }).join('');
 
                     // Actual Activities
@@ -443,16 +448,17 @@
                             <p class="text-[11px] font-bold text-slate-400 mt-1">${date}</p>
                         </div>
                         <div class="flex-grow">
-                            ${workouts.length > 0 ? workouts.map(w => `
-                                <div class="flex items-center gap-3 mb-1">
-                                    <div class="w-5 h-5 border-2 border-slate-900 flex-shrink-0"></div>
+                            ${workouts.length > 0 ? workouts.map((w, idx) => `
+                                <div class="flex items-center gap-3 ${idx < workouts.length - 1 ? 'mb-4 pb-4 border-b border-dashed border-slate-200' : 'mb-1'}">
+                                    <div class="w-6 h-6 border-2 border-slate-900 flex-shrink-0"></div>
                                     <div>
-                                        <p class="text-base font-bold leading-tight">${w.name}</p>
+                                        <p class="text-[11px] font-black uppercase text-slate-400 leading-none mb-1">${w.timeOfDay || 'AM'}</p>
+                                        <p class="text-lg font-black leading-tight">${w.name}</p>
                                     </div>
                                 </div>
                             `).join('') : `
                                 <div class="flex items-center gap-3">
-                                    <div class="w-5 h-5 border border-slate-200 flex-shrink-0"></div>
+                                    <div class="w-6 h-6 border border-slate-200 flex-shrink-0"></div>
                                     <p class="text-base font-bold text-slate-300 uppercase italic">Rest Day</p>
                                 </div>
                             `}

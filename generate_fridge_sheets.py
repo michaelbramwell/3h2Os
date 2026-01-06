@@ -38,7 +38,8 @@ def generate_fridge_sheets():
                 md.append("- [ ] **REST DAY**")
             else:
                 for w in workouts:
-                    md.append(f"- [ ] **{w['name']}** ({w['type']})")
+                    time_label = f"[{w['timeOfDay']}] " if 'timeOfDay' in w else ""
+                    md.append(f"- [ ] **{time_label}{w['name']}** ({w['type']})")
             
             md.append("")
 

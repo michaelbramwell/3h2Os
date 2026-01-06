@@ -4,7 +4,7 @@
 
 ## Runner Profile
 - **Age/Gender:** 48-year-old Male
-- **Physicals:** 185cm, 96.5kg (Current) -> **Target: 90kg** by Race Day.
+- **Physicals:** 185cm, 95.4kg (Current) -> **Target: 90kg** by Race Day.
 - **Personal Bests:**
   - 5km: 22:06 (May 2025)
   - 10km: 46:48 (Oct 2025)
@@ -33,14 +33,15 @@
   - **Metabolic:** Threshold Wednesdays (4:45 pace) to improve lactate clearance.
   - **Fueling:** 90g Carbs/hr + 900mg Sodium/hr (Bix gels and drink mix).
 - **Weekly Structure:**
+  - **Monday:** Rest from running. Optional 60km bike commute for low-impact aerobic base.
   - **Wednesday:** Double-intensity days (Threshold AM / Intervals PM).
-  - **Thursday:** Trail volume for quad strength (descending technique).
+  - **Thursday:** PM/Evening Trail volume for quad strength (descending technique).
   - **Sunday:** Progressive Long Runs (PLR) and 'Vest Tests' using Salomon trail vest.
 
 ## Current Status
 - **Date:** 2026-01-06
 - **Phase:** Week 1
 - **Architecture:** JSON-first data layer (plan.json, context.json) with automated Markdown generation.
-- **Garmin Sync:** Plan synced. 2 actuals recorded.
+- **Garmin Sync:** Plan synced. 3 actuals recorded.
 - **Tooling:** uv and GitHub Actions.
-- **Next Action:** Monitor Garmin actuals for 8k Easy tomorrow.
+- **Next Action:** Wednesday Double: 6k Steady (AM) / 10k Intervals (PM).

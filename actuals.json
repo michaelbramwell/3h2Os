@@ -1,5 +1,16 @@
 [
   {
+    "date": "2026-01-06",
+    "name": "Perth - 8k Easy",
+    "type": "running",
+    "distance_m": 8275.1796875,
+    "duration_s": 2901.35302734375,
+    "average_pace_m_s": 2.8519999980926514,
+    "average_hr": 135.0,
+    "calories": 779.0,
+    "activityId": 21455917734
+  },
+  {
     "date": "2026-01-05",
     "name": "Perth Cycling",
     "type": "cycling",

@@ -36,17 +36,16 @@ class GarminActualsFetcher:
 
     def filter_activities(self, activities: List[Dict[str, Any]], start_date: str, end_date: str) -> List[Dict[str, Any]]:
         """Filters raw Garmin activities by date range and maps to our schema."""
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        
         filtered_activities = []
         for act in activities:
             # act['startTimeLocal'] is usually "2025-12-31 08:00:00"
-            act_dt = datetime.strptime(act['startTimeLocal'], "%Y-%m-%d %H:%M:%S")
+            # We only care about the date part for the range comparison
+            act_date_str = act['startTimeLocal'].split(' ')[0]
             
-            if start_dt <= act_dt <= end_dt:
+            if start_date <= act_date_str <= end_date:
+                act_dt = datetime.strptime(act['startTimeLocal'], "%Y-%m-%d %H:%M:%S")
                 filtered_activities.append({
-                    "date": act_dt.strftime("%Y-%m-%d"),
+                    "date": act_date_str,
                     "name": act['activityName'],
                     "type": act['activityType']['typeKey'],
                     "distance_m": act['distance'],
