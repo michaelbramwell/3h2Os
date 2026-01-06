@@ -37,3 +37,4 @@
 - [ ] **API Service:** Develop a REST/GraphQL API to handle Garmin webhooks and frontend requests.
 - [ ] **Modern Frontend:** Transition to a React/Next.js dashboard with authenticated user profiles.
 - [ ] **Cloud-Native Auth:** Implement secure login via GitHub OAuth or Clerk.
+- [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week, with a simple "Accept/Decline" UX for the user.
