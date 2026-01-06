@@ -41,7 +41,7 @@
 ## Current Status
 - **Date:** 2026-01-06
 - **Phase:** Week 1
-- **Architecture:** JSON-first data layer (plan.json, context.json) with automated Markdown generation.
-- **Garmin Sync:** Plan synced. 3 actuals recorded.
+- **Architecture:** JSON-first data layer (v0.0.6). Long-term vision: Transition to SaaS (API + NoSQL DB).
+- **Garmin Sync:** v0.0.6: Automated nightly sync at 00:00 AWST.
 - **Tooling:** uv and GitHub Actions.
 - **Next Action:** Wednesday Double: 6k Steady (AM) / 10k Intervals (PM).

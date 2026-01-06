@@ -31,7 +31,9 @@
 - [ ] **Race Report:** Automated summary of splits and fueling effectiveness.
 - [ ] **Recovery Plan:** 4-week reverse-taper for injury prevention.
 
-## Phase 6: Platform Evolution (Future)
-- [ ] **Multi-User Support:** Transition from a personal repo to a multi-user application.
-- [ ] **GitHub Authentication:** Secure login using GitHub OAuth.
-- [ ] **Profile Management:** In-browser editing for goals, weight, and training parameters.
+## Phase 6: SaaS Transformation (Future)
+- [ ] **Multi-User Architecture:** Decouple from personal repo to a scalable multi-tenant SaaS.
+- [ ] **Database Layer:** Migrate from JSON flat-files to a NoSQL/Relational DB (e.g., Azure Cosmos DB for low-latency global distribution).
+- [ ] **API Service:** Develop a REST/GraphQL API to handle Garmin webhooks and frontend requests.
+- [ ] **Modern Frontend:** Transition to a React/Next.js dashboard with authenticated user profiles.
+- [ ] **Cloud-Native Auth:** Implement secure login via GitHub OAuth or Clerk.

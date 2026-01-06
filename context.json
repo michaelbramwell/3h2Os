@@ -76,8 +76,8 @@
   "status": {
     "lastUpdated": "2026-01-06",
     "phase": "Week 1",
-    "architecture": "JSON-first data layer (plan.json, context.json) with automated Markdown generation.",
-    "garminSync": "Plan synced. 3 actuals recorded.",
+    "architecture": "JSON-first data layer (v0.0.6). Long-term vision: Transition to SaaS (API + NoSQL DB).",
+    "garminSync": "v0.0.6: Automated nightly sync at 00:00 AWST.",
     "tooling": "uv and GitHub Actions.",
     "recentNotes": "Barefoot beach 8k completed. Strong mechanical resilience after 60k bike commute.",
     "nextAction": "Wednesday Double: 6k Steady (AM) / 10k Intervals (PM)."
