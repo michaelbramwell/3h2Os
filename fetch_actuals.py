@@ -59,8 +59,8 @@ class GarminActualsFetcher:
                 power_zones = []
                 pace_zones = []
 
-                # Fetch detailed zones for running/cycling
-                if act['activityType']['typeKey'] in ['running', 'cycling']:
+                # Fetch detailed zones for running/cycling/trail_running
+                if act['activityType']['typeKey'] in ['running', 'cycling', 'trail_running']:
                     # Try to get existing summaries to use as boundaries
                     raw_hr_summary = []
                     raw_power_summary = []
@@ -154,8 +154,8 @@ class GarminActualsFetcher:
                 prev_elapsed = curr_elapsed
                 continue
 
-            # Process Pace (ONLY for running)
-            if act_type == 'running' and speed_idx is not None and len(sm) > speed_idx and sm[speed_idx] is not None:
+            # Process Pace (ONLY for running/trail_running)
+            if act_type in ['running', 'trail_running'] and speed_idx is not None and len(sm) > speed_idx and sm[speed_idx] is not None:
                 val = sm[speed_idx]
                 zone = 0
                 for t in sorted(pace_proc, key=lambda x: x["lowBoundary"], reverse=True):

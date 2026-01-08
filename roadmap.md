@@ -15,6 +15,7 @@
 - [x] **Weight Integration:** Mechanism to update current weight and track history via `update_weight.py`.
 - [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` to run hourly.
 - [x] **Fridge Mode:** Print-friendly weekly sheets available via dashboard and CLI.
+- [x] **Zone Alignment:** Aligned pace zones with Strava ranges (Z1-Z6) and enriched documentation.
 - [ ] **Fueling Audit:** Log actual carb/sodium intake for Sunday PLRs to ensure 90/900 compliance.
 
 ## Phase 3: Performance Analytics (Weeks 5-10)

@@ -146,7 +146,7 @@ def generate_marathon_plan():
                 
                 telemetry = f" ({', '.join(parts)})" if parts else ""
                 
-                if act.type == "running":
+                if act.type in ["running", "trail_running"]:
                     week_actual_m += dist
                     cell_content.append(f"<br>**✓ {dist_km:.1f}k**{telemetry}")
                 else:

@@ -16,6 +16,9 @@
 - [ ] **[PM] 10k Int** (Intervals)
 
 ## THU (Jan 08)
+- [x] **ACTUAL: 4.56km** (133bpm, 310W) ✓
+- [x] **ACTUAL: 8.01km** (145bpm, 345W) ✓
+- [x] **ACTUAL: 4.68km** (127bpm, 342W) ✓
 - [x] **ACTUAL: 6.02km** (128bpm, 410W) ✓
 - [x] **[PM] 17k Trail** (Trail)
 
