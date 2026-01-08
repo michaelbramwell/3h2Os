@@ -34,6 +34,6 @@ def test_filter_activities():
     filtered = fetcher.filter_activities(raw_activities, "2026-01-05", "2026-01-10")
     
     assert len(filtered) == 1
-    assert filtered[0]["name"] == "Morning Run"
-    assert filtered[0]["date"] == "2026-01-06"
-    assert filtered[0]["distance_m"] == 5000
+    assert filtered[0].name == "Morning Run"
+    assert filtered[0].date == "2026-01-06"
+    assert filtered[0].distance_m == 5000

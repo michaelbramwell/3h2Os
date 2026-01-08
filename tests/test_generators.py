@@ -2,6 +2,7 @@ import json
 import os
 import pytest
 from generate_plan_md import generate_marathon_plan, generate_context_md
+from generate_fridge_sheets import generate_fridge_sheets
 
 def test_generate_marathon_plan(tmp_path):
     # Create a mock plan.json
@@ -25,6 +26,15 @@ def test_generate_marathon_plan(tmp_path):
     
     with open("plan.json", "w") as f:
         json.dump(plan_data, f)
+    
+    with open("context.json", "w") as f:
+        json.dump({
+            "runner": {"trainingZones": {"pace": []}},
+            "planOverview": {"timezone": "AWST"}
+        }, f)
+
+    with open("actuals.json", "w") as f:
+        json.dump([], f)
         
     generate_marathon_plan()
     
@@ -34,6 +44,36 @@ def test_generate_marathon_plan(tmp_path):
         assert "# Marathon Plan" in content
         assert "Jan 5" in content
         assert "5k Easy" in content
+
+def test_generate_fridge_sheets(tmp_path):
+    # Create a mock plan.json
+    plan_data = [
+        {
+            "weekStarting": "2026-01-05",
+            "days": {
+                "Mon": {"date": "2026-01-05", "workouts": [{"name": "8k Easy", "type": "Easy", "distance_m": 8000, "timeOfDay": "AM"}]},
+                "Tue": {"date": "2026-01-06", "workouts": []},
+                "Wed": {"date": "2026-01-07", "workouts": []},
+                "Thu": {"date": "2026-01-08", "workouts": []},
+                "Fri": {"date": "2026-01-09", "workouts": []},
+                "Sat": {"date": "2026-01-10", "workouts": []},
+                "Sun": {"date": "2026-01-11", "workouts": []}
+            }
+        }
+    ]
+    
+    os.chdir(tmp_path)
+    
+    with open("plan.json", "w") as f:
+        json.dump(plan_data, f)
+        
+    generate_fridge_sheets()
+    
+    assert os.path.exists("fridge/Week_01.md")
+    with open("fridge/Week_01.md", "r") as f:
+        content = f.read()
+        assert "WEEK 1 | FRIDGE SHEET" in content
+        assert "[AM] 8k Easy" in content
 
 def test_generate_context_md(tmp_path):
     # Create a mock context.json

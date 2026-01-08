@@ -4,7 +4,7 @@
 
 | Week Starting | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Stats (Planned / Actual / Proj) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Jan 5<br>[Fridge](fridge/Week_01.md) | Rest | 8k Easy **✓ 8.3k** | 6k Steady<br>10k Int | 17k Trail | Rest | 6k (Tempo PR) | 18k PLR (Last 3k @ 5:30) | Target: **65k**<br>Actual: **8.3k**<br>Proj: **65.3k** |
+| Jan 5<br>[Fridge](fridge/Week_01.md) | Rest<br><small>🚲 30.1k (121bpm, TE:2.3/1.0, L:48)</small><br><small>🚲 30.3k (122bpm, TE:2.3/1.0, L:45)</small> | 8k Easy<br>**✓ 8.3k** (135bpm, 393W, TE:2.5/0.0, L:46) | 6k Steady<br>10k Int | 17k Trail<br>**✓ 6.0k** (128bpm, 410W, TE:2.3/0.0, L:36) | Rest | 6k (Tempo PR) | 18k PLR (Last 3k @ 5:30) | Target: **65k**<br>Actual: **14.3k**<br>Proj: **38.3k**<br>Intensity: **0.4m** (Z4/5)<br>Load: **175** |
 | Jan 12<br>[Fridge](fridge/Week_02.md) | Rest | 10k Steady | 8k Steady<br>10k Int | 17k Trail | 5k Recov | 6k (Sub-22 Attempt #1) | 20k PLR (Last 5k @ 5:25) | Target: **76k**<br>Actual: **0.0k**<br>Proj: **76.0k** |
 | Jan 19<br>[Fridge](fridge/Week_03.md) | Rest | 12k Easy | 10k (5k S<br>5k T)<br>10k Int | 17k Trail | 7k Recov | 7k (Tempo PR) | 24k PLR VEST TEST (Last 8k @ 5:20) | Target: **92k**<br>Actual: **0.0k**<br>Proj: **92.0k** |
 | Jan 26<br>[Fridge](fridge/Week_04.md) | Rest | 8k Easy | 6k Easy<br>10k Int | 17k Trail | Rest | 7k (Sub-22 Attempt #2) | 18k Easy (Recov week) | Target: **66k**<br>Actual: **0.0k**<br>Proj: **66.0k** |

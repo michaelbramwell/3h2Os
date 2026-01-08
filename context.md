@@ -22,6 +22,16 @@
 - **Frequency:** 6 days/week
 - **Strategy:** Smoothed ramp-up to minimize injury risk
 
+## Training Zone Legend (Enriched Context)
+| Zone | Pace Range |
+| :--- | :--- |
+| Z1 | > 6:12 min/km |
+| Z2 | 5:21 - 6:12 min/km |
+| Z3 | 4:48 - 5:21 min/km |
+| Z4 | 4:29 - 4:48 min/km |
+| Z5 | 4:13 - 4:29 min/km |
+| Z6 | < 4:13 min/km |
+
 ## Key Milestones
 - **Busso 1/2:** 2026-02-07 (Tune-up race, target Sub-1:45)
 - **The Attack:** 2026-03-15 (32k with 15k @ 5:35)
@@ -39,9 +49,9 @@
   - **Sunday:** Progressive Long Runs (PLR) and 'Vest Tests' using Salomon trail vest.
 
 ## Current Status
-- **Date:** 2026-01-06
+- **Date:** 2026-01-08
 - **Phase:** Week 1
-- **Architecture:** JSON-first data layer (v0.0.6). Long-term vision: Transition to SaaS (API + NoSQL DB).
-- **Garmin Sync:** v0.0.6: Automated nightly sync at 00:00 AWST.
+- **Architecture:** Typed Dataclass architecture (models.py) with JSON backup. Sass-ready structure.
+- **Garmin Sync:** Plan synced. 4 actuals recorded.
 - **Tooling:** uv and GitHub Actions.
 - **Next Action:** Wednesday Double: 6k Steady (AM) / 10k Intervals (PM).
