@@ -2,8 +2,8 @@ name: Fetch Garmin Actuals
 
 on:
   schedule:
-    # Run every night at 00:00 AWST (16:00 UTC)
-    - cron: '0 16 * * *'
+    # Run every hour
+    - cron: '0 * * * *'
   workflow_dispatch:
     # Allow manual triggering from the GitHub Actions tab
 
