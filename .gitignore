@@ -15,4 +15,4 @@ Thumbs.db
 .vscode/
 
 # Generated artifacts
-fridge/
+# (fridge/ is tracked for GitHub Actions sync)
