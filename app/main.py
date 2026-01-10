@@ -39,4 +39,4 @@ app.include_router(pages.router)
 app.include_router(api.router)
 
 # serve root files as fallback if needed or specific static dir
-# app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
