@@ -1,5 +1,18 @@
 # Release Notes
 
+## [v0.0.7] - 2026-01-10
+
+### Added
+- **Trail Running**: Explicit support for trail running activities in the plan structure.
+- **Dashboard Progress**: Added a "Progress" column to the dashboard table, displaying Target, Current, and Projected status.
+
+### Changed
+- **CI/CD Frequency**: Increased Garmin data fetching frequency from daily to **hourly** to provide near real-time updates.
+- **Deployment Logic**: Configured the deployment pipeline to trigger automatically upon successful retrieval of "Actuals" from Garmin.
+
+### Fixed
+- **Data Accuracy**: Corrected the logic for calculating "Actual" distance totals to ensure better alignment with Garmin data.
+
 ## [v0.0.6] - 2026-01-06
 
 ### Added
