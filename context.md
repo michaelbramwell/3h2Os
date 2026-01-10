@@ -49,9 +49,9 @@
   - **Sunday:** Progressive Long Runs (PLR) and 'Vest Tests' using Salomon trail vest.
 
 ## Current Status
-- **Date:** 2026-01-09
+- **Date:** 2026-01-10
 - **Phase:** Week 1
 - **Architecture:** Typed Dataclass architecture (models.py) with JSON backup. Sass-ready structure.
-- **Garmin Sync:** Plan synced. 7 actuals recorded.
+- **Garmin Sync:** Plan synced. 10 actuals recorded.
 - **Tooling:** uv and GitHub Actions.
 - **Next Action:** Wednesday Double: 6k Steady (AM) / 10k Intervals (PM).
