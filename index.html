@@ -405,7 +405,7 @@
                     // Actual Activities
                     const dayActuals = actualsByDate[dayDate] || [];
                     const actualHtml = dayActuals.map(act => {
-                        if (act.type === 'running') {
+                        if (act.type === 'running' || act.type === 'trail_running') {
                             weekActualM += (act.distance_m || 0);
                         }
                         const distKm = (act.distance_m / 1000).toFixed(1);

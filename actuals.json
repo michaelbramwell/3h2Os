@@ -1,5 +1,359 @@
 [
   {
+    "date": "2026-01-10",
+    "name": "Perth Running",
+    "type": "running",
+    "distance_m": 1022.77001953125,
+    "duration_s": 348.8169860839844,
+    "average_pace_m_s": 2.931999921798706,
+    "average_hr": 137.0,
+    "max_hr": 148.0,
+    "average_power": 392.0,
+    "aerobic_te": 1.0,
+    "anaerobic_te": 0.0,
+    "training_load": 11.351791381835938,
+    "calories": 96.0,
+    "activityId": 21496811939,
+    "hr_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 27.0,
+        "avgValue": 111.59,
+        "zoneLowBoundary": 100
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 134.0,
+        "avgValue": 131.9,
+        "zoneLowBoundary": 120
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 188.0,
+        "avgValue": 145.18,
+        "zoneLowBoundary": 140
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 160
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 180
+      }
+    ],
+    "power_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 229.0,
+        "avgValue": 417.39,
+        "zoneLowBoundary": 371
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 14.0,
+        "avgValue": 475.36,
+        "zoneLowBoundary": 454
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 524
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 571
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 648
+      }
+    ],
+    "pace_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 121.0,
+        "avgValue": 2.53,
+        "zoneLowBoundary": 0.5
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 68.0,
+        "avgValue": 2.92,
+        "zoneLowBoundary": 2.688
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 160.0,
+        "avgValue": 3.2,
+        "zoneLowBoundary": 3.115
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.472
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.717
+      },
+      {
+        "zoneNumber": 6,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.953
+      }
+    ]
+  },
+  {
+    "date": "2026-01-10",
+    "name": "Parkrun tempo",
+    "type": "running",
+    "distance_m": 5014.02978515625,
+    "duration_s": 1416.7779541015625,
+    "average_pace_m_s": 3.539000034332276,
+    "average_hr": 134.0,
+    "max_hr": 147.0,
+    "average_power": 495.0,
+    "aerobic_te": 2.299999952316284,
+    "anaerobic_te": 0.0,
+    "training_load": 36.89402770996094,
+    "calories": 414.0,
+    "activityId": 21496811564,
+    "hr_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 26.0,
+        "avgValue": 110.96,
+        "zoneLowBoundary": 100
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 1113.0,
+        "avgValue": 133.07,
+        "zoneLowBoundary": 120
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 264.0,
+        "avgValue": 143.06,
+        "zoneLowBoundary": 140
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 160
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 180
+      }
+    ],
+    "power_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 145.0,
+        "avgValue": 437.68,
+        "zoneLowBoundary": 371
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 894.0,
+        "avgValue": 481.53,
+        "zoneLowBoundary": 454
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 280.0,
+        "avgValue": 548.09,
+        "zoneLowBoundary": 524
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 89.0,
+        "avgValue": 584.55,
+        "zoneLowBoundary": 571
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 3.0,
+        "avgValue": 651.33,
+        "zoneLowBoundary": 648
+      }
+    ],
+    "pace_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 3.0,
+        "avgValue": 1.82,
+        "zoneLowBoundary": 0.5
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 35.0,
+        "avgValue": 2.96,
+        "zoneLowBoundary": 2.688
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 276.0,
+        "avgValue": 3.37,
+        "zoneLowBoundary": 3.115
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 994.0,
+        "avgValue": 3.59,
+        "zoneLowBoundary": 3.472
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 106.0,
+        "avgValue": 3.75,
+        "zoneLowBoundary": 3.717
+      },
+      {
+        "zoneNumber": 6,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.953
+      }
+    ]
+  },
+  {
+    "date": "2026-01-10",
+    "name": "Perth Running",
+    "type": "running",
+    "distance_m": 1071.5,
+    "duration_s": 405.3689880371094,
+    "average_pace_m_s": 2.6429998874664307,
+    "average_hr": 116.0,
+    "max_hr": 129.0,
+    "average_power": 363.0,
+    "aerobic_te": 0.699999988079071,
+    "anaerobic_te": 0.0,
+    "training_load": 7.5820159912109375,
+    "calories": 95.0,
+    "activityId": 21496811003,
+    "hr_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 112.0,
+        "avgValue": 115.05,
+        "zoneLowBoundary": 100
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 242.0,
+        "avgValue": 124.47,
+        "zoneLowBoundary": 120
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 140
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 160
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 180
+      }
+    ],
+    "power_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 287.0,
+        "avgValue": 395.47,
+        "zoneLowBoundary": 371
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 454
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 524
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 571
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 648
+      }
+    ],
+    "pace_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 181.0,
+        "avgValue": 2.43,
+        "zoneLowBoundary": 0.5
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 223.0,
+        "avgValue": 2.79,
+        "zoneLowBoundary": 2.688
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.115
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.472
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.717
+      },
+      {
+        "zoneNumber": 6,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.953
+      }
+    ]
+  },
+  {
     "date": "2026-01-08",
     "name": "Perth Running",
     "type": "trail_running",
