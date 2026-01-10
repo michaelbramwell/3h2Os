@@ -26,7 +26,10 @@
 - [ ] **REST DAY**
 
 ## SAT (Jan 10)
-- [ ] **[AM] 6k (Tempo PR)** (Tempo)
+- [x] **ACTUAL: 1.02km** (137bpm, 392W) ✓
+- [x] **ACTUAL: 5.01km** (134bpm, 495W) ✓
+- [x] **ACTUAL: 1.07km** (116bpm, 363W) ✓
+- [x] **[AM] 6k (Tempo PR)** (Tempo)
 
 ## SUN (Jan 11)
 - [ ] **[AM] 18k PLR (Last 3k @ 5:30)** (PLR)
