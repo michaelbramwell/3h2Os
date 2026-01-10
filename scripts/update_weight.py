@@ -9,7 +9,7 @@ def get_awst_today():
     return awst_now.strftime("%Y-%m-%d")
 
 def update_weight(new_weight: float):
-    file_path = "context.json"
+    file_path = "data/context.json"
     
     try:
         with open(file_path, "r") as f:

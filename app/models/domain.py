@@ -44,23 +44,7 @@ class Week:
             weekStarting=data.get("weekStarting", ""),
             days=days_map
         )
-
-def load_plan(path: str = "plan.json") -> List[Week]:
-    try:
-        with open(path, "r") as f:
-            data = json.load(f)
-        return [Week.from_dict(w) for w in data]
-    except FileNotFoundError:
-        return []
-
-def load_actuals(path: str = "actuals.json") -> List['ActualActivity']:
-    try:
-        with open(path, "r") as f:
-            data = json.load(f)
-        return [ActualActivity(**a) for a in data]
-    except FileNotFoundError:
-        return []
-
+        
 @dataclass
 class ActualActivity:
     date: str
@@ -80,6 +64,29 @@ class ActualActivity:
     hr_zones: List[Dict] = field(default_factory=list)
     power_zones: List[Dict] = field(default_factory=list)
     pace_zones: List[Dict] = field(default_factory=list)
+    
+    @staticmethod
+    def from_dict(data: dict):
+        # Handle optional fields with defaults
+        return ActualActivity(
+            date=data.get("date", ""),
+            name=data.get("name", ""),
+            type=data.get("type", "running"),
+            distance_m=float(data.get("distance_m", 0)),
+            duration_s=float(data.get("duration_s", 0)),
+            average_pace_m_s=float(data.get("average_pace_m_s", 0)),
+            average_hr=data.get("average_hr"),
+            max_hr=data.get("max_hr"),
+            average_power=data.get("average_power"),
+            aerobic_te=data.get("aerobic_te"),
+            anaerobic_te=data.get("anaerobic_te"),
+            training_load=data.get("training_load"),
+            calories=data.get("calories"),
+            activityId=data.get("activityId"),
+            hr_zones=data.get("hr_zones", []),
+            power_zones=data.get("power_zones", []),
+            pace_zones=data.get("pace_zones", [])
+        )
 
 @dataclass
 class WeightEntry:
@@ -91,3 +98,21 @@ class RunnerContext:
     current_weight: float
     target_weight: float
     weight_history: List[WeightEntry] = field(default_factory=list)
+
+# --- Loaders ---
+
+def load_plan(path: str = "data/plan.json") -> List[Week]:
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+            return [Week.from_dict(w) for w in data]
+    except FileNotFoundError:
+        return []
+
+def load_actuals(path: str = "data/actuals.json") -> List[ActualActivity]:
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+            return [ActualActivity.from_dict(a) for a in data]
+    except FileNotFoundError:
+        return []

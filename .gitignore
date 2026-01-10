@@ -16,3 +16,6 @@ Thumbs.db
 
 # Generated artifacts
 # (fridge/ is tracked for GitHub Actions sync)
+
+# Data Persistence
+data/database.db

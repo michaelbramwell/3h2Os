@@ -94,3 +94,43 @@ uv run pytest
 - **Wednesday:** Double sessions (Steady AM / Intervals PM).
 - **Thursday:** Trail runs for mechanical load.
 - **Sunday:** Progressive Long Runs (PLR) with full fueling practice.
+
+## Running the Application
+
+The project uses a standard FastAPI + HTMX architecture.
+
+1. **Install dependencies**:
+   ```bash
+   uv sync
+   ```
+
+2. **Run the Server** (Development Mode):
+   ```bash
+   uv run uvicorn app.main:app --reload
+   ```
+   Open [http://localhost:8000](http://localhost:8000).
+
+3. **Run Automation Scripts**:
+   Scripts have been moved to the `scripts/` directory:
+   ```bash
+   uv run scripts/fetch_actuals.py
+   uv run scripts/sync_to_garmin.py
+   ```
+
+## Project Structure
+
+- `app/`: The web application (FastAPI).
+  - `core/`: Database configuration (`database.db` via SQLModel).
+  - `routers/`: API endpoints and page rendering.
+  - `templates/`: HTML/Jinja2 templates.
+- `scripts/`: Standalone automation tools (Garmin sync, MD generation).
+- `data/`: JSON source files (legacy) and SQLite DB.
+
+## Database
+
+The app uses **SQLite** locally.
+- **Connection**: `sqlite:///database.db`
+- **Tools**: Use DBeaver or standard generic SQL clients to inspect.
+- **Models**: Defined in `app/core/database.py`.
+
+## Legacy Files (Transitioning)

@@ -105,7 +105,7 @@ def get_pace_target(name: str) -> Optional[Dict[str, Any]]:
             logger.warning(f"Cleanup failed (non-critical): {e}")
 
     def sync(self):
-        plan_path = os.path.join(os.getcwd(), "plan.json")
+        plan_path = os.path.join(os.getcwd(), "data/plan.json")
         entries = self.parse_plan(plan_path)
 
         if not entries:
