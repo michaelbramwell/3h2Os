@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
-from fetch_actuals import get_awst_now
-from update_weight import get_awst_today
+from scripts.fetch_actuals import get_awst_now
+from scripts.update_weight import get_awst_today
 
 def test_get_awst_now():
     # Force a UTC time

@@ -1,6 +1,6 @@
 import json
 import pytest
-from models import load_plan, load_actuals, Week, ActualActivity
+from app.models.domain import load_plan, load_actuals, Week, ActualActivity
 
 def test_load_plan(tmp_path):
     plan_file = tmp_path / "plan.json"

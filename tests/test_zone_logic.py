@@ -1,6 +1,6 @@
 import pytest
-from fetch_actuals import GarminActualsFetcher
-from models import ActualActivity
+from scripts.fetch_actuals import GarminActualsFetcher
+from app.models.domain import ActualActivity
 
 def test_enrich_zones_with_telemetry():
     # Mock thresholds from context.json
