@@ -2,8 +2,11 @@ import json
 import os
 import json
 import os
+import sys
 from datetime import datetime
-from models import Week, Day, Workout, load_plan, load_actuals
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.models.domain import Week, Day, Workout, load_plan, load_actuals
 
 def format_zones(zones, type_str):
     """Formats zone data into a readable string for the fridge."""
@@ -37,8 +40,8 @@ def generate_fridge_sheets():
         print("Created fridge/ directory.")
 
     # Load sources
-    plan_data = load_plan("plan.json")
-    actuals_data = load_actuals("actuals.json")
+    plan_data = load_plan("data/plan.json")
+    actuals_data = load_actuals("data/actuals.json")
 
     actuals_by_date = {}
     for act in actuals_data:

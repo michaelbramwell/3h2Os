@@ -1,5 +1,5 @@
 import pytest
-from fetch_actuals import GarminActualsFetcher
+from scripts.fetch_actuals import GarminActualsFetcher
 
 def test_filter_activities():
     # Mock data

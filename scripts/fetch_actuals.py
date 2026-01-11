@@ -8,7 +8,9 @@ from dataclasses import asdict
 
 from dotenv import load_dotenv
 from garminconnect import Garmin
-from models import ActualActivity
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.models.domain import ActualActivity
 
 # Configure Logging
 logging.basicConfig(
@@ -40,14 +42,14 @@ class GarminActualsFetcher:
         """Filters raw Garmin activities by date range and maps to our schema."""
         filtered_activities: List[ActualActivity] = []
         
-        # Load pace thresholds from context.json
+        # Load pace thresholds from data/context.json
         pace_thresholds = []
         try:
-            with open("context.json", "r") as f:
+            with open("data/context.json", "r") as f:
                 context = json.load(f)
                 pace_thresholds = context.get("runner", {}).get("trainingZones", {}).get("pace", [])
         except Exception as e:
-            logger.warning(f"Could not load pace thresholds from context.json: {e}")
+            logger.warning(f"Could not load pace thresholds from data/context.json: {e}")
 
         for act in activities:
             # act['startTimeLocal'] is usually "2025-12-31 08:00:00"
@@ -218,7 +220,7 @@ class GarminActualsFetcher:
         logger.info(f"Found {len(filtered_activities)} activities in range.")
         return filtered_activities
 
-    def save_actuals(self, activities: List[ActualActivity], file_path: str = "actuals.json"):
+    def save_actuals(self, activities: List[ActualActivity], file_path: str = "data/actuals.json"):
         """Saves the activities to a JSON file."""
         # Convert dataclasses to dicts for JSON serialization
         serializable_activities = [asdict(a) for a in activities]
@@ -228,7 +230,7 @@ class GarminActualsFetcher:
         
         # Update context.json status
         try:
-            with open("context.json", "r") as f:
+            with open("data/context.json", "r") as f:
                 context = json.load(f)
             
             # Use AWST (UTC+8) for the update timestamp
@@ -236,11 +238,11 @@ class GarminActualsFetcher:
             context["status"]["lastUpdated"] = awst_now.strftime("%Y-%m-%d")
             context["status"]["garminSync"] = f"Plan synced. {len(activities)} actuals recorded."
             
-            with open("context.json", "w") as f:
+            with open("data/context.json", "w") as f:
                 json.dump(context, f, indent=2)
-            logger.info("Updated context.json status.")
+            logger.info("Updated data/context.json status.")
         except Exception as e:
-            logger.error(f"Failed to update context.json: {e}")
+            logger.error(f"Failed to update data/context.json: {e}")
 
 def get_awst_now():
     """Returns the current time in AWST (UTC+8)."""

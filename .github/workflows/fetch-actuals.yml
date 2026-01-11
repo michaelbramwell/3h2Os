@@ -1,11 +1,18 @@
-name: Fetch Garmin Actuals and Deploy to GH Pages.
+name: Fetch Garmin Actuals and Deploy to GH Pages
 
 on:
   schedule:
     # Run every hour
     - cron: '0 * * * *'
   workflow_dispatch:
-    # Allow manual triggering from the GitHub Actions tab
+  # Also deploy on push to main when app code changes
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - 'scripts/**'
+      - '.github/workflows/**'
 
 jobs:
   fetch-and-deploy:
@@ -25,24 +32,36 @@ jobs:
       - name: Set up Python
         run: uv python install
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Fetch Actuals from Garmin
         env:
           GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
           GARMIN_PASSWORD: ${{ secrets.GARMIN_PASSWORD }}
-        run: uv run fetch_actuals.py
+        run: uv run scripts/fetch_actuals.py
 
-      - name: Regenerate Documentation
+      - name: Regenerate Documentation & Build Site
         run: |
-          uv run generate_plan_md.py
-          uv run generate_fridge_sheets.py
+          uv run scripts/generate_plan_md.py
+          uv run scripts/generate_fridge_sheets.py
+          uv run python scripts/build_static.py
 
       - name: Commit and Push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add actuals.json context.json context.md marathon_plan.md fridge/*.md
+          # Add data files
+          git add data/actuals.json data/context.json
+          # Add documentation
+          git add context.md marathon_plan.md fridge/*.md
+          # Add static site artifacts
+          git add index.html static/
+          
           # Only commit if there are changes
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated Garmin actuals fetch and doc regeneration" && git push)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated update: Actuals fetch & site rebuild" && git push)
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

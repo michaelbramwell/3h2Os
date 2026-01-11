@@ -1,5 +1,5 @@
 import pytest
-from sync_to_garmin import get_pace_target
+from scripts.sync_to_garmin import get_pace_target
 
 def test_get_pace_target_mp():
     target = get_pace_target("10k MP Run")

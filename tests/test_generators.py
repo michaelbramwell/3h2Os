@@ -1,8 +1,8 @@
 import json
 import os
 import pytest
-from generate_plan_md import generate_marathon_plan, generate_context_md
-from generate_fridge_sheets import generate_fridge_sheets
+from scripts.generate_plan_md import generate_marathon_plan, generate_context_md
+from scripts.generate_fridge_sheets import generate_fridge_sheets
 
 def test_generate_marathon_plan(tmp_path):
     # Create a mock plan.json
@@ -24,10 +24,13 @@ def test_generate_marathon_plan(tmp_path):
     # Change directory to tmp_path to avoid messing with real files
     os.chdir(tmp_path)
     
+    # Create data directory
+    os.makedirs("data", exist_ok=True)
+    
     with open("plan.json", "w") as f:
         json.dump(plan_data, f)
-    
-    with open("context.json", "w") as f:
+            
+    with open("data/context.json", "w") as f:
         json.dump({
             "runner": {"trainingZones": {"pace": []}},
             "planOverview": {"timezone": "AWST"}
@@ -64,7 +67,11 @@ def test_generate_fridge_sheets(tmp_path):
     
     os.chdir(tmp_path)
     
-    with open("plan.json", "w") as f:
+    # Create data directory
+    os.makedirs("data", exist_ok=True)
+    os.makedirs("fridge", exist_ok=True)
+    
+    with open("data/plan.json", "w") as f:
         json.dump(plan_data, f)
         
     generate_fridge_sheets()
@@ -114,7 +121,10 @@ def test_generate_context_md(tmp_path):
     
     os.chdir(tmp_path)
     
-    with open("context.json", "w") as f:
+    # Create data directory
+    os.makedirs("data", exist_ok=True)
+    
+    with open("data/context.json", "w") as f:
         json.dump(context_data, f)
         
     generate_context_md()
