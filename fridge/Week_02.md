@@ -7,23 +7,23 @@
 - [ ] **REST DAY**
 
 ## TUE (Jan 13)
-- [ ] **[AM] 10k Steady** (Steady)
+- [ ] **[AM] 6.0k Steady** (Steady)
 
 ## WED (Jan 14)
-- [ ] **[AM] 8k Steady** (Steady)
-- [ ] **[PM] 10k Int** (Intervals)
+- [ ] **[AM] 4.8k Steady** (Steady)
+- [ ] **[PM] 6.0k Int** (Intervals)
 
 ## THU (Jan 15)
-- [ ] **[PM] 17k Trail** (Trail)
+- [ ] **[PM] 16.9k Trail** (Trail)
 
 ## FRI (Jan 16)
-- [ ] **[AM] 5k Recov** (Easy)
+- [ ] **[AM] 6.4k Recov** (Easy)
 
 ## SAT (Jan 17)
-- [ ] **[AM] 6k (Sub-22 Attempt #1)** (Easy)
+- [ ] **[AM] 7.2k (Sub-22 Attempt #1)** (Easy)
 
 ## SUN (Jan 18)
-- [ ] **[AM] 20k PLR (Last 5k @ 5:25)** (PLR)
+- [ ] **[AM] 19.5k PLR (Last 5k @ 5:25)** (PLR)
 
 ---
 ### GUIDELINES
