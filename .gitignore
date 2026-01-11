@@ -19,3 +19,8 @@ Thumbs.db
 
 # Data Persistence
 data/database.db
+
+# Site Builds (Generated at root)
+/plan.json
+/context.json
+/actuals.json

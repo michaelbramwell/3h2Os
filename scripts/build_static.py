@@ -62,6 +62,18 @@ def build_static():
     
     dst_html.write_text(content)
     
+    # 4. Copy Data Files
+    print("Copying data files to root...")
+    data_dir = root / "data"
+    for filename in ["plan.json", "context.json", "actuals.json"]:
+        src = data_dir / filename
+        dst = root / filename
+        if src.exists():
+            shutil.copy2(src, dst)
+            print(f"   - Copied {filename}")
+        else:
+            print(f"   ! Missing {filename}")
+    
     print("Static site build complete.")
     print(f"   - {dst_html}")
     print(f"   - {static_dst}")
