@@ -27,26 +27,64 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 ## Getting Started
 
 ### 1. Setup Environment
-This project uses `uv` for fast, reliable dependency management.
+This project uses a hybrid Python/Node.js stack.
+- **Python**: Managed by `uv`.
+- **Frontend**: Managed by `npm` (TypeScript).
+
 ```bash
-# Install uv if you haven't already
+# 1. Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Sync dependencies and create venv
+# 2. Sync Python dependencies
 uv sync
+
+# 3. Install Frontend dependencies
+cd app/static
+npm install
+npm run build  # Compiles TypeScript to JS
+cd ../..
 ```
 
-### 2. Local Dashboard
-To view the plan in your browser:
+### 2. Run Local Application
+The project runs as a FastAPI application for local development.
+
 ```bash
-# Start a local server
-uv run python -m http.server 8000
-# Open http://localhost:8000/index.html
+# Start the server (runs on localhost:8000)
+uv run uvicorn app.main:app --reload
+```
+Visit `http://localhost:8000` to view the dashboard.
+
+### 3. Training Logic & Tools
+
+#### Validation Engine (The Guardrails)
+To analyze your actual running data against the plan and safety-check the future weeks:
+```bash
+uv run scripts/reflect_and_validate.py
+```
+This script will:
+- Compare Actuals vs Plan.
+- Enforce 15% Volume Cap & 80/20 Intensity Rule.
+- Automatically adjust future weeks in `data/plan.json`.
+- **Save a new plan version** to the local SQLite database (`data/database.db`).
+
+#### Sync to Garmin
+To push the current `plan.json` to your Garmin Calendar:
+```bash
+uv run scripts/sync_to_garmin.py
 ```
 
-### 3. GitHub Pages
-The dashboard is automatically hosted at:
-`https://michaelbramwell.github.io/3h2Os/`
+### 4. Deployment (Static Site)
+GitHub Pages hosts a static version of the site. The `scripts/build_static.py` script "freezes" the dynamic FastAPI app into static HTML/JSON files.
+
+- **Automated**: Runs via GitHub Actions on every push.
+- **Manual**: `uv run scripts/build_static.py`
+
+## Architecture & Data Flow
+
+1.  **Input**: `data/actuals.json` (Synced from Garmin) & `data/plan.json` (The Master Plan).
+2.  **Processing**: `reflect_and_validate.py` reads inputs -> applies logic -> updates Plan -> saves to Database.
+3.  **Visualization**: FastAPI (`app/`) serves the Plan from Database to the Browser.
+4.  **Deployment**: Build script copies JSON & HTML to root for GitHub Pages.
 
 ### 4. Sync to Garmin
 1. Copy `.env.example` to `.env`.

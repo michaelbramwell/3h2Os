@@ -1,6 +1,14 @@
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional, Dict
+from enum import Enum
 import json
+
+class GarminActivityType(str, Enum):
+    RUNNING = "running"
+    TRAIL_RUNNING = "trail_running"
+    CYCLING = "cycling"
+    SWIMMING = "swimming"
+    OTHER = "other"
 
 @dataclass
 class Workout:
