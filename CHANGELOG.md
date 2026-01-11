@@ -1,5 +1,11 @@
 # Release Notes
 
+## [v0.1.1] - 2026-01-11
+
+### Fixed
+- **Static Build**: Updated `scripts/build_static.py` to correctly copy `data/` files (`actuals.json`, `plan.json`) to the output directory, ensuring the deployed dashboard has access to data.
+- **Source Control**: Updated `.gitignore` to ensure data files are tracked for the build process while keeping the repository clean.
+
 ## [v0.1.0] - 2026-01-11
 
 ### Added
