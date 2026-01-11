@@ -1,5 +1,123 @@
 [
   {
+    "date": "2026-01-11",
+    "name": "Long run progressive",
+    "type": "running",
+    "distance_m": 19341.9609375,
+    "duration_s": 6635.384765625,
+    "average_pace_m_s": 2.9149999618530273,
+    "average_hr": 133.0,
+    "max_hr": 148.0,
+    "average_power": 407.0,
+    "aerobic_te": 3.200000047683716,
+    "anaerobic_te": 0.0,
+    "training_load": 81.96096801757812,
+    "calories": 1718.0,
+    "activityId": 21507330211,
+    "hr_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 264.0,
+        "avgValue": 113.04,
+        "zoneLowBoundary": 100
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 4891.0,
+        "avgValue": 132.08,
+        "zoneLowBoundary": 120
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 1436.0,
+        "avgValue": 141.82,
+        "zoneLowBoundary": 140
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 160
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 180
+      }
+    ],
+    "power_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 4690.0,
+        "avgValue": 415.26,
+        "zoneLowBoundary": 371
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 1045.0,
+        "avgValue": 475.31,
+        "zoneLowBoundary": 454
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 80.0,
+        "avgValue": 541.95,
+        "zoneLowBoundary": 524
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 28.0,
+        "avgValue": 592.43,
+        "zoneLowBoundary": 571
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 648
+      }
+    ],
+    "pace_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 737.0,
+        "avgValue": 2.2,
+        "zoneLowBoundary": 0.5
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 3821.0,
+        "avgValue": 2.97,
+        "zoneLowBoundary": 2.688
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 1960.0,
+        "avgValue": 3.22,
+        "zoneLowBoundary": 3.115
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 24.0,
+        "avgValue": 3.53,
+        "zoneLowBoundary": 3.472
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.717
+      },
+      {
+        "zoneNumber": 6,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.953
+      }
+    ]
+  },
+  {
     "date": "2026-01-10",
     "name": "Perth Running",
     "type": "running",
