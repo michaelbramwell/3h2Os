@@ -342,6 +342,12 @@ function renderPlan(weeks, actuals) {
         const actualKm = (weekActualM / 1000).toFixed(1);
         const projectedKm = ((weekActualM + weekRemainingM) / 1000).toFixed(1);
         const diff = (weekActualM + weekRemainingM - weekTargetM) / 1000;
+        
+        let diffPct = 0;
+        if (weekTargetM > 0) {
+            diffPct = ((weekActualM + weekRemainingM - weekTargetM) / weekTargetM) * 100;
+        }
+        
         const diffColor = diff >= 0 ? 'text-green-600' : 'text-red-600';
         const diffSign = diff >= 0 ? '+' : '';
         html += `
@@ -357,7 +363,7 @@ function renderPlan(weeks, actuals) {
                 <div>
                     <div class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Projected</div>
                     <div class="text-base font-black text-blue-600">${projectedKm}k</div>
-                    <div class="text-[9px] font-bold ${diffColor}">${diffSign}${diff.toFixed(1)}k vs Target</div>
+                    <div class="text-[9px] font-bold ${diffColor}">${diffSign}${diff.toFixed(1)}k (${diffSign}${diffPct.toFixed(1)}%) vs Target</div>
                 </div>
             </td>
         `;
