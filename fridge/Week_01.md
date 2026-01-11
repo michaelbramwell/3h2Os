@@ -32,7 +32,8 @@
 - [x] **[AM] 6k (Tempo PR)** (Tempo)
 
 ## SUN (Jan 11)
-- [ ] **[AM] 18k PLR (Last 3k @ 5:30)** (PLR)
+- [x] **ACTUAL: 19.34km** (133bpm, 407W) ✓
+- [x] **[AM] 18k PLR (Last 3k @ 5:30)** (PLR)
 
 ---
 ### GUIDELINES
