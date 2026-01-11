@@ -1,5 +1,19 @@
 # Release Notes
 
+## [v0.1.0] - 2026-01-11
+
+### Added
+- **FastAPI Architecture**: Complete backend re-architecture using FastAPI and SQLModel, moving away from standalone scripts for the core application.
+- **TypeScript Support**: Migrated inline JavaScript to a structured TypeScript codebase (`app/static/ts`) for better maintainability and type safety.
+- **Static Site Builder**: Introduced `scripts/build_static.py` to compile the FastAPI assets back into a static `index.html` site for GitHub Pages compatibility.
+- **Hybrid Deployment**: Updated CI/CD workflow to test the Python app and then build/deploy the static version automatically.
+- **Test Suite**: Comprehensive test coverage (`test_app.py`, `test_generators.py`, etc.) for the new modular architecture.
+
+### Changed
+- **Project Structure**: Moved source code into `app/`, scripts to `scripts/`, and introduced `app/models/domain.py` as the shared data contract.
+- **Dashboard Logic**: Extracted complex inline JS from `index.html` into `dashboard.ts`/`dashboard.js`.
+- **UX Polish**: Improved "Training Effect" display with decimal formatting and visual color badges.
+
 ## [v0.0.7] - 2026-01-10
 
 ### Added
