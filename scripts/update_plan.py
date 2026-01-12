@@ -10,7 +10,6 @@ from dataclasses import asdict
 sys.path.append(os.getcwd())
 
 from app.models.domain import Week, Day, Workout
-from app.core.validation import ValidationEngine
 from app.core.services import save_plan_to_db
 from app.core.database import engine
 from sqlmodel import Session
