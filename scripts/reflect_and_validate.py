@@ -18,6 +18,10 @@ from sqlmodel import Session, select
 # Types that contribute to the "Hard" portion of 80/20 rule
 INTENSITY_TYPES = ["interval", "intervals", "tempo", "threshold", "steady", "race", "fartlek", "hill", "hills"]
 
+# Threshold for determining if a distance change is significant enough to update the workout name
+# Used in set_workout_distance to prevent unnecessary name updates during normalization
+DISTANCE_CHANGE_THRESHOLD_M = 50
+
 def parse_date(d: str) -> datetime:
     return datetime.strptime(d, "%Y-%m-%d")
 
@@ -104,9 +108,9 @@ def set_workout_distance(workout: Workout, new_dist_m: float):
     workout.distance_m = final_dist_m
     final_dist_km = final_dist_m / 1000.0
     
-    # Only update the name if the distance has changed significantly (more than 50 meters)
+    # Only update the name if the distance has changed significantly
     # This prevents unnecessary name updates during normalization loops
-    distance_changed = abs(final_dist_m - original_dist_m) > 50
+    distance_changed = abs(final_dist_m - original_dist_m) > DISTANCE_CHANGE_THRESHOLD_M
     
     if distance_changed:
         # Attempt to update name if it starts with "Xk " or "X.Yk "
