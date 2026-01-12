@@ -135,7 +135,7 @@
         "date": "2026-01-17",
         "workouts": [
           {
-            "name": "20.K PLR (Last 5k @ 5.25)",
+            "name": "20k PLR (Last 5k @ 5.25)",
             "type": "PLR",
             "distance_m": 18000.0,
             "timeOfDay": "AM"
