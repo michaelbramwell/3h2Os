@@ -184,13 +184,13 @@ def recalculate_plan():
                  print(f"[Week {i+1} {week.weekStarting}] RACE: Keeping {curr_actual_vol/1000:.1f}k")
              
              # Do not update baseline
-             pass
+             
              
         elif status == "marathon":
              # Marathon week - usually very low volume before + 42k
              # Leave as is
              print(f"[Week {i+1} {week.weekStarting}] MARATHON: Touching nothing.")
-             pass
+     
     
     save_plan(weeks, plan_path)
 
