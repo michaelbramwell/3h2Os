@@ -235,6 +235,10 @@ def main():
                      wk = planned_weeks[k]
                      for d in wk.days.values():
                          for w in d.workouts:
+                             # Protect marathon/race workouts (e.g. "BUNBURY 42.2k") from being scaled
+                             workout_name = (getattr(w, "name", "") or "").lower()
+                             if "42.2" in workout_name or "marathon" in workout_name:
+                                 continue
                              set_workout_distance(w, w.distance_m * scaling_factor)
                 changes_made = True # Ensure we save even if validation doesn't trigger
 
