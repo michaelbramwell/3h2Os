@@ -26,9 +26,23 @@ def get_week_start(date_str: str) -> str:
     start = dt - timedelta(days=dt.weekday())
     return start.strftime("%Y-%m-%d")
 
-def load_actuals_as_weeks(filepath: str) -> Dict[str, Week]:
+def has_race_workout(week: Week) -> bool:
+    """Check if a week contains any race workouts."""
+    for day in week.days.values():
+        for workout in day.workouts:
+            if "race" in workout.type.lower():
+                return True
+    return False
+
+def load_actuals_as_weeks(filepath: str) -> Tuple[Dict[str, Week], Dict[str, bool]]:
+    """Load actual weeks and pre-compute race flags for optimization.
+    
+    Returns:
+        Tuple of (weeks_dict, race_flags_dict) where race_flags_dict maps
+        week_start -> bool indicating if that week has a race workout.
+    """
     if not os.path.exists(filepath):
-        return {}
+        return {}, {}
 
     with open(filepath, 'r') as f:
         data = json.load(f)
@@ -62,8 +76,11 @@ def load_actuals_as_weeks(filepath: str) -> Dict[str, Week]:
             weeks[w_start].days[day_name] = Day(date=day_date, workouts=[])
             
         weeks[w_start].days[day_name].workouts.append(workout)
-        
-    return weeks
+    
+    # Pre-compute race flags for each week to avoid nested loops later
+    race_flags = {week_start: has_race_workout(week) for week_start, week in weeks.items()}
+    
+    return weeks, race_flags
 
 def load_plan(filepath: str) -> List[Week]:
     if not os.path.exists(filepath):
@@ -140,7 +157,7 @@ def main():
     if not os.path.exists(plan_path): plan_path = "plan.json"
     
     print(f"Loading actuals from {actuals_path}...")
-    actual_weeks = load_actuals_as_weeks(actuals_path)
+    actual_weeks, race_flags = load_actuals_as_weeks(actuals_path)
     print(f"Loading plan from {plan_path}...")
     planned_weeks = load_plan(plan_path)
 
@@ -185,11 +202,8 @@ def main():
     if last_completed_plan_week:
         last_status = getattr(last_completed_plan_week, "status", "normal").lower()
         
-        last_actual_had_race = False
-        for d in last_actual_week.days.values():
-             for w in d.workouts:
-                  if "race" in w.type.lower():
-                       last_actual_had_race = True
+        # Use pre-computed race flag instead of nested loops
+        last_actual_had_race = race_flags.get(last_actual_week_start, False)
 
         if last_status in ["rest", "recovery", "race", "marathon"] or last_actual_had_race:
             print(f"   Last week was '{last_status}' (or Race). Looking back for volume baseline...")
@@ -203,11 +217,8 @@ def main():
                 if not past_plan_week: continue 
                 
                 past_status = getattr(past_plan_week, "status", "normal").lower()
-                past_had_race = False
-                for d in past_week_actual.days.values():
-                    for w in d.workouts:
-                        if "race" in w.type.lower():
-                            past_had_race = True
+                # Use pre-computed race flag instead of nested loops
+                past_had_race = race_flags.get(past_week_start, False)
                 
                 if past_status not in ["rest", "recovery", "race", "marathon"] and not past_had_race:
                     past_vol = validator._calculate_volume(past_week_actual)
