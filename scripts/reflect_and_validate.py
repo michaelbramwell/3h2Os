@@ -305,6 +305,11 @@ def main():
                                      wk = planned_weeks[k]
                                      for d in wk.days.values():
                                          for w in d.workouts:
+                                             # Skip scaling marathon-distance workouts (e.g., key races)
+                                             if getattr(w, "distance_m", None) is None:
+                                                 continue
+                                             if w.distance_m >= 42000:
+                                                 continue
                                              set_workout_distance(w, w.distance_m * manual_ratio)
                                  changes_made = True
                                  manual_override_active = True
