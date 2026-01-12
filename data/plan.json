@@ -1127,7 +1127,7 @@
           {
             "name": "BUNBURY 42.2k",
             "type": "Race",
-            "distance_m": 48719.43029889542,
+            "distance_m": 42195.0,
             "timeOfDay": "AM"
           }
         ]
