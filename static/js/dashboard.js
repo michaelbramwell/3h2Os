@@ -258,7 +258,29 @@ function renderPlan(weeks, actuals) {
     }, {});
     weeks.forEach((week, index) => {
         const row = document.createElement('tr');
-        row.className = 'border-b border-slate-100 hover:bg-slate-50 transition-colors';
+        let rowClass = 'border-b border-slate-100 transition-colors ';
+        const status = (week.status || 'normal').toLowerCase();
+        let badgeHtml = '';
+        if (status === 'taper') {
+            rowClass += 'bg-emerald-100 hover:bg-emerald-200 border-l-4 border-emerald-400';
+            badgeHtml = '<div class="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-200/50 text-[10px] font-bold uppercase text-emerald-800 tracking-wider"><span>📉</span> Taper</div>';
+        }
+        else if (status === 'rest' || status === 'recovery') {
+            rowClass += 'bg-slate-100 hover:bg-slate-200 border-l-4 border-slate-400';
+            badgeHtml = '<div class="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-200/50 text-[10px] font-bold uppercase text-slate-700 tracking-wider"><span>🧘</span> Recovery</div>';
+        }
+        else if (status === 'race') {
+            rowClass += 'bg-orange-100 hover:bg-orange-200 border-l-4 border-orange-500';
+            badgeHtml = '<div class="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-orange-200/50 text-[10px] font-bold uppercase text-orange-800 tracking-wider"><span>🏁</span> Race Week</div>';
+        }
+        else if (status === 'marathon') {
+            rowClass += 'bg-yellow-100 hover:bg-yellow-200 border-l-4 border-yellow-600';
+            badgeHtml = '<div class="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-yellow-400/30 text-[10px] font-black uppercase text-yellow-900 tracking-wider ring-1 ring-yellow-500/20"><span>🏆</span> MARATHON</div>';
+        }
+        else {
+            rowClass += 'hover:bg-slate-50 border-l-4 border-transparent';
+        }
+        row.className = rowClass;
         row.dataset.start = week.weekStarting;
         let weekTargetM = 0;
         let weekActualM = 0;
@@ -270,6 +292,7 @@ function renderPlan(weeks, actuals) {
             <td class="p-4 align-top">
                 <div class="font-medium text-slate-900">${dateStr}</div>
                 <div class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Week ${index + 1}</div>
+                ${badgeHtml}
                 <button onclick='window.printWeek(${index})' class="mt-2 text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded no-print">
                     Fridge
                 </button>

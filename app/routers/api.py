@@ -1,11 +1,26 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 import json
 import os
+from typing import List, Dict, Any
 from app.core.database import get_session, User, RunnerPlan
+from app.core.services import save_plan_to_db
 
 router = APIRouter()
+
+@router.post("/plan.json")
+async def update_plan(plan_data: List[Dict[str, Any]], session: Session = Depends(get_session)):
+    """
+    Update the active plan for the default user.
+    Accepts a JSON body representing the list of weeks.
+    """
+    try:
+        # Assuming single user for now, or auth could be added later
+        new_plan = save_plan_to_db(plan_data, session, username="mike")
+        return {"status": "success", "message": "Plan updated", "id": new_plan.id, "title": new_plan.title}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/plan.json")
 async def get_plan(session: Session = Depends(get_session)):

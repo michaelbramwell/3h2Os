@@ -42,6 +42,7 @@ class Day:
 class Week:
     weekStarting: str
     days: Dict[str, Day] = field(default_factory=dict)
+    status: str = "normal" # normal, rest, taper, recovery
 
     @staticmethod
     def from_dict(data: dict):
@@ -50,7 +51,8 @@ class Week:
             days_map[day_name] = Day.from_dict(day_data)
         return Week(
             weekStarting=data.get("weekStarting", ""),
-            days=days_map
+            days=days_map,
+            status=data.get("status", "normal")
         )
         
 @dataclass

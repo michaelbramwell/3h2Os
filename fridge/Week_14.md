@@ -7,17 +7,17 @@
 - [ ] **REST DAY**
 
 ## TUE (Apr 07)
-- [ ] **[AM] 6k Easy** (Easy)
+- [ ] **[AM] 13.5k Easy** (Easy)
 
 ## WED (Apr 08)
-- [ ] **[AM] 5k Thresh** (Threshold)
-- [ ] **[PM] 10k Int** (Intervals)
+- [ ] **[AM] 0.0k Thresh** (Threshold)
+- [ ] **[PM] 0.0k Int** (Intervals)
 
 ## THU (Apr 09)
 - [ ] **REST DAY**
 
 ## FRI (Apr 10)
-- [ ] **[AM] 4k Recov** (Easy)
+- [ ] **[AM] 11.5k Recov** (Easy)
 
 ## SAT (Apr 11)
 - [ ] **REST DAY**

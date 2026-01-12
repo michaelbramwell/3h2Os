@@ -27,7 +27,8 @@ class RunnerPlan(SQLModel, table=True):
 
 # --- Database Connection ---
 # Updated path to be relative to where we run "uv run app.main" (root) or absolute
-sqlite_file_name = "data/database.db"
+import os
+sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 engine = create_engine(sqlite_url, echo=True)
