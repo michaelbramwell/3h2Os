@@ -1,7 +1,7 @@
 from datetime import datetime
 import json
 from sqlmodel import Session, select
-from app.core.database import engine, RunnerPlan, User
+from app.core.database import RunnerPlan, User
 from typing import List, Dict, Any
 
 def save_plan_to_db(plan_data: List[Dict[str, Any]], session: Session, username: str = "mike") -> RunnerPlan:
