@@ -85,7 +85,7 @@ def save_plan(weeks: List[Week], filepath: str):
             save_plan_to_db(data, session, username="mike")
         print("Database updated with new version!")
     except Exception as e:
-        print(f"Warning: Database update failed: {e}")
+        print(f"Warning: Failed to save plan to database for user 'mike' while processing '{filepath}': {e!r}")
 
 def set_workout_distance(workout: Workout, new_dist_m: float):
     # Determine if we should round closely (Training runs = Integer km, Races = Float km)
