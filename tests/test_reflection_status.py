@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 from app.models.domain import Week
 from scripts.reflect_and_validate import main
@@ -20,7 +21,6 @@ def test_rest_week_bypass(tmp_path):
     # Needs actuals to start
     actuals_data = [{"date": "2026-01-05", "name": "Run", "type": "running", "distance_m": 60000}]
     
-    import os
     os.chdir(tmp_path)
     with open("plan.json", "w") as f:
         json.dump(plan_data, f)
@@ -59,7 +59,6 @@ def test_taper_week_bypass(tmp_path):
     # Needs actuals to start
     actuals_data = [{"date": "2026-01-05", "name": "Run", "type": "running", "distance_m": 100000}]
     
-    import os
     os.chdir(tmp_path)
     with open("plan.json", "w") as f:
         json.dump(plan_data, f)
