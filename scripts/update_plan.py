@@ -91,11 +91,11 @@ def set_week_volume(week: Week, target_vol_m: float):
                 parts = workout.name.split(' ', 1)
                 if len(parts) > 1:
                     suffix = parts[1]
-                    # formatting: int if whole number, else float
+                    # formatting: int if whole number, else preserve decimal precision
                     if km_val.is_integer():
-                         workout.name = f"{int(km_val)}k {suffix}"
+                        workout.name = f"{int(km_val)}k {suffix}"
                     else:
-                         workout.name = f"{km_val:.1f}k {suffix}"
+                        workout.name = f"{km_val:g}k {suffix}"
 
 def recalculate_plan():
     plan_path = "data/plan.json"
