@@ -9,7 +9,7 @@ from dataclasses import asdict
 # Ensure we can import from app
 sys.path.append(os.getcwd())
 
-from app.models.domain import Week, Day, Workout
+from app.models.domain import Week
 from app.core.services import save_plan_to_db
 from app.core.database import engine
 from sqlmodel import Session
