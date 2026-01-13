@@ -4,7 +4,7 @@
 
 ## Runner Profile
 - **Age/Gender:** 48-year-old Male
-- **Physicals:** 185cm, 95.4kg (Current) -> **Target: 90kg** by Race Day.
+- **Physicals:** 185cm, 97.4kg (Current) -> **Target: 90kg** by Race Day.
 - **Personal Bests:**
   - 5km: 22:06 (May 2025)
   - 10km: 46:48 (Oct 2025)
