@@ -1,6 +1,5 @@
 import json
 import os
-import pytest
 from app.models.domain import Week, Day, Workout
 from app.core.database import RunnerPlan, User
 from scripts.reflect_and_validate import main, save_plan_to_db, load_plan
