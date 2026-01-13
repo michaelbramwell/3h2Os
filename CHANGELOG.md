@@ -1,5 +1,25 @@
 # Release Notes
 
+## [v0.2.0] - 2026-01-13
+
+### Added
+- **Plan Intelligence**:
+    - Introduced `scripts/update_plan.py` ("The Architect") to proactively recalculate future training blocks with configurable progression (defaults to 10% weekly build).
+    - Enhanced `scripts/reflect_and_validate.py` ("The Guardrails") with smart baseline detection that looks back past "Rest", "Race", or "Taper" weeks to strictly enforce volume caps only against valid "Normal" weeks.
+- **Dashboard 2.0**:
+    - Visual overhaul for Week Statuses. Added distinct color coding and badges for **Recovery** (Slate), **Race** (Orange), **Taper** (Emerald), and **Marathon** (Yellow) weeks.
+- **Pipelines**:
+    - New `update-weight` GitHub Action for manual weight entry via GUI.
+    - Integrated `pytest` test runners into all CI/CD pipelines to ensure data integrity before deployment.
+
+### Changed
+- **Training Plan**:
+    - Recalculated weeks 4-14 to smooth out the progression curve following the Week 5 Rest/Race block.
+    - Updated specific week statuses in `plan.json` to enable new visualization features.
+
+### Fixed
+- **Validation Logic**: Fixed a bug where coming off a Rest week would trigger false-positive "Volume Spike" warnings for the subsequent return to normal volume.
+
 ## [v0.1.1] - 2026-01-11
 
 ### Fixed
