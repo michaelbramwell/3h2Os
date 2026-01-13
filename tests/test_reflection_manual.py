@@ -21,21 +21,21 @@ def test_reflect_and_validate_scales_up_future_from_manual_edit(tmp_path):
             # Week 2 (Target of manual edit)
             "weekStarting": "2026-01-12",
             "days": {
-                "Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 60000, "type": "Run"}]}
+                "Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 30000, "type": "Run"}]}
             }
         },
         {
             # Week 3 (To be scaled)
             "weekStarting": "2026-01-19",
             "days": {
-                "Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 55000, "type": "Run"}]}
+                "Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 25000, "type": "Run"}]}
             }
         }
     ]
     
     actuals_data = [
          # Just some actuals so the script can establish "Previous"
-        {"date": "2026-01-05", "name": "Run", "type": "running", "distance_m": 40000} 
+        {"date": "2026-01-05", "name": "Run", "type": "running", "distance_m": 20000} 
     ]
     
     # 2. Setup DB Mock Data (The "Old" Plan)
@@ -43,16 +43,16 @@ def test_reflect_and_validate_scales_up_future_from_manual_edit(tmp_path):
         {"weekStarting": "2026-01-05", "days": {}},
         {
             "weekStarting": "2026-01-12",
-             # Old Volume for W2 was 50k
+             # Old Volume for W2 was 25k
             "days": {
-                "Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 50000, "type": "Run"}]}
+                "Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 25000, "type": "Run"}]}
             }
         },
         {
-             # Old Volume for W3 was 55k
+             # Old Volume for W3 was 25k
             "weekStarting": "2026-01-19",
             "days": {
-                "Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 55000, "type": "Run"}]}
+                "Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 25000, "type": "Run"}]}
             }
         }
     ]
@@ -96,5 +96,5 @@ def test_reflect_and_validate_scales_up_future_from_manual_edit(tmp_path):
         
     w3_dist = result[2]["days"]["Mon"]["workouts"][0]["distance_m"]
     
-    # Expected: 55000 * (60000/50000) = 66000
-    assert w3_dist == 66000.0
+    # Expected: 25000 * (30000/25000) = 30000
+    assert w3_dist == 30000.0

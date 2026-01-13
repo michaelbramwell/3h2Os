@@ -60,5 +60,6 @@ def test_reflect_and_validate_scales_up_future(tmp_path):
         # Ratio 55/50 = 1.1 <= 1.15. So it should hold.
         
         assert dist == 55000.0
-        assert "55.0k" in w2_wkt["name"]
+        # Expect integer formatting for whole numbers now
+        assert "55k" in w2_wkt["name"]
 

@@ -20,18 +20,18 @@ def test_reflect_and_validate_uses_history_if_active_matches(tmp_path):
     
     plan_data = [
         {"weekStarting": "2026-01-05", "days": {}},
-        {"weekStarting": "2026-01-12", "days": {"Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 60000, "type": "Run"}]}}},
-        {"weekStarting": "2026-01-19", "days": {"Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 55000, "type": "Run"}]}}}
+        {"weekStarting": "2026-01-12", "days": {"Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 30000, "type": "Run"}]}}},
+        {"weekStarting": "2026-01-19", "days": {"Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 25000, "type": "Run"}]}}}
     ]
     
-    actuals_data = [{"date": "2026-01-05", "name": "Run", "type": "running", "distance_m": 40000}]
+    actuals_data = [{"date": "2026-01-05", "name": "Run", "type": "running", "distance_m": 20000}]
     
     active_plan_data = plan_data # Same as disk
     
     archived_plan_data = [
         {"weekStarting": "2026-01-05", "days": {}},
-        {"weekStarting": "2026-01-12", "days": {"Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 50000, "type": "Run"}]}}},
-        {"weekStarting": "2026-01-19", "days": {"Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 55000, "type": "Run"}]}}}
+        {"weekStarting": "2026-01-12", "days": {"Mon": {"date": "2026-01-12", "workouts": [{"name": "Run", "distance_m": 25000, "type": "Run"}]}}},
+        {"weekStarting": "2026-01-19", "days": {"Mon": {"date": "2026-01-19", "workouts": [{"name": "Run", "distance_m": 25000, "type": "Run"}]}}}
     ]
     
     os.chdir(tmp_path)
@@ -78,6 +78,6 @@ def test_reflect_and_validate_uses_history_if_active_matches(tmp_path):
         result = json.load(f)
         
     w3_dist = result[2]["days"]["Mon"]["workouts"][0]["distance_m"]
-    # 55000 * 1.2 = 66000
-    assert w3_dist == 66000.0
+    # 25000 * 1.2 = 30000
+    assert w3_dist == 30000.0
 
