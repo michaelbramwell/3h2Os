@@ -1,5 +1,4 @@
 import json
-from app.models.domain import Week
 from scripts.reflect_and_validate import main
 from unittest.mock import patch, MagicMock
 
