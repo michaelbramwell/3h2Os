@@ -3,7 +3,6 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from sqlalchemy.pool import StaticPool
 from app.core.services import save_plan_to_db
 from app.core.database import User, RunnerPlan
-from unittest.mock import patch
 
 # Create an in-memory database for testing
 @pytest.fixture(name="session")
