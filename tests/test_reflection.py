@@ -1,6 +1,5 @@
 import json
 import os
-from app.models.domain import Week, Day, Workout
 from scripts.reflect_and_validate import main, save_plan_to_db, load_plan
 from unittest.mock import patch, MagicMock
 
