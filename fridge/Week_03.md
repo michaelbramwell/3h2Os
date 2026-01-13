@@ -7,24 +7,24 @@
 - [ ] **REST DAY**
 
 ## TUE (Jan 20)
-- [ ] **[AM] 10.0k Easy** (Easy)
+- [ ] **[AM] 9k Easy** (Easy)
 
 ## WED (Jan 21)
-- [ ] **[AM] 8.3k (5k S** (Easy)
-- [ ] **[AM] 4.2k T)** (Easy)
-- [ ] **[AM] 8.3k Int** (Intervals)
+- [ ] **[AM] 7k (5k S** (Easy)
+- [ ] **[AM] 4k T)** (Easy)
+- [ ] **[AM] 7k Int** (Intervals)
 
 ## THU (Jan 22)
-- [ ] **[PM] 14.2k Trail** (Trail)
+- [ ] **[PM] 12k Trail** (Trail)
 
 ## FRI (Jan 23)
-- [ ] **[AM] 5.8k Recov** (Easy)
+- [ ] **[AM] 5k Recov** (Easy)
 
 ## SAT (Jan 24)
-- [ ] **[AM] 5.8k (Tempo PR)** (Tempo)
+- [ ] **[AM] 5k (Tempo PR)** (Tempo)
 
 ## SUN (Jan 25)
-- [ ] **[AM] 20.0k PLR VEST TEST (Last 8k @ 5:20)** (PLR)
+- [ ] **[AM] 18k PLR VEST TEST (Last 8k @ 5:20)** (PLR)
 
 ---
 ### GUIDELINES

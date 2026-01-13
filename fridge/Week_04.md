@@ -10,11 +10,11 @@
 - [ ] **[AM] 8k Easy** (Easy)
 
 ## WED (Jan 28)
-- [ ] **[AM] 6k Easy** (Easy)
+- [ ] **[AM] 7k Easy** (Easy)
 - [ ] **[PM] 10k Int** (Intervals)
 
 ## THU (Jan 29)
-- [ ] **[PM] 17k Trail** (Trail)
+- [ ] **[PM] 19k Trail** (Trail)
 
 ## FRI (Jan 30)
 - [ ] **REST DAY**
@@ -23,7 +23,7 @@
 - [ ] **[AM] 7k (Sub-22 Attempt #2)** (Easy)
 
 ## SUN (Feb 01)
-- [ ] **[AM] 18k Easy (Recov week)** (Easy)
+- [ ] **[AM] 20k Easy (Recov week)** (Easy)
 
 ---
 ### GUIDELINES

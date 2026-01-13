@@ -7,23 +7,23 @@
 - [ ] **REST DAY**
 
 ## TUE (Mar 03)
-- [ ] **[AM] 11.9k Easy** (Easy)
+- [ ] **[AM] 16k Easy** (Easy)
 
 ## WED (Mar 04)
-- [ ] **[AM] 7.1k Steady** (Steady)
-- [ ] **[PM] 7.1k Int** (Intervals)
+- [ ] **[AM] 8k Steady** (Steady)
+- [ ] **[PM] 8k Int** (Intervals)
 
 ## THU (Mar 05)
-- [ ] **[PM] 18.9k Trail** (Trail)
+- [ ] **[PM] 24k Trail** (Trail)
 
 ## FRI (Mar 06)
-- [ ] **[AM] 6.9k Recov** (Easy)
+- [ ] **[AM] 8k Recov** (Easy)
 
 ## SAT (Mar 07)
-- [ ] **[AM] 5.0k (Tempo PR)** (Tempo)
+- [ ] **[AM] 6k (Tempo PR)** (Tempo)
 
 ## SUN (Mar 08)
-- [ ] **[AM] 19.9k Easy (Recov week)** (Easy)
+- [ ] **[AM] 25k Easy (Recov week)** (Easy)
 
 ---
 ### GUIDELINES
