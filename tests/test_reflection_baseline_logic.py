@@ -1,7 +1,6 @@
 import json
 from scripts.reflect_and_validate import main
 from unittest.mock import patch, MagicMock
-from app.models.domain import Week, Day, Workout
 
 def test_baseline_lookback_after_rest_week(tmp_path):
     # Scenario:
