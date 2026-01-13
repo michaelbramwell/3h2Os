@@ -50,6 +50,7 @@ jobs:
           
           # Add potentially changed files
           git add data/context.json
+          git add actuals.json context.json plan.json
           git add marathon_plan.md context.md
           git add index.html static/
           

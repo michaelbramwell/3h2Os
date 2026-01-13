@@ -167,6 +167,17 @@ The project uses a standard FastAPI + HTMX architecture.
    uv run scripts/sync_to_garmin.py
    ```
 
+4. **Run Static Version Locally**:
+   To preview exactly what will be deployed to GitHub Pages:
+   ```bash
+   # Build the static site
+   uv run scripts/build_static.py
+   
+   # Serve the current directory
+   python3 -m http.server 8080
+   ```
+   Open [http://localhost:8080](http://localhost:8080).
+
 ## Project Structure
 
 - `app/`: The web application (FastAPI).

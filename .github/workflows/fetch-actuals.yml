@@ -58,6 +58,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           # Add data files
           git add data/actuals.json data/context.json
+          git add actuals.json context.json plan.json
           # Add documentation
           git add context.md marathon_plan.md fridge/*.md
           # Add static site artifacts
