@@ -1,9 +1,7 @@
 import json
 import os
-import pytest
-from app.models.domain import Week, Day, Workout
 from app.core.database import RunnerPlan, User
-from scripts.reflect_and_validate import main, save_plan_to_db, load_plan
+from scripts.reflect_and_validate import main
 from unittest.mock import patch, MagicMock
 
 def test_reflect_and_validate_scales_up_future_from_manual_edit(tmp_path):

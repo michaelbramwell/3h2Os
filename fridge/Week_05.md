@@ -11,17 +11,16 @@
 
 ## WED (Feb 04)
 - [ ] **[AM] 6k Easy** (Easy)
-- [ ] **[PM] 10k Int** (Intervals)
+- [ ] **[PM] 11k Int** (Intervals)
 
 ## THU (Feb 05)
-- [ ] **[PM] 17k Trail** (Trail)
+- [ ] **[PM] 18k Trail** (Trail)
 
 ## FRI (Feb 06)
 - [ ] **REST DAY**
 
 ## SAT (Feb 07)
-- [ ] **[AM] BUSSO 1** (Race)
-- [ ] **[PM] 2** (Easy)
+- [ ] **[AM] BUSSO Half Marathon (21.1k)** (Race)
 
 ## SUN (Feb 08)
 - [ ] **[AM] 5k Walk** (Easy)

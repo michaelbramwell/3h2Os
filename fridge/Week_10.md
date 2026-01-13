@@ -7,24 +7,24 @@
 - [ ] **REST DAY**
 
 ## TUE (Mar 10)
-- [ ] **[AM] 10.5k Easy** (Easy)
+- [ ] **[AM] 12k Easy** (Easy)
 
 ## WED (Mar 11)
-- [ ] **[AM] 11.3k (5k S** (Easy)
-- [ ] **[AM] 7.5k T)** (Easy)
-- [ ] **[AM] 7.5k Int** (Intervals)
+- [ ] **[AM] 12k (5k S** (Easy)
+- [ ] **[AM] 9k T)** (Easy)
+- [ ] **[AM] 9k Int** (Intervals)
 
 ## THU (Mar 12)
-- [ ] **[PM] 12.8k Trail** (Trail)
+- [ ] **[PM] 13k Trail** (Trail)
 
 ## FRI (Mar 13)
-- [ ] **[AM] 7.5k Recov** (Easy)
+- [ ] **[AM] 9k Recov** (Easy)
 
 ## SAT (Mar 14)
-- [ ] **[AM] 7.5k (Tempo PR)** (Tempo)
+- [ ] **[AM] 9k (Tempo PR)** (Tempo)
 
 ## SUN (Mar 15)
-- [ ] **[AM] 24.0k THE ATTACK (15k @ 5:35)** (Easy)
+- [ ] **[AM] 26k THE ATTACK (15k @ 5:35)** (Easy)
 
 ---
 ### GUIDELINES

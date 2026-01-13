@@ -7,23 +7,23 @@
 - [ ] **REST DAY**
 
 ## TUE (Mar 31)
-- [ ] **[AM] 8.4k Easy** (Easy)
+- [ ] **[AM] 9k Easy** (Easy)
 
 ## WED (Apr 01)
-- [ ] **[AM] 7.2k Thresh** (Threshold)
-- [ ] **[PM] 9.0k Int** (Intervals)
+- [ ] **[AM] 7k Thresh** (Threshold)
+- [ ] **[PM] 9k Int** (Intervals)
 
 ## THU (Apr 02)
-- [ ] **[PM] 17.4k Trail** (Trail)
+- [ ] **[PM] 18k Trail** (Trail)
 
 ## FRI (Apr 03)
 - [ ] **REST DAY**
 
 ## SAT (Apr 04)
-- [ ] **[AM] 7.4k (Easy PR)** (Easy)
+- [ ] **[AM] 9k (Easy PR)** (Easy)
 
 ## SUN (Apr 05)
-- [ ] **[AM] 15.4k Easy (Taper)** (Easy)
+- [ ] **[AM] 16k Easy (Taper)** (Easy)
 
 ---
 ### GUIDELINES

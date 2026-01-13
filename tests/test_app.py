@@ -1,10 +1,9 @@
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
 import pytest
-import time
 from app.main import app
-from app.core.database import get_session, User, RunnerPlan
+from app.core.database import get_session
 
 # Use in-memory DB for tests
 @pytest.fixture(name="client")

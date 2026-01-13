@@ -7,23 +7,24 @@
 - [ ] **REST DAY**
 
 ## TUE (Jan 13)
-- [ ] **[AM] 8.0k Steady** (Easy)
+- [x] **ACTUAL: 7.97km** (132bpm, 407W) ✓
+- [x] **[AM] 7k Easy** (Easy)
 
 ## WED (Jan 14)
-- [ ] **[AM] 5.0k Steady** (Steady)
-- [ ] **[PM] 8.0k Int** (Intervals)
+- [ ] **[AM] 5k Steady** (Steady)
+- [ ] **[PM] 7k Int** (Intervals)
 
 ## THU (Jan 15)
-- [ ] **[PM] 17.0k Trail** (Trail)
+- [ ] **[PM] 7k Hills** (Hills)
 
 ## FRI (Jan 16)
-- [ ] **[AM] 7k Recov** (Easy)
+- [ ] **[AM] 6k Recov** (Easy)
 
 ## SAT (Jan 17)
-- [ ] **[AM] 20.K PLR (Last 5k @ 5.25)** (PLR)
+- [ ] **[AM] 20k PLR (Last 5k @ 5.25)** (PLR)
 
 ## SUN (Jan 18)
-- [ ] **[AM] 12k (10km at tempo / threshold WAMC)** (Race)
+- [ ] **[AM] 10.9k (10km at tempo / threshold WAMC)** (Race)
 
 ---
 ### GUIDELINES

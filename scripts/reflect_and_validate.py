@@ -256,9 +256,6 @@ def main():
         print(f"No future plan found starting {next_start_str}")
         return
 
-    # Initialize the "Previous Volume" with the Actuals
-    prev_vol = vol 
-    
     # Flag to allow manual override for the first future week
     manual_override_active = False
 

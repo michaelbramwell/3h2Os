@@ -1,5 +1,123 @@
 [
   {
+    "date": "2026-01-13",
+    "name": "Easy",
+    "type": "running",
+    "distance_m": 7965.08984375,
+    "duration_s": 2735.93603515625,
+    "average_pace_m_s": 2.9110000133514404,
+    "average_hr": 132.0,
+    "max_hr": 141.0,
+    "average_power": 407.0,
+    "aerobic_te": 2.4000000953674316,
+    "anaerobic_te": 0.0,
+    "training_load": 42.05027770996094,
+    "calories": 710.0,
+    "activityId": 21528048366,
+    "hr_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 86.0,
+        "avgValue": 112.38,
+        "zoneLowBoundary": 100
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 2437.0,
+        "avgValue": 132.86,
+        "zoneLowBoundary": 120
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 184.0,
+        "avgValue": 140.34,
+        "zoneLowBoundary": 140
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 160
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 180
+      }
+    ],
+    "power_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 2043.0,
+        "avgValue": 409.35,
+        "zoneLowBoundary": 362
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 378.0,
+        "avgValue": 463.26,
+        "zoneLowBoundary": 443
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 46.0,
+        "avgValue": 521.96,
+        "zoneLowBoundary": 511
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 4.0,
+        "avgValue": 594.0,
+        "zoneLowBoundary": 557
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 632
+      }
+    ],
+    "pace_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 388.0,
+        "avgValue": 2.41,
+        "zoneLowBoundary": 0.5
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 2036.0,
+        "avgValue": 2.98,
+        "zoneLowBoundary": 2.688
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 263.0,
+        "avgValue": 3.17,
+        "zoneLowBoundary": 3.115
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 46.0,
+        "avgValue": 3.61,
+        "zoneLowBoundary": 3.472
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.717
+      },
+      {
+        "zoneNumber": 6,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 3.953
+      }
+    ]
+  },
+  {
     "date": "2026-01-11",
     "name": "Long run progressive",
     "type": "running",

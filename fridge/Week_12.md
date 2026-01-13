@@ -7,23 +7,23 @@
 - [ ] **REST DAY**
 
 ## TUE (Mar 24)
-- [ ] **[AM] 10k Easy** (Easy)
+- [ ] **[AM] 14k Easy** (Easy)
 
 ## WED (Mar 25)
-- [ ] **[AM] 10k Thresh** (Threshold)
-- [ ] **[PM] 10k Int** (Intervals)
+- [ ] **[AM] 14k Thresh** (Threshold)
+- [ ] **[PM] 14k Int** (Intervals)
 
 ## THU (Mar 26)
-- [ ] **[PM] 17k Trail** (Trail)
+- [ ] **[PM] 24k Trail** (Trail)
 
 ## FRI (Mar 27)
-- [ ] **[AM] 6k Recov** (Easy)
+- [ ] **[AM] 9k Recov** (Easy)
 
 ## SAT (Mar 28)
-- [ ] **[AM] 7k (Sub-22 Final Attempt)** (Easy)
+- [ ] **[AM] 9k (Sub-22 Final Attempt)** (Easy)
 
 ## SUN (Mar 29)
-- [ ] **[AM] 21k PLR (Last 5k @ 5:15)** (PLR)
+- [ ] **[AM] 29k PLR (Last 5k @ 5:15)** (PLR)
 
 ---
 ### GUIDELINES
