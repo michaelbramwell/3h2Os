@@ -7,7 +7,8 @@
 - [ ] **REST DAY**
 
 ## TUE (Jan 13)
-- [ ] **[AM] 6.0k Steady** (Steady)
+- [x] **ACTUAL: 7.97km** (132bpm, 407W) ✓
+- [x] **[AM] 6.0k Steady** (Steady)
 
 ## WED (Jan 14)
 - [ ] **[AM] 4.8k Steady** (Steady)
