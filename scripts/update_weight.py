@@ -41,7 +41,8 @@ def update_weight(new_weight: float):
         
         # Regenerate Markdown files
         print("Regenerating Markdown files...")
-        subprocess.run(["python3", "generate_plan_md.py"], check=True)
+        # Use sys.executable to ensure we use the same python interpreter (within uv env)
+        subprocess.run([sys.executable, "scripts/generate_plan_md.py"], check=True)
         
     except Exception as e:
         print(f"Error updating weight: {e}")

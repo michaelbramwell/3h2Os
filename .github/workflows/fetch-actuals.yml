@@ -37,6 +37,9 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Run Tests
+        run: uv run pytest
+
       - name: Fetch Actuals from Garmin
         env:
           GARMIN_EMAIL: ${{ secrets.GARMIN_EMAIL }}
