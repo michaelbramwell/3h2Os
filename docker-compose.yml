@@ -1,0 +1,32 @@
+services:
+  web:
+    build: .
+    container_name: running_app
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the data directory (database, logs, etc.)
+      - ./data:/app/data
+      # Optional: Mount local source for development (comment out for production)
+      # - ./app:/app/app:ro
+      # - ./scripts:/app/scripts:ro
+    env_file:
+      - .env
+    environment:
+      - SQLITE_DB_PATH=data/database.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Scheduler/Worker service if you want to run syncs automatically in docker
+  # worker:
+  #   build: .
+  #   container_name: running_worker
+  #   command: watchmedo ... (or a custom cron script)
+  #   volumes:
+  #     - ./data:/app/data
+  #   env_file:
+  #     - .env
