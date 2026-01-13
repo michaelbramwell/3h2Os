@@ -18,6 +18,10 @@ from sqlmodel import Session, select
 # Types that contribute to the "Hard" portion of 80/20 rule
 INTENSITY_TYPES = ["interval", "intervals", "tempo", "threshold", "steady", "race", "fartlek", "hill", "hills"]
 
+# Threshold for determining if a distance change is significant enough to update the workout name
+# Used in set_workout_distance to prevent unnecessary name updates during normalization
+DISTANCE_CHANGE_THRESHOLD_M = 50
+
 def parse_date(d: str) -> datetime:
     return datetime.strptime(d, "%Y-%m-%d")
 
@@ -107,6 +111,9 @@ def save_plan(weeks: List[Week], filepath: str):
 def set_workout_distance(workout: Workout, new_dist_m: float):
     # Determine if we should round closely (Training runs = Integer km, Races = Float km)
     is_race = "race" in workout.type.lower()
+    
+    # Store original distance to check if it changed significantly
+    original_dist_m = workout.distance_m
 
     if not is_race:
         # Snap to nearest KM to ensure "Name matches Data" prevents total discrepancies
@@ -118,19 +125,24 @@ def set_workout_distance(workout: Workout, new_dist_m: float):
     workout.distance_m = final_dist_m
     final_dist_km = final_dist_m / 1000.0
     
-    # Attempt to update name if it starts with "Xk " or "X.Yk "
-    # Regex for "8k", "8.5k", "10k" at start of string
-    match = re.match(r"^(\d+(\.\d+)?)k\s", workout.name, re.IGNORECASE)
-    if match:
-        original_str = match.group(0) # e.g. "8k "
-        
-        # Format based on type: Integers for training runs, Decimals for Races
-        if is_race:
-            new_str = f"{final_dist_km:.1f}k "
-        else:
-            new_str = f"{final_dist_km:.0f}k "
+    # Only update the name if the distance has changed significantly
+    # This prevents unnecessary name updates during normalization loops
+    distance_changed = abs(final_dist_m - original_dist_m) > DISTANCE_CHANGE_THRESHOLD_M
+    
+    if distance_changed:
+        # Attempt to update name if it starts with "Xk " or "X.Yk "
+        # Regex for "8k", "8.5k", "10k" at start of string
+        match = re.match(r"^(\d+(\.\d+)?)k\s", workout.name, re.IGNORECASE)
+        if match:
+            original_str = match.group(0) # e.g. "8k "
             
-        workout.name = workout.name.replace(original_str, new_str, 1)
+            # Format based on type: Integers for training runs, Decimals for Races
+            if is_race:
+                new_str = f"{final_dist_km:.1f}k "
+            else:
+                new_str = f"{final_dist_km:.0f}k "
+                
+            workout.name = workout.name.replace(original_str, new_str, 1)
     
     # Remove (Adj) if present, as user requested not to use it
     if "(Adj)" in workout.name:
