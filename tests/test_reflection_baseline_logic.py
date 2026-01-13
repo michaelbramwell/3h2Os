@@ -1,5 +1,4 @@
 import json
-import pytest
 from scripts.reflect_and_validate import main
 from unittest.mock import patch, MagicMock
 from app.models.domain import Week, Day, Workout
