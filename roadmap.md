@@ -10,12 +10,15 @@
 - [x] **JSON-First Architecture:** `plan.json` and `context.json` as the single sources of truth.
 - [x] **Automated Documentation:** `generate_plan_md.py` to keep `marathon_plan.md` and `context.md` in sync.
 
-## Phase 2: Data Integration (Weeks 1-4)
+## Phase 2: Data Integration & Intelligence (Weeks 1-4)
 - [x] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard.
 - [x] **Weight Integration:** Mechanism to update current weight and track history via `update_weight.py`.
 - [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` to run hourly.
 - [x] **Fridge Mode:** Print-friendly weekly sheets available via dashboard and CLI.
 - [x] **Zone Alignment:** Aligned pace zones with Strava ranges (Z1-Z6) and enriched documentation.
+- [x] **Dynamic Validation:** Guardrails logic (`reflect_and_validate.py`) to manage baselines, volume caps, and intelligent baseline detection (ignoring Rest/Race weeks).
+- [x] **Plan Recalculation:** "The Architect" tool (`update_plan.py`) to bulk-update future training load based on configurable growth factors.
+- [x] **Dashboard 2.0:** Enhanced visual indicators for week statuses (Rest, Race, Taper, Marathon) and improved badges.
 - [ ] **Fueling Audit:** Log actual carb/sodium intake for Sunday PLRs to ensure 90/900 compliance.
 
 ## Phase 3: Performance Analytics (Weeks 5-10)

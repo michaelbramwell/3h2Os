@@ -12,6 +12,7 @@ sys.path.append(os.getcwd())
 from app.models.domain import Week, Day, Workout, GarminActivityType
 from app.core.validation import ValidationEngine
 from app.core.database import engine, RunnerPlan, User
+from app.core.services import save_plan_to_db
 from sqlmodel import Session, select
 
 # Types that contribute to the "Hard" portion of 80/20 rule
@@ -79,59 +80,44 @@ def save_plan(weeks: List[Week], filepath: str):
     
     # 2. Save to Database (With History)
     try:
+        print("Saving to database via service...")
         with Session(engine) as session:
-            # Check for user 'mike'
-            user = session.exec(select(User).where(User.username == "mike")).first()
-            
-            if not user:
-                # Create user if missing (helpful for fresh setups)
-                print("User 'mike' not found. Creating...")
-                user = User(username="mike", email="mike@example.com")
-                session.add(user)
-                session.commit()
-                session.refresh(user)
-
-            # Deactivate all current active plans
-            active_plans = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == True)).all()
-            if active_plans:
-                print(f"Archiving {len(active_plans)} active plan(s)...")
-                for p in active_plans:
-                    p.is_active = False
-                    session.add(p)
-            
-            # Create new active plan
-            print("Creating new active plan version...")
-            new_plan = RunnerPlan(
-                title=f"Plan Update {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-                is_active=True,
-                plan_json=json.dumps(data),
-                user_id=user.id
-            )
-            session.add(new_plan)
-            session.commit()
-            print("Database updated with new version!")
-
+            save_plan_to_db(data, session, username="mike")
+        print("Database updated with new version!")
     except Exception as e:
-        print(f"Warning: Database update failed: {e}")
+        print(f"Warning: Failed to save plan to database for user 'mike' while processing '{filepath}': {e!r}")
 
 def set_workout_distance(workout: Workout, new_dist_m: float):
-    old_dist_km = workout.distance_m / 1000
-    new_dist_km = new_dist_m / 1000
+    # Determine if we should round closely (Training runs = Integer km, Races = Float km)
+    is_race = "race" in workout.type.lower()
+
+    if not is_race:
+        # Snap to nearest KM to ensure "Name matches Data" prevents total discrepancies
+        rounded_km = round(new_dist_m / 1000.0)
+        final_dist_m = rounded_km * 1000.0
+    else:
+        final_dist_m = new_dist_m
     
-    workout.distance_m = new_dist_m
+    workout.distance_m = final_dist_m
+    final_dist_km = final_dist_m / 1000.0
     
     # Attempt to update name if it starts with "Xk " or "X.Yk "
     # Regex for "8k", "8.5k", "10k" at start of string
     match = re.match(r"^(\d+(\.\d+)?)k\s", workout.name, re.IGNORECASE)
     if match:
         original_str = match.group(0) # e.g. "8k "
-        # We replace it if it looks like a distance prefix
-        new_str = f"{new_dist_km:.1f}k "
+        
+        # Format based on type: Integers for training runs, Decimals for Races
+        if is_race:
+            new_str = f"{final_dist_km:.1f}k "
+        else:
+            new_str = f"{final_dist_km:.0f}k "
+            
         workout.name = workout.name.replace(original_str, new_str, 1)
-    else:
-        # Append (Adj) if not already there
-        if "(Adj)" not in workout.name:
-             workout.name += " (Adj)"
+    
+    # Remove (Adj) if present, as user requested not to use it
+    if "(Adj)" in workout.name:
+        workout.name = workout.name.replace(" (Adj)", "")
 
 def calculate_intensity_volume(week: Week) -> float:
     # Use global INTENSITY_TYPES
@@ -157,6 +143,20 @@ def main():
     actual_weeks = load_actuals_as_weeks(actuals_path)
     print(f"Loading plan from {plan_path}...")
     planned_weeks = load_plan(plan_path)
+
+    changes_made = False # Track changes globally
+
+    # Normalize workout names (apply rounding rules)
+    for week in planned_weeks:
+        for day in week.days.values():
+            for workout in day.workouts:
+                old_name = workout.name
+                set_workout_distance(workout, workout.distance_m)
+                if workout.name != old_name:
+                    changes_made = True
+    
+    if changes_made:
+        print(" -> Applied name formatting updates.")
     
     validator = ValidationEngine()
     
@@ -175,6 +175,73 @@ def main():
     vol = validator._calculate_volume(last_actual_week)
     print(f"   Actual Volume: {vol/1000:.2f} km")
     
+    # Determine implied previous volume for validation baseline
+    # If the last actual week was a Rest/Race/Marathon week, its volume is artificially low/irregular.
+    # We should look back to find the last "Normal" week's volume to use as the baseline cap for future weeks.
+    validation_baseline_vol = vol
+
+    last_completed_plan_week = next((w for w in planned_weeks if w.weekStarting == last_actual_week_start), None)
+    
+    if last_completed_plan_week:
+        last_status = getattr(last_completed_plan_week, "status", "normal").lower()
+        
+        last_actual_had_race = False
+        for d in last_actual_week.days.values():
+             for w in d.workouts:
+                  if "race" in w.type.lower():
+                       last_actual_had_race = True
+
+        if last_status in ["rest", "recovery", "race", "marathon"] or last_actual_had_race:
+            print(f"   Last week was '{last_status}' (or Race). Looking back for volume baseline...")
+            
+            found_baseline = False
+            for i in range(len(sorted_starts) - 2, -1, -1):
+                past_week_start = sorted_starts[i]
+                past_week_actual = actual_weeks[past_week_start]
+                past_plan_week = next((w for w in planned_weeks if w.weekStarting == past_week_start), None)
+                
+                if not past_plan_week: continue 
+                
+                past_status = getattr(past_plan_week, "status", "normal").lower()
+                past_had_race = False
+                for d in past_week_actual.days.values():
+                    for w in d.workouts:
+                        if "race" in w.type.lower():
+                            past_had_race = True
+                
+                if past_status not in ["rest", "recovery", "race", "marathon"] and not past_had_race:
+                    past_vol = validator._calculate_volume(past_week_actual)
+                    if past_vol > 0:
+                        validation_baseline_vol = past_vol
+                        found_baseline = True
+                        print(f"   -> Found baseline: Week {past_week_start} ({past_vol/1000:.1f} km)")
+                        break
+            
+            if not found_baseline:
+                print("   -> No normal baseline found in history. Using current volume.")
+
+    # Check for baseline shift (Actual vs Plan for the COMPLETED week)
+    match_index = next((i for i, w in enumerate(planned_weeks) if w.weekStarting == last_actual_week_start), None)
+    if match_index is not None:
+        planned_vol_last = validator._calculate_volume(planned_weeks[match_index])
+        if planned_vol_last > 0:
+            scaling_factor = vol / planned_vol_last
+            # If actuals > 105% of plan, shift the future baseline up
+            if scaling_factor > 1.05:
+                print(f"   Detected volume increase vs plan (Ratio: {scaling_factor:.2f}). Scaling future weeks up...")
+                # Apply scaling to ALL future weeks in memory before validation
+                # note: start validation from match_index + 1
+                for k in range(match_index + 1, len(planned_weeks)):
+                     wk = planned_weeks[k]
+                     for d in wk.days.values():
+                         for w in d.workouts:
+                             # Protect marathon/race workouts (e.g. "BUNBURY 42.2k") from being scaled
+                             workout_name = (getattr(w, "name", "") or "").lower()
+                             if "42.2" in workout_name or "marathon" in workout_name:
+                                 continue
+                             set_workout_distance(w, w.distance_m * scaling_factor)
+                changes_made = True # Ensure we save even if validation doesn't trigger
+
     # --- Adjustment Logic ---
     
     # 1. Start iterating from the week AFTER the last actual week
@@ -189,12 +256,71 @@ def main():
         print(f"No future plan found starting {next_start_str}")
         return
 
+    # Flag to allow manual override for the first future week
+    manual_override_active = False
+
+    # Check for MANUAL baseline shift (Disk vs DB for the CURRENT/NEXT week)
+    # We look at Active Plan first. If that matches Disk, we check the most recent Archived (Inactive) plan.
+    try:
+        with Session(engine) as session:
+             # Find user mike
+             user = session.exec(select(User).where(User.username == "mike")).first()
+             if user:
+                 # 1. Get Comparisons
+                 plans_to_check = []
+                 
+                 active_plan = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == True)).first()
+                 if active_plan:
+                     plans_to_check.append(active_plan)
+                 
+                 # Also fetch latest inactive plan
+                 last_archived = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == False).order_by(RunnerPlan.created_at.desc())).first()
+                 if last_archived:
+                     plans_to_check.append(last_archived)
+
+                 detected_scaling = False
+                 
+                 for db_plan_obj in plans_to_check:
+                     if detected_scaling: break
+                     
+                     db_plan_data = json.loads(db_plan_obj.plan_json)
+                     # Find the matching week in DB data
+                     db_week_data = next((w for w in db_plan_data if w.get('weekStarting') == next_start_str), None)
+                     
+                     if db_week_data:
+                         db_week = Week.from_dict(db_week_data)
+                         db_vol = validator._calculate_volume(db_week)
+                         disk_vol = validator._calculate_volume(planned_weeks[start_index])
+                         
+                         if db_vol > 0:
+                             manual_ratio = disk_vol / db_vol
+                             
+                             # Scale future weeks if manual volume increase > 5% vs archived plan
+                             if manual_ratio > 1.05:
+                                 print(f"   Detected MANUAL volume increase vs DB Plan {db_plan_obj.id} (Ratio: {manual_ratio:.2f}). Scaling subsequent weeks...")
+                                 for k in range(start_index + 1, len(planned_weeks)):
+                                     wk = planned_weeks[k]
+                                     for d in wk.days.values():
+                                         for w in d.workouts:
+                                             # Skip scaling marathon-distance workouts (e.g., key races)
+                                             if getattr(w, "distance_m", None) is None:
+                                                 continue
+                                             if w.distance_m >= 42000:
+                                                 continue
+                                             set_workout_distance(w, w.distance_m * manual_ratio)
+                                 changes_made = True
+                                 manual_override_active = True
+                                 detected_scaling = True
+
+    except Exception as e:
+        print(f"   Warning: Could not check DB for manual edits: {e}")
+
     print(f"\nChecking plan progression from {next_start_str}...")
     
-    # Initialize the "Previous Volume" with the Actuals
-    prev_vol = vol 
+    # Initialize the "Previous Volume" with the calculated baseline (ignoring recent Rest/Race dips)
+    prev_vol = validation_baseline_vol 
     
-    changes_made = False
+    # Logic note: changes_made might already be True from baseline shifting
     
     for i in range(start_index, len(planned_weeks)):
         current_week = planned_weeks[i]
@@ -218,18 +344,41 @@ def main():
                            break
                  if has_race: break
         
-        if has_race:
-             prev_vol = curr_vol
+        week_status = getattr(current_week, "status", "normal").lower()
+        
+        # Bypass rules if status is 'taper' or 'rest' (or has race)
+        if has_race or week_status in ["taper", "rest", "recovery", "marathon"]:
+             print(f"  [Week {current_week.weekStarting}] Status '{week_status}' (or Race). Skipping increase validation.")
+             
+             # Verify purposeful volume reduction in rest/recovery weeks
+             if week_status in ["rest", "recovery"] and prev_vol > 0:
+                 if curr_vol > prev_vol * 0.9: # Warn if volume is not actually lower
+                     print(f"    Warning: Rest week volume ({curr_vol/1000:.1f}k) is not significantly lower than previous ({prev_vol/1000:.1f}k).")
+             
+             # Determines baseline volume logic for subsequent weeks:
+             # - Taper: Commits the drop (future weeks build from this new lower base)
+             # - Rest/Race: Ignores the drop (future weeks compare against the last 'normal' build week)
+             
+             if week_status in ["taper"]:
+                 prev_vol = curr_vol 
+             elif week_status in ["rest", "recovery", "race"] or has_race:
+                 pass 
+             else:
+                 prev_vol = curr_vol # Other bypassed types (e.g. marathon)
+             
              continue
 
         # Rule 1: Volume Cap vs Previous Week
         # If prev_vol is 0 (coming off a rest week or break), we might need special handling
         # But assuming normal progression:
         if prev_vol > 0:
+            # Skip check for the first week IF manual override was detected
+            skip_rule_1 = (i == start_index and manual_override_active)
+            
             ratio = curr_vol / prev_vol
             max_ratio = validator.max_volume_increase_ratio # 1.15
             
-            if ratio > max_ratio:
+            if ratio > max_ratio and not skip_rule_1:
                 # Violation!
                 allowed_vol = prev_vol * max_ratio
                 scaling = allowed_vol / curr_vol

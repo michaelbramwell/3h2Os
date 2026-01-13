@@ -71,7 +71,8 @@
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-01-12",
@@ -84,9 +85,9 @@
         "date": "2026-01-13",
         "workouts": [
           {
-            "name": "6.0k Steady",
-            "type": "Steady",
-            "distance_m": 5955.016268048967,
+            "name": "7k Easy",
+            "type": "Easy",
+            "distance_m": 7000.0,
             "timeOfDay": "AM"
           }
         ]
@@ -95,15 +96,15 @@
         "date": "2026-01-14",
         "workouts": [
           {
-            "name": "4.8k Steady",
+            "name": "5k Steady",
             "type": "Steady",
-            "distance_m": 4764.013014439173,
+            "distance_m": 5000.0,
             "timeOfDay": "AM"
           },
           {
-            "name": "6.0k Int",
+            "name": "7k Int",
             "type": "Intervals",
-            "distance_m": 5955.016268048967,
+            "distance_m": 7000.0,
             "timeOfDay": "PM"
           }
         ]
@@ -112,9 +113,9 @@
         "date": "2026-01-15",
         "workouts": [
           {
-            "name": "16.9k Trail",
-            "type": "Trail",
-            "distance_m": 16893.440886728386,
+            "name": "7k Hills",
+            "type": "Hills",
+            "distance_m": 7000.0,
             "timeOfDay": "PM"
           }
         ]
@@ -123,9 +124,9 @@
         "date": "2026-01-16",
         "workouts": [
           {
-            "name": "6.4k Recov",
+            "name": "6k Recov",
             "type": "Easy",
-            "distance_m": 6362.464749547053,
+            "distance_m": 6000.0,
             "timeOfDay": "AM"
           }
         ]
@@ -134,9 +135,9 @@
         "date": "2026-01-17",
         "workouts": [
           {
-            "name": "7.2k (Sub-22 Attempt #1)",
-            "type": "Easy",
-            "distance_m": 7240.046094312164,
+            "name": "20k PLR (Last 5k @ 5.25)",
+            "type": "PLR",
+            "distance_m": 18000.0,
             "timeOfDay": "AM"
           }
         ]
@@ -145,14 +146,15 @@
         "date": "2026-01-18",
         "workouts": [
           {
-            "name": "19.5k PLR (Last 5k @ 5:25)",
-            "type": "PLR",
-            "distance_m": 19526.184921023716,
+            "name": "10.9k (10km at tempo / threshold WAMC)",
+            "type": "Race",
+            "distance_m": 10941.176470588234,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-01-19",
@@ -165,9 +167,9 @@
         "date": "2026-01-20",
         "workouts": [
           {
-            "name": "10.0k Easy",
+            "name": "9k Easy",
             "type": "Easy",
-            "distance_m": 10004.427330322264,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -176,21 +178,21 @@
         "date": "2026-01-21",
         "workouts": [
           {
-            "name": "8.3k (5k S",
+            "name": "7k (5k S",
             "type": "Easy",
-            "distance_m": 8337.022775268551,
+            "distance_m": 7000,
             "timeOfDay": "AM"
           },
           {
-            "name": "4.2k T)",
+            "name": "4k T)",
             "type": "Easy",
-            "distance_m": 4168.511387634276,
+            "distance_m": 4000,
             "timeOfDay": "AM"
           },
           {
-            "name": "8.3k Int",
+            "name": "7k Int",
             "type": "Intervals",
-            "distance_m": 8337.022775268551,
+            "distance_m": 7000,
             "timeOfDay": "AM"
           }
         ]
@@ -199,9 +201,9 @@
         "date": "2026-01-22",
         "workouts": [
           {
-            "name": "14.2k Trail",
+            "name": "12k Trail",
             "type": "Trail",
-            "distance_m": 14172.938717956538,
+            "distance_m": 12000,
             "timeOfDay": "PM"
           }
         ]
@@ -210,9 +212,9 @@
         "date": "2026-01-23",
         "workouts": [
           {
-            "name": "5.8k Recov",
+            "name": "5k Recov",
             "type": "Easy",
-            "distance_m": 5835.915942687987,
+            "distance_m": 5000,
             "timeOfDay": "AM"
           }
         ]
@@ -221,9 +223,9 @@
         "date": "2026-01-24",
         "workouts": [
           {
-            "name": "5.8k (Tempo PR)",
+            "name": "5k (Tempo PR)",
             "type": "Tempo",
-            "distance_m": 5835.915942687987,
+            "distance_m": 5000,
             "timeOfDay": "AM"
           }
         ]
@@ -232,14 +234,15 @@
         "date": "2026-01-25",
         "workouts": [
           {
-            "name": "20.0k PLR VEST TEST (Last 8k @ 5:20)",
+            "name": "18k PLR VEST TEST (Last 8k @ 5:20)",
             "type": "PLR",
-            "distance_m": 20008.854660644527,
+            "distance_m": 18000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-01-26",
@@ -254,7 +257,7 @@
           {
             "name": "8k Easy",
             "type": "Easy",
-            "distance_m": 8000.0,
+            "distance_m": 8000,
             "timeOfDay": "AM"
           }
         ]
@@ -263,15 +266,15 @@
         "date": "2026-01-28",
         "workouts": [
           {
-            "name": "6k Easy",
+            "name": "7k Easy",
             "type": "Easy",
-            "distance_m": 6000.0,
+            "distance_m": 7000,
             "timeOfDay": "AM"
           },
           {
             "name": "10k Int",
             "type": "Intervals",
-            "distance_m": 10000.0,
+            "distance_m": 10000,
             "timeOfDay": "PM"
           }
         ]
@@ -280,9 +283,9 @@
         "date": "2026-01-29",
         "workouts": [
           {
-            "name": "17k Trail",
+            "name": "19k Trail",
             "type": "Trail",
-            "distance_m": 17000.0,
+            "distance_m": 19000,
             "timeOfDay": "PM"
           }
         ]
@@ -297,7 +300,7 @@
           {
             "name": "7k (Sub-22 Attempt #2)",
             "type": "Easy",
-            "distance_m": 7000.0,
+            "distance_m": 7000,
             "timeOfDay": "AM"
           }
         ]
@@ -306,14 +309,15 @@
         "date": "2026-02-01",
         "workouts": [
           {
-            "name": "18k Easy (Recov week)",
+            "name": "20k Easy (Recov week)",
             "type": "Easy",
-            "distance_m": 18000.0,
+            "distance_m": 20000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-02-02",
@@ -343,9 +347,9 @@
             "timeOfDay": "AM"
           },
           {
-            "name": "10k Int",
+            "name": "11k Int",
             "type": "Intervals",
-            "distance_m": 10000.0,
+            "distance_m": 11000.0,
             "timeOfDay": "PM"
           }
         ]
@@ -354,9 +358,9 @@
         "date": "2026-02-05",
         "workouts": [
           {
-            "name": "17k Trail",
+            "name": "18k Trail",
             "type": "Trail",
-            "distance_m": 17000.0,
+            "distance_m": 18000.0,
             "timeOfDay": "PM"
           }
         ]
@@ -369,16 +373,10 @@
         "date": "2026-02-07",
         "workouts": [
           {
-            "name": "BUSSO 1",
+            "name": "BUSSO Half Marathon (21.1k)",
             "type": "Race",
-            "distance_m": 0.0,
+            "distance_m": 21097.5,
             "timeOfDay": "AM"
-          },
-          {
-            "name": "2",
-            "type": "Easy",
-            "distance_m": 0.0,
-            "timeOfDay": "PM"
           }
         ]
       },
@@ -399,7 +397,8 @@
           }
         ]
       }
-    }
+    },
+    "status": "race"
   },
   {
     "weekStarting": "2026-02-09",
@@ -412,9 +411,9 @@
         "date": "2026-02-10",
         "workouts": [
           {
-            "name": "7.0k Easy",
+            "name": "11k Easy",
             "type": "Easy",
-            "distance_m": 6960.526315789472,
+            "distance_m": 11000,
             "timeOfDay": "AM"
           }
         ]
@@ -423,15 +422,15 @@
         "date": "2026-02-11",
         "workouts": [
           {
-            "name": "5.6k Steady",
+            "name": "6k Steady",
             "type": "Steady",
-            "distance_m": 5568.421052631578,
+            "distance_m": 6000,
             "timeOfDay": "AM"
           },
           {
-            "name": "7.0k Int",
+            "name": "8k Int",
             "type": "Intervals",
-            "distance_m": 6960.526315789472,
+            "distance_m": 8000,
             "timeOfDay": "PM"
           }
         ]
@@ -440,9 +439,9 @@
         "date": "2026-02-12",
         "workouts": [
           {
-            "name": "11.8k Trail",
+            "name": "18k Trail",
             "type": "Trail",
-            "distance_m": 11832.894736842103,
+            "distance_m": 18000,
             "timeOfDay": "PM"
           }
         ]
@@ -451,9 +450,9 @@
         "date": "2026-02-13",
         "workouts": [
           {
-            "name": "4.2k Recov",
+            "name": "5k Recov",
             "type": "Easy",
-            "distance_m": 4176.315789473683,
+            "distance_m": 5000,
             "timeOfDay": "AM"
           }
         ]
@@ -462,9 +461,9 @@
         "date": "2026-02-14",
         "workouts": [
           {
-            "name": "4.9k (Easy PR)",
+            "name": "6k (Easy PR)",
             "type": "Easy",
-            "distance_m": 4872.368421052631,
+            "distance_m": 6000,
             "timeOfDay": "AM"
           }
         ]
@@ -473,14 +472,15 @@
         "date": "2026-02-15",
         "workouts": [
           {
-            "name": "12.5k Easy (Post-race)",
+            "name": "20k Easy (Post-race)",
             "type": "Easy",
-            "distance_m": 12528.94736842105,
+            "distance_m": 20000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-02-16",
@@ -493,9 +493,9 @@
         "date": "2026-02-17",
         "workouts": [
           {
-            "name": "7.2k Easy",
+            "name": "10k Easy",
             "type": "Easy",
-            "distance_m": 7227.920792079204,
+            "distance_m": 10000,
             "timeOfDay": "AM"
           }
         ]
@@ -504,21 +504,21 @@
         "date": "2026-02-18",
         "workouts": [
           {
-            "name": "7.2k (6k S",
+            "name": "10k (6k S",
             "type": "Easy",
-            "distance_m": 7227.920792079204,
+            "distance_m": 10000,
             "timeOfDay": "AM"
           },
           {
-            "name": "3.6k T)",
+            "name": "4k T)",
             "type": "Easy",
-            "distance_m": 3613.960396039602,
+            "distance_m": 4000,
             "timeOfDay": "AM"
           },
           {
-            "name": "6.0k Int",
+            "name": "9k Int",
             "type": "Intervals",
-            "distance_m": 6023.267326732671,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -527,9 +527,9 @@
         "date": "2026-02-19",
         "workouts": [
           {
-            "name": "10.2k Trail",
+            "name": "14k Trail",
             "type": "Trail",
-            "distance_m": 10239.554455445541,
+            "distance_m": 14000,
             "timeOfDay": "PM"
           }
         ]
@@ -538,9 +538,9 @@
         "date": "2026-02-20",
         "workouts": [
           {
-            "name": "4.8k Recov",
+            "name": "6k Recov",
             "type": "Easy",
-            "distance_m": 4818.613861386137,
+            "distance_m": 6000,
             "timeOfDay": "AM"
           }
         ]
@@ -549,9 +549,9 @@
         "date": "2026-02-21",
         "workouts": [
           {
-            "name": "6.0k (Tempo PR)",
+            "name": "9k (Tempo PR)",
             "type": "Tempo",
-            "distance_m": 6023.267326732671,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -560,14 +560,15 @@
         "date": "2026-02-22",
         "workouts": [
           {
-            "name": "15.7k PLR (Last 10k @ 5:30)",
+            "name": "20k PLR (Last 10k @ 5:30)",
             "type": "PLR",
-            "distance_m": 15660.495049504943,
+            "distance_m": 20000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-02-23",
@@ -580,9 +581,9 @@
         "date": "2026-02-24",
         "workouts": [
           {
-            "name": "9.4k Easy",
+            "name": "12k Easy",
             "type": "Easy",
-            "distance_m": 9417.725961538457,
+            "distance_m": 12000,
             "timeOfDay": "AM"
           }
         ]
@@ -591,21 +592,21 @@
         "date": "2026-02-25",
         "workouts": [
           {
-            "name": "9.4k (7k S",
+            "name": "12k (7k S",
             "type": "Easy",
-            "distance_m": 9417.725961538457,
+            "distance_m": 12000,
             "timeOfDay": "AM"
           },
           {
-            "name": "4.7k T)",
+            "name": "5k T)",
             "type": "Easy",
-            "distance_m": 4708.862980769229,
+            "distance_m": 5000,
             "timeOfDay": "AM"
           },
           {
-            "name": "6.7k Int",
+            "name": "9k Int",
             "type": "Intervals",
-            "distance_m": 6726.9471153846125,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -614,9 +615,9 @@
         "date": "2026-02-26",
         "workouts": [
           {
-            "name": "11.4k Trail",
+            "name": "14k Trail",
             "type": "Trail",
-            "distance_m": 11435.810096153842,
+            "distance_m": 14000,
             "timeOfDay": "PM"
           }
         ]
@@ -625,9 +626,9 @@
         "date": "2026-02-27",
         "workouts": [
           {
-            "name": "6.7k Recov",
+            "name": "9k Recov",
             "type": "Easy",
-            "distance_m": 6726.9471153846125,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -636,9 +637,9 @@
         "date": "2026-02-28",
         "workouts": [
           {
-            "name": "6.7k (Sub-22 Attempt #3)",
+            "name": "9k (Sub-22 Attempt #3)",
             "type": "Easy",
-            "distance_m": 6726.9471153846125,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -647,14 +648,15 @@
         "date": "2026-03-01",
         "workouts": [
           {
-            "name": "14.8k PLR VEST TEST (Last 6k @ 5:25)",
+            "name": "18k PLR VEST TEST (Last 6k @ 5:25)",
             "type": "PLR",
-            "distance_m": 14799.283653846149,
+            "distance_m": 18000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-03-02",
@@ -667,9 +669,9 @@
         "date": "2026-03-03",
         "workouts": [
           {
-            "name": "11.9k Easy",
+            "name": "16k Easy",
             "type": "Easy",
-            "distance_m": 11937.5,
+            "distance_m": 16000,
             "timeOfDay": "AM"
           }
         ]
@@ -678,15 +680,15 @@
         "date": "2026-03-04",
         "workouts": [
           {
-            "name": "7.1k Steady",
+            "name": "8k Steady",
             "type": "Steady",
-            "distance_m": 7129.629629629629,
+            "distance_m": 8000,
             "timeOfDay": "AM"
           },
           {
-            "name": "7.1k Int",
+            "name": "8k Int",
             "type": "Intervals",
-            "distance_m": 7129.629629629629,
+            "distance_m": 8000,
             "timeOfDay": "PM"
           }
         ]
@@ -695,9 +697,9 @@
         "date": "2026-03-05",
         "workouts": [
           {
-            "name": "18.9k Trail",
+            "name": "24k Trail",
             "type": "Trail",
-            "distance_m": 18937.5,
+            "distance_m": 24000,
             "timeOfDay": "PM"
           }
         ]
@@ -706,9 +708,9 @@
         "date": "2026-03-06",
         "workouts": [
           {
-            "name": "6.9k Recov",
+            "name": "8k Recov",
             "type": "Easy",
-            "distance_m": 6937.500000000001,
+            "distance_m": 8000,
             "timeOfDay": "AM"
           }
         ]
@@ -717,9 +719,9 @@
         "date": "2026-03-07",
         "workouts": [
           {
-            "name": "5.0k (Tempo PR)",
+            "name": "6k (Tempo PR)",
             "type": "Tempo",
-            "distance_m": 4990.74074074074,
+            "distance_m": 6000,
             "timeOfDay": "AM"
           }
         ]
@@ -728,14 +730,15 @@
         "date": "2026-03-08",
         "workouts": [
           {
-            "name": "19.9k Easy (Recov week)",
+            "name": "25k Easy (Recov week)",
             "type": "Easy",
-            "distance_m": 19937.5,
+            "distance_m": 25000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-03-09",
@@ -748,9 +751,9 @@
         "date": "2026-03-10",
         "workouts": [
           {
-            "name": "10.5k Easy",
+            "name": "12k Easy",
             "type": "Easy",
-            "distance_m": 10505.932203389832,
+            "distance_m": 12000,
             "timeOfDay": "AM"
           }
         ]
@@ -759,21 +762,21 @@
         "date": "2026-03-11",
         "workouts": [
           {
-            "name": "11.3k (5k S",
+            "name": "12k (5k S",
             "type": "Easy",
-            "distance_m": 11256.35593220339,
+            "distance_m": 12000,
             "timeOfDay": "AM"
           },
           {
-            "name": "7.5k T)",
+            "name": "9k T)",
             "type": "Easy",
-            "distance_m": 7504.237288135593,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           },
           {
-            "name": "7.5k Int",
+            "name": "9k Int",
             "type": "Intervals",
-            "distance_m": 7504.237288135593,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -782,9 +785,9 @@
         "date": "2026-03-12",
         "workouts": [
           {
-            "name": "12.8k Trail",
+            "name": "13k Trail",
             "type": "Trail",
-            "distance_m": 12757.203389830509,
+            "distance_m": 13000,
             "timeOfDay": "PM"
           }
         ]
@@ -793,9 +796,9 @@
         "date": "2026-03-13",
         "workouts": [
           {
-            "name": "7.5k Recov",
+            "name": "9k Recov",
             "type": "Easy",
-            "distance_m": 7504.237288135593,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -804,9 +807,9 @@
         "date": "2026-03-14",
         "workouts": [
           {
-            "name": "7.5k (Tempo PR)",
+            "name": "9k (Tempo PR)",
             "type": "Tempo",
-            "distance_m": 7504.237288135593,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -815,14 +818,15 @@
         "date": "2026-03-15",
         "workouts": [
           {
-            "name": "24.0k THE ATTACK (15k @ 5:35)",
+            "name": "26k THE ATTACK (15k @ 5:35)",
             "type": "Easy",
-            "distance_m": 24013.5593220339,
+            "distance_m": 26000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-03-16",
@@ -835,9 +839,9 @@
         "date": "2026-03-17",
         "workouts": [
           {
-            "name": "14.5k Easy",
+            "name": "15k Easy",
             "type": "Easy",
-            "distance_m": 14506.54420045045,
+            "distance_m": 15000,
             "timeOfDay": "AM"
           }
         ]
@@ -846,15 +850,15 @@
         "date": "2026-03-18",
         "workouts": [
           {
-            "name": "10.9k Thresh",
+            "name": "12k Thresh",
             "type": "Threshold",
-            "distance_m": 10910.624999999996,
+            "distance_m": 12000,
             "timeOfDay": "AM"
           },
           {
-            "name": "7.3k Int",
+            "name": "7k Int",
             "type": "Intervals",
-            "distance_m": 7273.749999999997,
+            "distance_m": 7000,
             "timeOfDay": "PM"
           }
         ]
@@ -863,9 +867,9 @@
         "date": "2026-03-19",
         "workouts": [
           {
-            "name": "17.3k Trail",
+            "name": "17k Trail",
             "type": "Trail",
-            "distance_m": 17258.77393018018,
+            "distance_m": 17000,
             "timeOfDay": "PM"
           }
         ]
@@ -874,9 +878,9 @@
         "date": "2026-03-20",
         "workouts": [
           {
-            "name": "10.8k Recov",
+            "name": "12k Recov",
             "type": "Easy",
-            "distance_m": 10836.90456081081,
+            "distance_m": 12000,
             "timeOfDay": "AM"
           }
         ]
@@ -885,9 +889,9 @@
         "date": "2026-03-21",
         "workouts": [
           {
-            "name": "7.3k (Tempo PR)",
+            "name": "7k (Tempo PR)",
             "type": "Tempo",
-            "distance_m": 7273.749999999997,
+            "distance_m": 7000,
             "timeOfDay": "AM"
           }
         ]
@@ -896,14 +900,15 @@
         "date": "2026-03-22",
         "workouts": [
           {
-            "name": "33.8k VEST TEST (Final Peak)",
+            "name": "36k VEST TEST (Final Peak)",
             "type": "Easy",
-            "distance_m": 33772.15230855856,
+            "distance_m": 36000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-03-23",
@@ -916,9 +921,9 @@
         "date": "2026-03-24",
         "workouts": [
           {
-            "name": "10k Easy",
+            "name": "14k Easy",
             "type": "Easy",
-            "distance_m": 10000.0,
+            "distance_m": 14000,
             "timeOfDay": "AM"
           }
         ]
@@ -927,15 +932,15 @@
         "date": "2026-03-25",
         "workouts": [
           {
-            "name": "10k Thresh",
+            "name": "14k Thresh",
             "type": "Threshold",
-            "distance_m": 10000.0,
+            "distance_m": 14000,
             "timeOfDay": "AM"
           },
           {
-            "name": "10k Int",
+            "name": "14k Int",
             "type": "Intervals",
-            "distance_m": 10000.0,
+            "distance_m": 14000,
             "timeOfDay": "PM"
           }
         ]
@@ -944,9 +949,9 @@
         "date": "2026-03-26",
         "workouts": [
           {
-            "name": "17k Trail",
+            "name": "24k Trail",
             "type": "Trail",
-            "distance_m": 17000.0,
+            "distance_m": 24000,
             "timeOfDay": "PM"
           }
         ]
@@ -955,9 +960,9 @@
         "date": "2026-03-27",
         "workouts": [
           {
-            "name": "6k Recov",
+            "name": "9k Recov",
             "type": "Easy",
-            "distance_m": 6000.0,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -966,9 +971,9 @@
         "date": "2026-03-28",
         "workouts": [
           {
-            "name": "7k (Sub-22 Final Attempt)",
+            "name": "9k (Sub-22 Final Attempt)",
             "type": "Easy",
-            "distance_m": 7000.0,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -977,14 +982,15 @@
         "date": "2026-03-29",
         "workouts": [
           {
-            "name": "21k PLR (Last 5k @ 5:15)",
+            "name": "29k PLR (Last 5k @ 5:15)",
             "type": "PLR",
-            "distance_m": 21000.0,
+            "distance_m": 29000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "normal"
   },
   {
     "weekStarting": "2026-03-30",
@@ -997,9 +1003,9 @@
         "date": "2026-03-31",
         "workouts": [
           {
-            "name": "8.4k Easy",
+            "name": "9k Easy",
             "type": "Easy",
-            "distance_m": 8437.5,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -1008,15 +1014,15 @@
         "date": "2026-04-01",
         "workouts": [
           {
-            "name": "7.2k Thresh",
+            "name": "7k Thresh",
             "type": "Threshold",
-            "distance_m": 7222.222222222223,
+            "distance_m": 7000,
             "timeOfDay": "AM"
           },
           {
-            "name": "9.0k Int",
+            "name": "9k Int",
             "type": "Intervals",
-            "distance_m": 9027.777777777777,
+            "distance_m": 9000,
             "timeOfDay": "PM"
           }
         ]
@@ -1025,9 +1031,9 @@
         "date": "2026-04-02",
         "workouts": [
           {
-            "name": "17.4k Trail",
+            "name": "18k Trail",
             "type": "Trail",
-            "distance_m": 17437.5,
+            "distance_m": 18000,
             "timeOfDay": "PM"
           }
         ]
@@ -1040,9 +1046,9 @@
         "date": "2026-04-04",
         "workouts": [
           {
-            "name": "7.4k (Easy PR)",
+            "name": "9k (Easy PR)",
             "type": "Easy",
-            "distance_m": 7437.5,
+            "distance_m": 9000,
             "timeOfDay": "AM"
           }
         ]
@@ -1051,14 +1057,15 @@
         "date": "2026-04-05",
         "workouts": [
           {
-            "name": "15.4k Easy (Taper)",
+            "name": "16k Easy (Taper)",
             "type": "Easy",
-            "distance_m": 15437.5,
+            "distance_m": 16000,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "taper"
   },
   {
     "weekStarting": "2026-04-06",
@@ -1071,9 +1078,9 @@
         "date": "2026-04-07",
         "workouts": [
           {
-            "name": "13.5k Easy",
+            "name": "16k Easy",
             "type": "Easy",
-            "distance_m": 13481.200903124352,
+            "distance_m": 16000.0,
             "timeOfDay": "AM"
           }
         ]
@@ -1082,15 +1089,15 @@
         "date": "2026-04-08",
         "workouts": [
           {
-            "name": "0.0k Thresh",
+            "name": "0k Thresh",
             "type": "Threshold",
-            "distance_m": 12.532731250433255,
+            "distance_m": 0.0,
             "timeOfDay": "AM"
           },
           {
-            "name": "0.0k Int",
+            "name": "0k Int",
             "type": "Intervals",
-            "distance_m": 25.06546250086651,
+            "distance_m": 0.0,
             "timeOfDay": "PM"
           }
         ]
@@ -1103,9 +1110,9 @@
         "date": "2026-04-10",
         "workouts": [
           {
-            "name": "11.5k Recov",
+            "name": "13k Recov",
             "type": "Easy",
-            "distance_m": 11481.200903124352,
+            "distance_m": 13000.0,
             "timeOfDay": "AM"
           }
         ]
@@ -1120,11 +1127,12 @@
           {
             "name": "BUNBURY 42.2k",
             "type": "Race",
-            "distance_m": 42200.0,
+            "distance_m": 42195.0,
             "timeOfDay": "AM"
           }
         ]
       }
-    }
+    },
+    "status": "marathon"
   }
 ]

@@ -11,20 +11,20 @@
 - [x] **[AM] 6.0k Steady** (Steady)
 
 ## WED (Jan 14)
-- [ ] **[AM] 4.8k Steady** (Steady)
-- [ ] **[PM] 6.0k Int** (Intervals)
+- [ ] **[AM] 5.0k Steady** (Steady)
+- [ ] **[PM] 8.0k Int** (Intervals)
 
 ## THU (Jan 15)
-- [ ] **[PM] 16.9k Trail** (Trail)
+- [ ] **[PM] 17.0k Trail** (Trail)
 
 ## FRI (Jan 16)
-- [ ] **[AM] 6.4k Recov** (Easy)
+- [ ] **[AM] 7k Recov** (Easy)
 
 ## SAT (Jan 17)
-- [ ] **[AM] 7.2k (Sub-22 Attempt #1)** (Easy)
+- [ ] **[AM] 20.K PLR (Last 5k @ 5.25)** (PLR)
 
 ## SUN (Jan 18)
-- [ ] **[AM] 19.5k PLR (Last 5k @ 5:25)** (PLR)
+- [ ] **[AM] 12k (10km at tempo / threshold WAMC)** (Race)
 
 ---
 ### GUIDELINES

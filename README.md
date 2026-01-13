@@ -56,16 +56,26 @@ Visit `http://localhost:8000` to view the dashboard.
 
 ### 3. Training Logic & Tools
 
-#### Validation Engine (The Guardrails)
+#### Validation Engine ("The Guardrails")
 To analyze your actual running data against the plan and safety-check the future weeks:
 ```bash
 uv run scripts/reflect_and_validate.py
 ```
-This script will:
-- Compare Actuals vs Plan.
-- Enforce 15% Volume Cap & 80/20 Intensity Rule.
-- Automatically adjust future weeks in `data/plan.json`.
-- **Save a new plan version** to the local SQLite database (`data/database.db`).
+This script acts as the "Guardrails" for your training:
+- **Reactive**: Compares Actuals vs Plan.
+- **Safety**: Enforces volume caps based on your *current* baseline (looking back past rest/race weeks).
+- **Compliance**: Enforces 80/20 Intensity Rules.
+- **Output**: Automatically adjusts specific future weeks if safety rules are violated and saves to DB.
+
+#### Plan Updates ("The Architect")
+To aggressively recalculate the entire future plan based on a new strategy:
+```bash
+uv run scripts/update_plan.py
+```
+This script is the "Architect":
+- **Proactive**: Rewrites future targets from the current week onwards.
+- **Strategy**: Applies a configurable growth factor (e.g., 7% weekly build) to "Normal" weeks.
+- **Intelligence**: Respects structure (Rest drops to 65% baseline, Taper drops to 60%, Race/Marathon weeks preserved).
 
 #### Sync to Garmin
 To push the current `plan.json` to your Garmin Calendar:
@@ -83,7 +93,9 @@ GitHub Pages hosts a static version of the site. The `scripts/build_static.py` s
 
 1.  **Input**: `data/actuals.json` (Synced from Garmin) & `data/plan.json` (The Master Plan).
 2.  **Processing**: `reflect_and_validate.py` reads inputs -> applies logic -> updates Plan -> saves to Database.
-3.  **Visualization**: FastAPI (`app/`) serves the Plan from Database to the Browser.
+3.  **Visualization**:
+    - **FastAPI**: `app/` serves dynamic content locally.
+    - **Dashboard**: `static/js/dashboard.js` renders the plan with distinct styling for Week Statuses (Normal, Rest, Race, Taper, Marathon).
 4.  **Deployment**: Build script copies JSON & HTML to root for GitHub Pages.
 
 ### 4. Sync to Garmin
