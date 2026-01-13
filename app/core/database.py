@@ -26,12 +26,21 @@ class RunnerPlan(SQLModel, table=True):
     user: Optional[User] = Relationship(back_populates="plans")
 
 # --- Database Connection ---
-# Updated path to be relative to where we run "uv run app.main" (root) or absolute
 import os
-sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
-sqlite_url = f"sqlite:///{sqlite_file_name}"
 
-engine = create_engine(sqlite_url, echo=True)
+database_url = os.getenv("DATABASE_URL")
+
+if database_url:
+    # Postgres
+    engine = create_engine(database_url, echo=True)
+else:
+    # SQLite fallback
+    sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
+    sqlite_url = f"sqlite:///{sqlite_file_name}"
+    # check_same_thread=False is needed for SQLite with FastAPI
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
