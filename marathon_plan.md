@@ -4,6 +4,20 @@
 
 | Week Starting | Mon | Tue | Wed | Thu | Fri | Sat | Sun | Stats (Planned / Actual / Proj) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Jan 5<br>[Fridge](fridge/Week_01.md) | Rest<br><small>🚲 30.1k (121bpm, TE:2.3/1.0, L:48)</small><br><small>🚲 30.3k (122bpm, TE:2.3/1.0, L:45)</small> | 8k Easy<br>**✓ 8.3k** (135bpm, 393W, TE:2.5/0.0, L:46) | 6k Steady<br>10k Int | 17k Trail<br>**✓ 4.6k** (133bpm, 310W, TE:2.0/0.0, L:22)<br>**✓ 8.0k** (145bpm, 345W, TE:2.9/0.1, L:61)<br>**✓ 4.7k** (127bpm, 342W, TE:2.0/0.0, L:24)<br>**✓ 6.0k** (128bpm, 410W, TE:2.3/0.0, L:36) | Rest | 6k (Tempo PR)<br>**✓ 1.0k** (137bpm, 392W, TE:1.0/0.0, L:11)<br>**✓ 5.0k** (134bpm, 495W, TE:2.3/0.0, L:37)<br>**✓ 1.1k** (116bpm, 363W, TE:0.7/0.0, L:8) | 18k PLR (Last 3k @ 5:30)<br>**✓ 19.3k** (133bpm, 407W, TE:3.2/0.0, L:82) | Target: **65k**<br>Actual: **58.0k**<br>Proj: **58.0k**<br>Intensity: **4.6m** (Z4/5)<br>Load: **420** |
+| Jan 12<br>[Fridge](fridge/Week_02.md) | Rest | 7k Easy<br>**✓ 8.0k** (132bpm, 407W, TE:2.4/0.0, L:42) | 5k Steady<br>7k Int | 7k Hills | 6k Recov | 20k PLR (Last 5k @ 5.25) | 10.9k (10km at tempo / threshold WAMC) | Target: **61k**<br>Actual: **8.0k**<br>Proj: **61.9k**<br>Load: **42** |
+| Jan 19<br>[Fridge](fridge/Week_03.md) | Rest | 9k Easy | 7k (5k S<br>4k T)<br>7k Int | 12k Trail | 5k Recov | 5k (Tempo PR) | 18k PLR VEST TEST (Last 8k @ 5:20) | Target: **67k**<br>Actual: **0.0k**<br>Proj: **67.0k** |
+| Jan 26<br>[Fridge](fridge/Week_04.md) | Rest | 8k Easy | 7k Easy<br>10k Int | 19k Trail | Rest | 7k (Sub-22 Attempt #2) | 20k Easy (Recov week) | Target: **71k**<br>Actual: **0.0k**<br>Proj: **71.0k** |
+| Feb 2<br>[Fridge](fridge/Week_05.md) | Rest | 8k Easy | 6k Easy<br>11k Int | 18k Trail | Rest | BUSSO Half Marathon (21.1k) | 5k Walk<br>Jog | Target: **69k**<br>Actual: **0.0k**<br>Proj: **69.1k** |
+| Feb 9<br>[Fridge](fridge/Week_06.md) | Rest | 11k Easy | 6k Steady<br>8k Int | 18k Trail | 5k Recov | 6k (Easy PR) | 20k Easy (Post-race) | Target: **74k**<br>Actual: **0.0k**<br>Proj: **74.0k** |
+| Feb 16<br>[Fridge](fridge/Week_07.md) | Rest | 10k Easy | 10k (6k S<br>4k T)<br>9k Int | 14k Trail | 6k Recov | 9k (Tempo PR) | 20k PLR (Last 10k @ 5:30) | Target: **82k**<br>Actual: **0.0k**<br>Proj: **82.0k** |
+| Feb 23<br>[Fridge](fridge/Week_08.md) | Rest | 12k Easy | 12k (7k S<br>5k T)<br>9k Int | 14k Trail | 9k Recov | 9k (Sub-22 Attempt #3) | 18k PLR VEST TEST (Last 6k @ 5:25) | Target: **88k**<br>Actual: **0.0k**<br>Proj: **88.0k** |
+| Mar 2<br>[Fridge](fridge/Week_09.md) | Rest | 16k Easy | 8k Steady<br>8k Int | 24k Trail | 8k Recov | 6k (Tempo PR) | 25k Easy (Recov week) | Target: **95k**<br>Actual: **0.0k**<br>Proj: **95.0k** |
+| Mar 9<br>[Fridge](fridge/Week_10.md) | Rest | 12k Easy | 12k (5k S<br>9k T)<br>9k Int | 13k Trail | 9k Recov | 9k (Tempo PR) | 26k THE ATTACK (15k @ 5:35) | Target: **99k**<br>Actual: **0.0k**<br>Proj: **99.0k** |
+| Mar 16<br>[Fridge](fridge/Week_11.md) | Rest | 15k Easy | 12k Thresh<br>7k Int | 17k Trail | 12k Recov | 7k (Tempo PR) | 36k VEST TEST (Final Peak) | Target: **106k**<br>Actual: **0.0k**<br>Proj: **106.0k** |
+| Mar 23<br>[Fridge](fridge/Week_12.md) | Rest | 14k Easy | 14k Thresh<br>14k Int | 24k Trail | 9k Recov | 9k (Sub-22 Final Attempt) | 29k PLR (Last 5k @ 5:15) | Target: **113k**<br>Actual: **0.0k**<br>Proj: **113.0k** |
+| Mar 30<br>[Fridge](fridge/Week_13.md) | Rest | 9k Easy | 7k Thresh<br>9k Int | 18k Trail | Rest | 9k (Easy PR) | 16k Easy (Taper) | Target: **68k**<br>Actual: **0.0k**<br>Proj: **68.0k** |
+| Apr 6<br>[Fridge](fridge/Week_14.md) | Rest | 16k Easy | 0k Thresh<br>0k Int | Rest | 13k Recov | Rest | BUNBURY 42.2k | Target: **71k**<br>Actual: **0.0k**<br>Proj: **71.2k** |
 
 ---
 
