@@ -2,6 +2,10 @@ import json
 import logging
 import os
 import sys
+import base64
+import zipfile
+import io
+import shutil
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from dataclasses import asdict
@@ -25,18 +29,52 @@ class GarminActualsFetcher:
         load_dotenv()
         self.email = os.getenv("GARMIN_EMAIL")
         self.password = os.getenv("GARMIN_PASSWORD")
+        self.tokens_b64 = os.getenv("GARMIN_TOKENS")
+        if self.tokens_b64:
+            self.tokens_b64 = self.tokens_b64.strip()
         
-        if not self.email or not self.password:
-            logger.error("GARMIN_EMAIL or GARMIN_PASSWORD not set in .env")
-            sys.exit(1)
+        # Try to restore tokens first
+        if self.tokens_b64:
+            try:
+                token_dir = os.path.expanduser("~/.garth")
+                if not os.path.exists(token_dir):
+                    os.makedirs(token_dir)
+                
+                # Decode and extract
+                zip_data = base64.b64decode(self.tokens_b64)
+                with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
+                    zf.extractall(token_dir)
+                logger.info("Restored Garmin tokens from environment variable.")
+            except Exception as e:
+                logger.warning(f"Failed to restore tokens: {e}")
 
+        self.client = None
+        
+        # 1. Try token login (no creds needed if tokens are valid)
         try:
-            self.client = Garmin(self.email, self.password)
-            self.client.login()
-            logger.info(f"Successfully logged in as {self.client.display_name}")
-        except Exception as e:
-            logger.error(f"Login failed: {e}")
-            sys.exit(1)
+            # Attempt to init without creds to force token usage
+            logger.info("Attempting login with stored tokens...")
+            self.client = Garmin()
+            self.client.login(os.path.expanduser("~/.garth"))
+            logger.info(f"Successfully logged in with tokens as {self.client.display_name}")
+        except Exception as e_token:
+            logger.warning(f"Token login failed: {e_token}")
+            self.client = None
+
+        # 2. Fallback to password login
+        if not self.client:
+            if not self.email or not self.password:
+                logger.error("Login failed and GARMIN_EMAIL/GARMIN_PASSWORD not set.")
+                sys.exit(1)
+                
+            try:
+                logger.info("Attempting login with credentials...")
+                self.client = Garmin(self.email, self.password)
+                self.client.login()
+                logger.info(f"Successfully logged in with credentials as {self.client.display_name}")
+            except Exception as e:
+                logger.error(f"Login failed: {e}")
+                sys.exit(1)
 
     def filter_activities(self, activities: List[Dict[str, Any]], start_date: str, end_date: str) -> List[ActualActivity]:
         """Filters raw Garmin activities by date range and maps to our schema."""
