@@ -4,8 +4,9 @@ from sqlmodel import Session, select
 import json
 import os
 from typing import List, Dict, Any
-from app.core.database import get_session, User, RunnerPlan
+from app.core.database import get_session, User, RunnerPlan, PlanWeek
 from app.core.services import save_plan_to_db
+from app.core.mappers import relational_to_plan
 
 router = APIRouter()
 
@@ -29,6 +30,18 @@ async def get_plan(session: Session = Depends(get_session)):
     plan = session.exec(statement).first()
     
     if plan:
+        # Try to read from relational tables first
+        # Check if relational data exists
+        has_relational = session.exec(select(PlanWeek).where(PlanWeek.plan_id == plan.id)).first()
+        
+        if has_relational:
+            try:
+                # Reconstruct from relational
+                return JSONResponse(content=relational_to_plan(session, plan.id))
+            except Exception as e:
+                print(f"Error reading relational plan: {e}. Falling back to blob.")
+                
+        # Fallback to blob
         return JSONResponse(content=json.loads(plan.plan_json))
     
     # Fallback to file if DB empty or issue

@@ -2,7 +2,7 @@ import pytest
 from sqlmodel import Session, SQLModel, create_engine, select
 from sqlalchemy.pool import StaticPool
 from app.core.services import save_plan_to_db
-from app.core.database import User, RunnerPlan
+from app.core.database import User, RunnerPlan, PlanWeek, PlanWorkout
 
 # Create an in-memory database for testing
 @pytest.fixture(name="session")
@@ -17,7 +17,26 @@ def session_fixture():
         yield session
 
 def test_save_plan_to_db_creates_user_and_plan(session):
-    plan_data = [{"weekStarting": "2026-01-01", "days": {}}]
+    # Relational mapper requires 'weekStarting' and valid day dates
+    plan_data = [
+        {
+            "weekStarting": "2026-01-05", 
+            "status": "normal",
+            "days": {
+                "Mon": {
+                    "date": "2026-01-05", # Required by mapper
+                    "workouts": [
+                        {
+                            "name": "5k Recovery",
+                            "type": "Recovery",
+                            "distance_m": 5000,
+                            "timeOfDay": "AM"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
     
     # 1. First run, user doesn't exist
     new_plan = save_plan_to_db(plan_data, session, username="testuser")
@@ -33,6 +52,18 @@ def test_save_plan_to_db_creates_user_and_plan(session):
     plans = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == user.id)).all()
     assert len(plans) == 1
     assert plans[0].is_active is True
+
+    # 2. Verify Relational Data Support
+    weeks = session.exec(select(PlanWeek).where(PlanWeek.plan_id == new_plan.id)).all()
+    assert len(weeks) == 1
+    assert weeks[0].start_date.isoformat() == "2026-01-05"
+    assert weeks[0].status == "normal"
+    
+    workouts = session.exec(select(PlanWorkout).where(PlanWorkout.week_id == weeks[0].id)).all()
+    assert len(workouts) == 1
+    assert workouts[0].activity_type == "Recovery"
+    assert workouts[0].distance_m == 5000
+    assert workouts[0].date.isoformat() == "2026-01-05"
 
 def test_save_plan_archives_old_plans(session):
     plan_data_1 = [{"week": 1}]

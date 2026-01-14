@@ -1,6 +1,6 @@
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
-from datetime import datetime
+from datetime import datetime, date
 
 # --- Models ---
 
@@ -12,18 +12,41 @@ class User(SQLModel, table=True):
     
     plans: List["RunnerPlan"] = Relationship(back_populates="user")
 
+class PlanWorkout(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    week_id: int = Field(foreign_key="planweek.id")
+    date: date
+    day_name: str # Mon, Tue...
+    
+    name: str
+    description: Optional[str] = None
+    activity_type: str = "Run" # Run, Rest, Cross, etc.
+    distance_m: float = 0.0
+    time_of_day: str = "AM"
+    
+    week: "PlanWeek" = Relationship(back_populates="workouts")
+
+class PlanWeek(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    plan_id: int = Field(foreign_key="runnerplan.id")
+    start_date: date
+    status: str = "normal"
+    
+    plan: "RunnerPlan" = Relationship(back_populates="weeks")
+    workouts: List["PlanWorkout"] = Relationship(back_populates="week")
+
 class RunnerPlan(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     is_active: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
-    # Store the entire legacy plan.json structure as a JSON string for now
-    # This allows us to "multi-tenant" the file structure immediately
+    # Deprecated: Store the entire legacy plan.json structure as a JSON string
     plan_json: str = Field(default="[]") 
     
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     user: Optional[User] = Relationship(back_populates="plans")
+    weeks: List["PlanWeek"] = Relationship(back_populates="plan")
 
 # --- Database Connection ---
 import os
