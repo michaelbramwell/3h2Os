@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Dict, Any, Optional
 
 class WorkoutSchema(BaseModel):
@@ -35,6 +35,13 @@ class ProjectContext(BaseModel):
     goal: str
     event: str
     event_date: str = Field(alias="eventDate")
+    
+    @field_validator('event_date', mode='before')
+    @classmethod
+    def convert_date_to_str(cls, v: Any) -> str:
+        if hasattr(v, 'isoformat'):
+            return v.isoformat()
+        return str(v)
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
