@@ -11,6 +11,8 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     plans: List["RunnerPlan"] = Relationship(back_populates="user")
+    project: Optional["RunnerProject"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
+    profile: Optional["RunnerProfile"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
 
 class PlanWorkout(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -47,6 +49,39 @@ class RunnerPlan(SQLModel, table=True):
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     user: Optional[User] = Relationship(back_populates="plans")
     weeks: List["PlanWeek"] = Relationship(back_populates="plan")
+
+class RunnerProject(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    
+    name: str = "My Project"
+    goal: str
+    event: str
+    event_date: date
+    
+    user: "User" = Relationship(back_populates="project")
+
+class RunnerProfile(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    
+    age: int
+    gender: str
+    height_cm: int
+    current_weight: float
+    target_weight: float
+    
+    user: "User" = Relationship(back_populates="profile")
+    weight_history: List["WeightEntry"] = Relationship(back_populates="profile")
+
+class WeightEntry(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    profile_id: int = Field(foreign_key="runnerprofile.id")
+    
+    date_recorded: date
+    weight_kg: float
+    
+    profile: "RunnerProfile" = Relationship(back_populates="weight_history")
 
 # --- Database Connection ---
 import os

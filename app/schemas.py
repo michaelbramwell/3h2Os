@@ -34,11 +34,17 @@ class ProjectContext(BaseModel):
     name: str
     goal: str
     event: str
-    eventDate: str
+    event_date: str = Field(alias="eventDate")
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class WeightRecord(BaseModel):
-    date: str
-    weight: float
+    date: str = Field(serialization_alias="date")
+    weight: float = Field(serialization_alias="weight")
+    
+    # Allow mapping from DB fields 'date_recorded' and 'weight_kg'
+    # We can use a property or just explicit mapping. 
+    # Explicit mapping is often clearer for simple transformations.
 
 class WeightContext(BaseModel):
     current: float
@@ -50,6 +56,8 @@ class RunnerContext(BaseModel):
     gender: str
     height_cm: int
     weight_kg: WeightContext
+
+    model_config = ConfigDict(from_attributes=True)
 
 class ContextSchema(BaseModel):
     project: ProjectContext

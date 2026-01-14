@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 
 from app.core.database import create_db_and_tables, engine, User, RunnerPlan
 from app.routers import pages, api
+from app.core.migrations_logic import migrate_context_json
 
 # --- Lifecycle ---
 @asynccontextmanager
@@ -16,6 +17,9 @@ async def lifespan(app: FastAPI):
     pass
     try:
         with Session(engine) as session:
+            # Ensure tables exist (quick fix for dev environment if almebic not used)
+            create_db_and_tables() 
+            
             user = session.exec(select(User).where(User.username == "mike")).first()
             if not user:
                 print("Creating default user 'mike'...")
@@ -33,6 +37,10 @@ async def lifespan(app: FastAPI):
                     plan = RunnerPlan(title="Bunbury 2026", plan_json=plan_data, user_id=user.id, is_active=True)
                     session.add(plan)
                     session.commit()
+            
+            # Run Context Migration
+            migrate_context_json(session)
+            
     except Exception as e:
         print(f"Startup data init skipped (tables likely missing): {e}")
                 
