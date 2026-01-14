@@ -5,10 +5,10 @@ from app.core.database import RunnerPlan, User
 from app.core.mappers import plan_to_relational
 from typing import List, Dict, Any
 
-def save_plan_to_db(plan_data: List[Dict[str, Any]], session: Session, username: str = "mike") -> RunnerPlan:
+def save_plan_to_db(plan_data: List[Dict[str, Any]], session: Session, username: str = "mike", title: str = None, activate: bool = False) -> RunnerPlan:
     """
     Saves the provided plan data (list of weeks/dicts) to the database.
-    Archives any existing active plans for the user.
+    If activate=True, archives any existing active plans for the user and makes this one active.
     Creates the user if they don't exist.
     Uses the provided SQLModel Session.
     """
@@ -23,18 +23,22 @@ def save_plan_to_db(plan_data: List[Dict[str, Any]], session: Session, username:
         session.commit()
         session.refresh(user)
 
-    # Deactivate all current active plans
-    active_plans = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == True)).all()
-    if active_plans:
-        # print(f"Archiving {len(active_plans)} active plan(s)...") 
-        for p in active_plans:
-            p.is_active = False
-            session.add(p)
+    if activate:
+        # Deactivate all current active plans
+        active_plans = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == True)).all()
+        if active_plans:
+            # print(f"Archiving {len(active_plans)} active plan(s)...") 
+            for p in active_plans:
+                p.is_active = False
+                session.add(p)
     
-    # Create new active plan
+    if not title:
+        title = f"Plan Update {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+
+    # Create new plan
     new_plan = RunnerPlan(
-        title=f"Plan Update {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        is_active=True,
+        title=title,
+        is_active=activate,
         plan_json=json.dumps(plan_data), # Keep legacy blob for backup/debug
         user_id=user.id
     )
@@ -50,3 +54,24 @@ def save_plan_to_db(plan_data: List[Dict[str, Any]], session: Session, username:
         # Non-fatal for now alongside JSON
         
     return new_plan
+
+def activate_plan(plan_id: int, session: Session) -> RunnerPlan:
+    """
+    Sets the specified plan to active and deactivates all other plans for the same user.
+    """
+    plan = session.get(RunnerPlan, plan_id)
+    if not plan:
+        raise ValueError(f"Plan with ID {plan_id} not found")
+        
+    # Deactivate others for same user
+    active_plans = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == plan.user_id).where(RunnerPlan.is_active == True)).all()
+    for p in active_plans:
+        if p.id != plan.id:
+            p.is_active = False
+            session.add(p)
+            
+    plan.is_active = True
+    session.add(plan)
+    session.commit()
+    session.refresh(plan)
+    return plan

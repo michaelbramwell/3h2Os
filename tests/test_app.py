@@ -47,7 +47,7 @@ def test_get_plan_empty_db_fallback(client):
 
 def test_post_plan_update(client):
     # 1. Post a new plan
-    new_plan_data = [{"week": 1, "days": {}}]
+    new_plan_data = [{"weekStarting": "2026-01-01", "days": {}}]
     response = client.post("/plan.json", json=new_plan_data)
     
     assert response.status_code == 200
@@ -60,21 +60,21 @@ def test_post_plan_update(client):
     assert response.status_code == 200
     fetched_plan = response.json()
     assert len(fetched_plan) == 1
-    assert fetched_plan[0]["week"] == 1
+    assert fetched_plan[0]["weekStarting"] == "2026-01-01"
 
 def test_plan_archives_old_versions(client):
     # 1. Post version 1
-    client.post("/plan.json", json=[{"v": 1}])
+    client.post("/plan.json", json=[{"weekStarting": "2026-01-01", "status": "v1"}])
     
     # Wait a sec to ensure timestamps might differ if needed (though title uses minute)
     # Not strictly necessary as ID increments
     
     # 2. Post version 2
-    client.post("/plan.json", json=[{"v": 2}])
+    client.post("/plan.json", json=[{"weekStarting": "2026-01-01", "status": "v2"}])
     
     # 3. GET should return version 2
     response = client.get("/plan.json")
-    assert response.json()[0]["v"] == 2
+    assert response.json()[0]["status"] == "v2"
 
 def test_get_plan_uses_relational_data(client):
     # 1. Post a plan with recognizable structure
@@ -123,4 +123,41 @@ def test_get_plan_uses_relational_data(client):
     assert data[0]["weekStarting"] == "2026-02-01"
     assert data[0]["days"]["Mon"]["workouts"][0]["name"] == "Relational Check"
     assert data[0]["days"]["Mon"]["workouts"][0]["distance_m"] == 8000
+
+def test_create_plan_v2_endpoint(client):
+    # Setup: Create an initial active plan
+    client.post("/plan.json", json=[{"weekStarting": "2026-02-01", "days": {}}])
+    
+    # Test the new /plans endpoint with the required schema
+    payload = {
+        "title": "New V2 Plan",
+        "weeks": [
+            {
+                "weekStarting": "2026-03-01",
+                "days": {
+                    "Mon": {"date": "2026-03-01", "workouts": []}
+                }
+            }
+        ]
+    }
+    response = client.post("/plans", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["title"] == "New V2 Plan"
+    new_id = data["id"]
+    
+    # Verify the OLD plan is still active (2026-02-01)
+    response = client.get("/plan.json")
+    fetched = response.json()
+    assert fetched[0]["weekStarting"] == "2026-02-01"
+
+    # Activate the new plan
+    response = client.put(f"/plans/{new_id}/activate")
+    assert response.status_code == 200
+    
+    # Verify the NEW plan is now active
+    response = client.get("/plan.json")
+    fetched = response.json()
+    assert fetched[0]["weekStarting"] == "2026-03-01"
 
