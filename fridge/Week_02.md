@@ -11,6 +11,7 @@
 - [x] **[AM] 7k Easy** (Easy)
 
 ## WED (Jan 14)
+- [x] **ACTUAL: 6.40km** (127bpm, 346W) ✓
 - [x] **ACTUAL: 7.01km** (130bpm, 435W) ✓
 - [x] **[AM] 5k Steady** (Steady)
 - [x] **[PM] 7k Int** (Intervals)
