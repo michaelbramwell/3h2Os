@@ -5,6 +5,7 @@ import { getPlan, getContext, getActuals, getContextMarkdown } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
 import { RecentActivities } from '../components/RecentActivities'
 import { FridgeWeek } from '../components/FridgeWeek'
+import { ActivityModal } from '../components/ActivityModal'
 import { Printer, X } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
 
@@ -14,6 +15,7 @@ export const Route = createFileRoute('/')({
 
 function Dashboard() {
   const [fridgeWeekId, setFridgeWeekId] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
   useEffect(() => {
     if (fridgeWeekId) {
@@ -61,18 +63,28 @@ function Dashboard() {
   if (!plan || !context) return null
 
   // Helper to determine week status color
-  const getStatusColor = (status: string) => {
-      switch(status?.toLowerCase()) {
-          case 'completed': return 'bg-emerald-50 border-emerald-100 text-emerald-700';
-          case 'active': return 'bg-white border-orange-200 ring-2 ring-orange-100';
-          default: return 'bg-white border-slate-200 opacity-80'; // upcoming
-      }
+  const getWeekStyle = (status: string, isCurrentWeek: boolean) => {
+      const s = status?.toLowerCase() || 'normal';
+      
+      // Special Phases
+      if (s.includes('marathon')) return 'bg-yellow-50/50 border-yellow-400 ring-2 ring-yellow-200 shadow-md';
+      if (s.includes('race')) return 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-100';
+      if (s.includes('taper')) return 'bg-purple-50/30 border-purple-200';
+      
+      // Temporal States
+      if (s === 'completed') return 'bg-slate-50 border-slate-200 opacity-70 grayscale-[0.5]'; 
+      if (isCurrentWeek) return 'bg-white border-orange-400 ring-4 ring-orange-100 shadow-lg scale-[1.01]'; 
+
+      return 'bg-white border-slate-200'; // upcoming/normal
   }
 
   // Filter if in Fridge Mode
   const visibleWeeks = fridgeWeekId 
     ? plan.filter((w: Week) => w.weekStarting === fridgeWeekId)
     : plan;
+
+  const todayDate = new Date();
+  const todayStr = todayDate.toISOString().split('T')[0];
 
   return (
     <div className={`min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans ${fridgeWeekId ? 'bg-white print:p-0' : ''}`}>
@@ -113,13 +125,18 @@ function Dashboard() {
                         )
                     }
 
-                    const isCompleted = week.status?.toLowerCase() === 'completed';
-                    const isActive = week.status?.toLowerCase() === 'active';
+                    // Check if current week by seeing if today is in this week's days
+                    const weekDatesSet = new Set(Object.values(week.days).map((d: any) => d.date));
+                    const isCurrentWeek = weekDatesSet.has(todayStr);
+
+                    const status = week.status?.toLowerCase() || 'normal';
+                    const isCompleted = status === 'completed' || (!isCurrentWeek && new Date(week.weekStarting) < new Date(todayStr));
+                    
+                    const weekStyle = getWeekStyle(status, isCurrentWeek);
                     
                     // --- Stats Calculation ---
                     let weekTargetM = 0;
                     let weekRemainingM = 0;
-                    const todayStr = new Date().toISOString().split('T')[0];
 
                     // 1. Calculate Target & Remaining from Plan
                     Object.values(week.days).forEach((day: any) => {
@@ -135,13 +152,12 @@ function Dashboard() {
                     });
 
                     // 2. Calculate Actuals from Activity Log
-                    // Find actuals that match dates in this week
-                    const weekDates = new Set(Object.values(week.days).map((d: any) => d.date));
-                    const weekActuals = (actuals || []).filter((a: Activity) => weekDates.has(a.date));
+                    const weekActuals = (actuals || []).filter((a: Activity) => weekDatesSet.has(a.date));
                     
                     let weekActualM = 0;
                     weekActuals.forEach(a => {
-                        if (a.type === 'running' || a.type === 'trail_running') {
+                         // Sum running types
+                         if (a.type === 'running' || a.type === 'trail_running' || a.name.toLowerCase().includes('run')) {
                             weekActualM += (a.distance_m || 0);
                         }
                     });
@@ -153,14 +169,18 @@ function Dashboard() {
                     return (
                         <div 
                             key={week.weekStarting} 
-                            className={`rounded-xl p-5 border shadow-sm transition-all duration-200 ${getStatusColor(week.status)} ${isActive ? 'shadow-md scale-[1.01]' : 'shadow-sm'}`}
+                            className={`rounded-xl p-5 border shadow-sm transition-all duration-200 ${weekStyle}`}
                         >
                             <div className="sticky top-0 z-10 flex flex-col md:flex-row justify-between items-start md:items-center -mx-5 -mt-5 pt-5 px-5 pb-3 mb-4 border-b border-slate-100/50 gap-4 rounded-t-xl backdrop-blur-md bg-white/30">
                                 <div>
-                                    <h3 className={`text-lg font-bold ${isActive ? 'text-orange-900' : 'text-slate-800'}`}>
+                                    <h3 className={`text-lg font-bold ${isCurrentWeek ? 'text-orange-900' : 'text-slate-800'}`}>
                                         Week of {new Date(week.weekStarting).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
+                                        {(status === 'race' || status === 'marathon') && <span className="ml-2 text-yellow-600">🏆</span>}
+                                        {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
                                     </h3>
-                                    {isActive && <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 rounded-full">Current Week</span>}
+                                    {isCurrentWeek && <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 rounded-full">Current Week</span>}
+                                    {(status === 'race' || status === 'marathon') && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-yellow-700 bg-yellow-100 rounded-full">Race Week</span>}
+                                    {status === 'taper' && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 rounded-full">Taper</span>}
                                 </div>
                                 
                                 {/* Progress Stats using flex for compact layout */}
@@ -187,7 +207,7 @@ function Dashboard() {
 
                                 <div className="text-right hidden md:flex flex-col items-end gap-2">
                                      <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded ${isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                                        {week.status}
+                                        {status === 'normal' ? (isCompleted ? 'Completed' : 'Upcoming') : status}
                                      </span>
                                      
                                      {!fridgeWeekId && (
@@ -200,7 +220,8 @@ function Dashboard() {
                                      )}
                                 </div>
                             </div>
-
+                            
+                            {/* Days Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                                 {Object.entries(week.days)
                                     .sort((a,b) => new Date(a[1].date).getTime() - new Date(b[1].date).getTime())
@@ -208,12 +229,41 @@ function Dashboard() {
                                     
                                     const dayActuals = (actuals || []).filter((a: Activity) => a.date === day.date);
                                     const hasWorkouts = day.workouts && day.workouts.length > 0;
+                                    const isToday = day.date === todayStr;
+
+                                    // Check special day types
+                                    let dayStyle = isToday ? 'ring-2 ring-orange-500 shadow-md border-orange-200 bg-white' : 'border-slate-100 bg-white hover:border-blue-200';
+                                    let dayBadge = isToday ? <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-bl-lg rounded-tr-lg z-10">TODAY</div> : null;
+
+                                    // Check for Race/Marathon in Workouts
+                                    let isRaceDay = false;
+                                    let isMarathonDay = false;
+                                    
+                                    if (day.workouts) {
+                                        day.workouts.forEach((w: any) => {
+                                            if (w.type === 'Race') {
+                                                if (status === 'marathon') isMarathonDay = true;
+                                                else isRaceDay = true;
+                                            }
+                                        });
+                                    }
+
+                                    if (isMarathonDay) {
+                                        dayStyle = 'bg-gradient-to-br from-yellow-50 to-amber-100 border-yellow-400 ring-4 ring-yellow-200 shadow-xl scale-[1.02] z-20';
+                                        dayBadge = <div className="absolute top-0 right-0 bg-yellow-500 text-white text-[9px] font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg z-10 shadow-sm flex items-center gap-1"><span>👑</span> RACE DAY</div>;
+                                    } else if (isRaceDay) {
+                                        dayStyle = 'bg-amber-50 border-amber-300 ring-2 ring-amber-100 shadow-md';
+                                        dayBadge = <div className="absolute top-0 right-0 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-bl-lg rounded-tr-lg z-10 flex items-center gap-1"><span>🏁</span> RACE</div>;
+                                    }
+
 
                                     return (
-                                        <div key={dayName} className={`p-3 rounded-lg border flex flex-col h-full ${isActive ? 'bg-white border-orange-100' : 'bg-slate-50/50 border-slate-100'}`}>
+                                        <div key={dayName} className={`p-3 rounded-lg border flex flex-col h-full relative transition-all duration-300 ${dayStyle}`}>
+                                            {dayBadge}
+                                            
                                             <div className="flex justify-between items-start mb-2">
-                                                <span className="text-xs font-bold text-slate-400 uppercase">{dayName}</span>
-                                                <span className="text-[10px] text-slate-400 font-mono">{new Date(day.date).getDate()}</span>
+                                                <span className={`text-xs font-bold uppercase ${(isToday || isRaceDay || isMarathonDay) ? 'text-slate-800' : 'text-slate-400'}`}>{dayName}</span>
+                                                <span className={`text-[10px] font-mono ${(isToday || isRaceDay || isMarathonDay) ? 'text-slate-700 font-bold' : 'text-slate-400'}`}>{new Date(day.date).getDate()}</span>
                                             </div>
                                             
                                             <div className="space-y-2 flex-grow">
@@ -223,19 +273,33 @@ function Dashboard() {
                                                     </div>
                                                 )}
 
-                                                {/* Planned Workouts */}
-                                                {day.workouts?.map((workout: any, idx: number) => (
-                                                    <div key={`plan-${idx}`} className="bg-white p-2 rounded border border-slate-100 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-colors cursor-default">
-                                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                                                        <div className="pl-2">
-                                                            <div className="font-bold text-sm text-slate-700 leading-tight">{workout.type}</div>
-                                                            <div className="text-xs text-slate-500 mt-0.5 line-clamp-2">{workout.description || workout.name}</div>
-                                                            <div className="mt-1.5 flex gap-2 text-[10px] items-center text-slate-400 font-mono">
-                                                                <span>{(workout.distance_m / 1000).toFixed(1)}km</span>
+                                                {/* Planned Workouts - Special Styling for Race Entries */}
+                                                {day.workouts?.map((workout: any, idx: number) => {
+                                                    const isRaceWorkout = workout.type === 'Race';
+                                                    let workoutCardStyle = `bg-white p-2 rounded border border-slate-100 shadow-sm relative overflow-hidden group hover:border-blue-200 transition-colors cursor-default ${isToday ? 'bg-orange-50/30' : ''}`;
+                                                    let borderBarColor = 'bg-blue-500';
+
+                                                    if (isRaceWorkout && isMarathonDay) {
+                                                        workoutCardStyle = 'bg-yellow-100/80 p-3 rounded-lg border-2 border-yellow-400 shadow-md relative overflow-hidden';
+                                                        borderBarColor = 'bg-yellow-600';
+                                                    } else if (isRaceWorkout) {
+                                                        workoutCardStyle = 'bg-amber-100/50 p-2 rounded border border-amber-300 shadow-sm relative overflow-hidden';
+                                                        borderBarColor = 'bg-amber-500';
+                                                    }
+
+                                                    return (
+                                                        <div key={`plan-${idx}`} className={workoutCardStyle}>
+                                                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${borderBarColor}`}></div>
+                                                            <div className={isRaceWorkout && isMarathonDay ? 'pl-3' : 'pl-2'}>
+                                                                <div className={`font-bold ${isRaceWorkout && isMarathonDay ? 'text-lg uppercase text-yellow-900' : 'text-sm text-slate-700'} leading-tight`}>{workout.type}</div>
+                                                                <div className={`${isRaceWorkout && isMarathonDay ? 'text-sm font-bold text-yellow-800' : 'text-xs text-slate-500'} mt-0.5 line-clamp-2`}>{workout.description || workout.name}</div>
+                                                                <div className={`mt-1.5 flex gap-2 text-[10px] items-center font-mono ${isRaceWorkout ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                                    <span>{(workout.distance_m / 1000).toFixed(1)}km</span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
 
                                                 {/* Actuals */}
                                                 {dayActuals.map((act: Activity, idx: number) => {
@@ -245,7 +309,14 @@ function Dashboard() {
                                                         : '-:--/km';
 
                                                     return (
-                                                        <div key={`act-${idx}`} className="bg-emerald-50 p-2 rounded border border-emerald-100 shadow-sm relative overflow-hidden group hover:bg-emerald-100 transition-colors cursor-default">
+                                                        <div 
+                                                            key={`act-${idx}`} 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedActivity(act);
+                                                            }}
+                                                            className="bg-emerald-50 p-2 rounded border border-emerald-100 shadow-sm relative overflow-hidden group hover:bg-emerald-100 hover:shadow-md transition-all cursor-pointer"
+                                                        >
                                                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
                                                             <div className="pl-2">
                                                                 <div className="font-bold text-[10px] text-emerald-600 uppercase tracking-wider mb-0.5">Actual {act.type === 'running' ? '🏃' : '✓'}</div>
@@ -271,6 +342,13 @@ function Dashboard() {
             </div>
         </div>
       </div>
+
+      {selectedActivity && (
+        <ActivityModal 
+            activity={selectedActivity} 
+            onClose={() => setSelectedActivity(null)} 
+        />
+      )}
     </div>
   )
 }

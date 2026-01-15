@@ -23,24 +23,8 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
 
     return (
         <>
-            <div 
-                className="bg-white rounded-lg shadow p-6 border border-slate-200 relative z-50 pointer-events-auto"
-                onClick={() => console.log('Container clicked')}
-            >
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Activities</h3>
-                    {/* Debug indicator with inline styles to guarantee visibility */}
-                    <div 
-                        style={{ width: '20px', height: '20px', backgroundColor: 'red', display: 'block', cursor: 'pointer' }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            console.error('🔴 RED DOT CLICKED');
-                            alert('Red Dot Clicked!');
-                        }} 
-                        title="Debug Click"
-                    ></div>
-                </div>
-
+            <div className="bg-white rounded-lg shadow p-6 border border-slate-200 relative z-0">
+                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Recent Activities</h3>
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                         <thead>
@@ -52,7 +36,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                                 <th className="pb-2 font-medium">HR</th>
                             </tr>
                         </thead>
-                        <tbody className="font-mono relative z-10">
+                        <tbody className="font-mono">
                             {sortedActivities.slice(0, 5).map((activity, idx) => {
                                 const date = new Date(activity.date);
                                 const distanceKm = activity.distance_m / 1000;
@@ -65,13 +49,8 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                                 return (
                                     <tr 
                                         key={activity.activityId || idx} 
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            console.log('Row clicked for activity:', activity.activityId, activity.name);
-                                            setSelectedActivity(activity);
-                                        }}
-                                        className="border-b last:border-0 hover:bg-slate-50 cursor-pointer transition-colors group relative z-20"
+                                        onClick={() => setSelectedActivity(activity)}
+                                        className="border-b last:border-0 hover:bg-slate-50 cursor-pointer transition-colors group"
                                     >
                                         <td className="py-3 text-gray-600">
                                             {date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' })}
