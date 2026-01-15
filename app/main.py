@@ -61,7 +61,7 @@ app.add_middleware(
 )
 
 app.include_router(pages.router)
-app.include_router(api.router)
+app.include_router(api.router, prefix="/api")
 
 # serve root files as fallback if needed or specific static dir
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

@@ -124,8 +124,8 @@ class GarminActualsFetcher:
                     except Exception as e:
                         logger.warning(f"Failed to enrich zones for {activity_id}: {e}")
                         # Fallback to summaries if telemetry fails
-                        hr_zones = raw_hr_summary
-                        power_zones = raw_power_summary
+                        hr_zones = self.map_fallback_zones(raw_hr_summary, act['duration'])
+                        power_zones = [] # self.map_fallback_zones(raw_power_summary) # Power ignored in schema for now
 
                 filtered_activities.append(ActualActivity(
                     date=act_date_str,
@@ -147,6 +147,21 @@ class GarminActualsFetcher:
                     pace_zones=pace_zones
                 ))
         return filtered_activities
+
+    def map_fallback_zones(self, zones: List[Dict], total_duration: float) -> List[Dict]:
+        """Maps Garmin raw zones to API schema."""
+        if not zones: return []
+        res = []
+        for z in zones:
+            secs = z.get("secsInZone", 0)
+            res.append({
+                "zoneNumber": z.get("zoneNumber"),
+                "secsInZone": secs,
+                "zoneLow": z.get("zoneLowBoundary", 0),
+                "zoneHigh": z.get("zoneHighBoundary", 0),
+                "percentInZone": (secs / total_duration * 100.0) if total_duration > 0 else 0
+            })
+        return res
 
     def enrich_zones_with_telemetry(self, activity_id: int, act_type: str, pace_thresholds: List[Dict], hr_summary: List[Dict], power_summary: List[Dict]):
         """Derives time and average values for Pace, HR, and Power zones from raw telemetry."""
@@ -172,18 +187,36 @@ class GarminActualsFetcher:
 
         # Setup accumulator structures
         def init_acc(thresholds, key_name):
-            return {t[key_name]: {"secs": 0.0, "sum": 0.0, "boundary": t["lowBoundary"]} for t in thresholds}
+            # Pre-calculate highs for thresholds if needed (simplified: passed in usually)
+            return {t[key_name]: {"secs": 0.0, "sum": 0.0, "boundary": t["lowBoundary"], "high": t.get("highBoundary", 999.0)} for t in thresholds}
+
+        # Helper to add high boundaries to processed list
+        def add_highs(proc_list):
+            sorted_p = sorted(proc_list, key=lambda x: x["lowBoundary"])
+            for i in range(len(sorted_p)):
+                if i < len(sorted_p) - 1:
+                    sorted_p[i]["highBoundary"] = sorted_p[i+1]["lowBoundary"]
+                else:
+                    sorted_p[i]["highBoundary"] = 999.0 # Infinity/Max
+            return sorted_p
 
         # Format summaries/thresholds for processing
         pace_proc = [{"zone": t["zone"], "lowBoundary": t["lowBoundary_m_s"]} for t in pace_thresholds]
+        pace_proc = add_highs(pace_proc)
+        
         hr_proc = [{"zone": t["zoneNumber"], "lowBoundary": t["zoneLowBoundary"]} for t in hr_summary]
+        hr_proc = add_highs(hr_proc)
+        
         power_proc = [{"zone": t["zoneNumber"], "lowBoundary": t["zoneLowBoundary"]} for t in power_summary]
+        power_proc = add_highs(power_proc)
 
         pace_acc = init_acc(pace_proc, "zone")
         hr_acc = init_acc(hr_proc, "zone")
         power_acc = init_acc(power_proc, "zone")
 
         prev_elapsed = 0.0
+        total_dur_calc = 0.0
+        
         for m in metrics:
             sm = m.get("metrics", [])
             curr_elapsed = sm[elapsed_idx] if len(sm) > elapsed_idx else None
@@ -193,6 +226,8 @@ class GarminActualsFetcher:
             if duration <= 0:
                 prev_elapsed = curr_elapsed
                 continue
+            
+            total_dur_calc += duration
 
             # Process Pace (ONLY for running/trail_running)
             if act_type in ['running', 'trail_running'] and speed_idx is not None and len(sm) > speed_idx and sm[speed_idx] is not None:
@@ -232,18 +267,21 @@ class GarminActualsFetcher:
 
             prev_elapsed = curr_elapsed
 
-        def finalize(acc):
+        def finalize(acc, duration_total):
             res = []
             for z, data in sorted(acc.items()):
+                percent = (data["secs"] / duration_total * 100.0) if duration_total > 0 else 0
                 res.append({
                     "zoneNumber": z,
                     "secsInZone": round(data["secs"], 3),
-                    "avgValue": round(data["sum"] / data["secs"], 2) if data["secs"] > 0 else 0,
-                    "zoneLowBoundary": data["boundary"]
+                    # "avgValue": round(data["sum"] / data["secs"], 2) if data["secs"] > 0 else 0, # Ignored by schema
+                    "zoneLow": data["boundary"],
+                    "zoneHigh": data["high"],
+                    "percentInZone": round(percent, 2)
                 })
             return res
 
-        return finalize(hr_acc), finalize(power_acc), finalize(pace_acc)
+        return finalize(hr_acc, total_dur_calc), [], [] # Only returning HR zones for now to match Schema strictness
 
     def fetch_activities(self, start_date: str, end_date: str) -> List[ActualActivity]:
         """Fetches activities between start_date and end_date (YYYY-MM-DD)."""
@@ -258,35 +296,29 @@ class GarminActualsFetcher:
         logger.info(f"Found {len(filtered_activities)} activities in range.")
         return filtered_activities
 
-    def save_actuals(self, activities: List[ActualActivity], file_path: str = "data/actuals.json"):
-        """Saves the activities to a JSON file."""
+    async def save_actuals(self, activities: List[ActualActivity]):
+        """Saves the activities via API."""
+        import httpx
+        
+        API_URL = "http://localhost:8000/api"
         # Convert dataclasses to dicts for JSON serialization
         serializable_activities = [asdict(a) for a in activities]
-        with open(file_path, "w") as f:
-            json.dump(serializable_activities, f, indent=2)
-        logger.info(f"Saved actuals to {file_path}")
         
-        # Update context.json status
         try:
-            with open("data/context.json", "r") as f:
-                context = json.load(f)
-            
-            # Use AWST (UTC+8) for the update timestamp
-            awst_now = get_awst_now()
-            context["status"]["lastUpdated"] = awst_now.strftime("%Y-%m-%d")
-            context["status"]["garminSync"] = f"Plan synced. {len(activities)} actuals recorded."
-            
-            with open("data/context.json", "w") as f:
-                json.dump(context, f, indent=2)
-            logger.info("Updated data/context.json status.")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(f"{API_URL}/actuals", json=serializable_activities)
+                if response.status_code == 200:
+                    logger.info(f"Successfully synced {len(activities)} activities via API.")
+                else:
+                    logger.error(f"Failed to sync actuals. Status: {response.status_code}. Msg: {response.text}")
         except Exception as e:
-            logger.error(f"Failed to update data/context.json: {e}")
+            logger.error(f"API Connection Error: {e}")
 
 def get_awst_now():
     """Returns the current time in AWST (UTC+8)."""
     return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)
 
-def main():
+async def run_async():
     fetcher = GarminActualsFetcher()
     
     # Use AWST (UTC+8) for "today"
@@ -302,7 +334,11 @@ def main():
         start_date = (awst_now - timedelta(days=7)).strftime("%Y-%m-%d")
 
     activities = fetcher.fetch_activities(start_date, end_date)
-    fetcher.save_actuals(activities)
+    await fetcher.save_actuals(activities)
+
+def main():
+    import asyncio
+    asyncio.run(run_async())
 
 if __name__ == "__main__":
     main()

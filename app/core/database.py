@@ -1,6 +1,8 @@
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
+from sqlalchemy import BigInteger, Column
 from datetime import datetime, date
+import os
 
 # --- Models ---
 
@@ -11,6 +13,7 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     plans: List["RunnerPlan"] = Relationship(back_populates="user")
+    activities: List["ActualActivity"] = Relationship(back_populates="user")
     project: Optional["RunnerProject"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
     profile: Optional["RunnerProfile"] = Relationship(back_populates="user", sa_relationship_kwargs={"uselist": False})
 
@@ -83,24 +86,37 @@ class WeightEntry(SQLModel, table=True):
     
     profile: "RunnerProfile" = Relationship(back_populates="weight_history")
 
+class ActualActivity(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    activity_id: int = Field(sa_column=Column(BigInteger(), unique=True, index=True)) # Garmin ID
+    user_id: int = Field(foreign_key="user.id")
+    
+    date: date
+    name: str
+    type: str # running, cycling, etc.
+    
+    distance_m: float
+    duration_s: float
+    
+    average_pace_m_s: Optional[float] = None
+    average_hr: Optional[float] = None
+    max_hr: Optional[float] = None
+    average_power: Optional[float] = None
+    
+    aerobic_te: Optional[float] = None
+    anaerobic_te: Optional[float] = None
+    training_load: Optional[float] = None
+    calories: Optional[float] = None
+    
+    # Store zones as JSON string for simplicity in SQLModel/SQLite
+    hr_zones_json: Optional[str] = None
+    pace_zones_json: Optional[str] = None
+    power_zones_json: Optional[str] = None
+    
+    user: "User" = Relationship(back_populates="activities")
+
+
 # --- Database Connection ---
-import os
-<<<<<<< Updated upstream
-
-database_url = os.getenv("DATABASE_URL")
-
-if database_url:
-    # Postgres
-    engine = create_engine(database_url, echo=True)
-else:
-    # SQLite fallback
-    sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
-    sqlite_url = f"sqlite:///{sqlite_file_name}"
-    # check_same_thread=False is needed for SQLite with FastAPI
-
-# --- Database Connection ---
-import os
-from sqlmodel import create_engine, SQLModel, Session
 
 # Environment variables
 sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")

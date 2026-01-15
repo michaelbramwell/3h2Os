@@ -2,12 +2,45 @@ from sqlmodel import Session, select
 import json
 import os
 
-from app.core.database import User
+from app.core.database import User, WeightEntry
 from app.schemas import ContextSchema, ProjectContext, RunnerContext, WeightContext, WeightRecord
+from datetime import date
 
 class ContextService:
     def __init__(self, session: Session):
         self.session = session
+
+    def update_weight(self, weight: float, username: str = "mike"):
+        """
+        Updates the current weight and adds a history entry.
+        """
+        user = self.session.exec(select(User).where(User.username == username)).first()
+        if not user or not user.profile:
+            # Create profile if missing? For now assume user exists from init
+            raise ValueError(f"User {username} or profile not found")
+
+        # Update Current
+        user.profile.current_weight = weight
+        self.session.add(user.profile)
+        
+        # Add History
+        today = date.today()
+        # Check if entry exists for today
+        existing = self.session.exec(
+            select(WeightEntry)
+            .where(WeightEntry.profile_id == user.profile.id)
+            .where(WeightEntry.date_recorded == today)
+        ).first()
+        
+        if existing:
+            existing.weight_kg = weight
+            self.session.add(existing)
+        else:
+            new_entry = WeightEntry(profile_id=user.profile.id, date_recorded=today, weight_kg=weight)
+            self.session.add(new_entry)
+            
+        self.session.commit()
+        return user.profile.current_weight
 
     def get_context(self, username: str = "mike") -> ContextSchema:
         """

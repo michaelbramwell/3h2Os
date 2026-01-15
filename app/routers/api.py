@@ -8,9 +8,11 @@ from typing import List, Dict, Any
 from app.core.database import get_session
 from app.services.plans import PlanService
 from app.services.context import ContextService
+from app.services.activities import ActivityService
 from app.schemas import (
     WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate
 )
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -22,7 +24,41 @@ def get_plan_service(session: Session = Depends(get_session)) -> PlanService:
 def get_context_service(session: Session = Depends(get_session)) -> ContextService:
     return ContextService(session)
 
+def get_activity_service(session: Session = Depends(get_session)) -> ActivityService:
+    return ActivityService(session)
+
+class WeightUpdate(BaseModel):
+    weight: float
+
 # --- Routes ---
+
+@router.post("/context/weight")
+async def update_weight(
+    update: WeightUpdate,
+    service: ContextService = Depends(get_context_service)
+):
+    """
+    Update the runner's weight (Current & History).
+    """
+    try:
+        new_weight = service.update_weight(update.weight)
+        return {"status": "success", "current_weight": new_weight}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/actuals")
+async def save_actuals(
+    activities: List[ActivitySchema],
+    service: ActivityService = Depends(get_activity_service)
+):
+    """
+    Bulk save/update actual activities.
+    """
+    try:
+        count = service.save_activities(activities)
+        return {"status": "success", "count": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/plans", response_model=PlanUpdateResponse)
 async def create_plan(
@@ -99,8 +135,28 @@ async def get_context(
     return service.get_context(username="mike")
 
 @router.get("/actuals.json", response_model=List[ActivitySchema])
-async def get_actuals():
+async def get_actuals(
+    service: ActivityService = Depends(get_activity_service)
+):
+    # Prefer DB, fallback to file if DB empty? 
+    # Or just use DB as we are "migrating" to DB. 
+    # Let's check DB first.
+    activities = service.get_activities()
+    if activities:
+        return activities
+    
+    # Fallback to file for smooth transition
     if os.path.exists("data/actuals.json"):
         with open("data/actuals.json", "r") as f:
             return json.load(f)
     return []
+
+@router.get("/context/markdown")
+async def get_context_markdown():
+    if os.path.exists("context.md"):
+        with open("context.md", "r") as f:
+            return {"content": f.read()}
+    if os.path.exists("data/context.md"):
+        with open("data/context.md", "r") as f:
+            return {"content": f.read()}
+    return {"content": ""}
