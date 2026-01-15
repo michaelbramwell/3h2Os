@@ -1,5 +1,26 @@
 # Release Notes
 
+## [v0.3.0] - 2026-01-15
+
+### Added
+- **Architectural Overhaul (Phase 2.5)**:
+    - **Domain Services**: Introduced `PlanService` and `ContextService` to encapsulate business logic and data mapping.
+    - **Dependency Injection**: Implemented FastAPI's `Depends` system to inject scoped services into controllers.
+    - **Thin Controllers**: API endpoints in `api.py` are now strictly responsible for HTTP handling.
+    - **Centralized AI Context**: Created a dedicated `.ai/` directory for Agent Skills and Context to standardize tooling interactions.
+- **Database Framework**:
+    - **Relational Tables**: Implemented comprehensive SQLModel tables for `RunnerPlan`, `PlanWeek`, and `PlanWorkout`.
+    - **Data Migration**: Logic to migrate legacy `context.json` and `plan.json` data into the SQLite database.
+- **Infrastructure**:
+    - **Docker Support**: Added `Dockerfile` and `docker-compose.yml` enabling full **PostgreSQL** support for containerized environments.
+    - **Alembic Migrations**: Integrated Alembic for reliable database schema versioning across SQLite (Dev) and Postgres (Prod).
+    - **OpenAPI 3.1**: Standardized API schemas and added `.http` files for VS Code REST Client testing.
+- **Garmin Integration**: Added support for token authentication and validation scripts.
+
+### Changed
+- **Dashboard UX**: Added sticky headers to the main plan table for improved readability during vertical scrolling.
+- **Testing**: Updated test suites to reflect the new dynamic scaling logic and domain service architecture.
+
 ## [v0.2.0] - 2026-01-13
 
 ### Added

@@ -1,6 +1,6 @@
 ---
-name: 3h2os
-description: Automated marathon training coach that manages training plans, validates training loads against safety guardrails, syncs workouts to Garmin, and generates weekly reporting.
+name: 3h2os-skills
+description: Automated marathon training coach skills/tools.
 ---
 
 This skill defines the operational capabilities for the 3h2Os marathon training project. It is used to automate the feedback loop between the plan and actual execution.

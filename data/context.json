@@ -10,7 +10,7 @@
     "gender": "Male",
     "height_cm": 185,
     "weight_kg": {
-      "current": 97.4,
+      "current": 98.0,
       "target": 90,
       "history": [
         {
@@ -28,6 +28,10 @@
         {
           "date": "2026-01-13",
           "weight": 97.4
+        },
+        {
+          "date": "2026-01-15",
+          "weight": 98.0
         }
       ]
     },

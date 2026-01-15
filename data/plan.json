@@ -472,9 +472,9 @@
         "date": "2026-02-15",
         "workouts": [
           {
-            "name": "20k Easy (Post-race)",
+            "name": "21k Easy (Post-race)",
             "type": "Easy",
-            "distance_m": 20000,
+            "distance_m": 21000,
             "timeOfDay": "AM"
           }
         ]
@@ -730,9 +730,9 @@
         "date": "2026-03-08",
         "workouts": [
           {
-            "name": "25k Easy (Recov week)",
+            "name": "24k Easy (Recov week)",
             "type": "Easy",
-            "distance_m": 25000,
+            "distance_m": 24000,
             "timeOfDay": "AM"
           }
         ]

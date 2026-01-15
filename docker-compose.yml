@@ -1,0 +1,63 @@
+services:
+  web:
+    build: .
+    container_name: running_app
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist the data directory (database, logs, etc.)
+      - ./data:/app/data
+      # Mount local source for development
+      - ./app:/app/app:ro
+      - ./scripts:/app/scripts:ro
+      - ./migrations:/app/migrations:ro
+      - ./alembic.ini:/app/alembic.ini:ro
+    env_file:
+      - .env
+    environment:
+      # Use psycopg 3 explicitly (postgresql+psycopg://) instead of default (postgresql:// -> psycopg2)
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-running_db}
+      - SQLITE_DB_PATH=data/database.db
+    # Run migrations before starting the app
+    command: /bin/sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:15-alpine
+    container_name: running_db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-running_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d running_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+
+  # Optional: Scheduler/Worker service if you want to run syncs automatically in docker
+  # worker:
+  #   build: .
+  #   container_name: running_worker
+  #   command: watchmedo ... (or a custom cron script)
+  #   volumes:
+  #     - ./data:/app/data
+  #   env_file:
+  #     - .env

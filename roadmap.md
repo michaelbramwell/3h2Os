@@ -21,6 +21,14 @@
 - [x] **Dashboard 2.0:** Enhanced visual indicators for week statuses (Rest, Race, Taper, Marathon) and improved badges.
 - [ ] **Fueling Audit:** Log actual carb/sodium intake for Sunday PLRs to ensure 90/900 compliance.
 
+## Phase 2.5: Architecture Migration (Active)
+- [x] **FastAPI Foundation:** Setup `app/` folder with `uvicorn`, routing, and testing support.
+- [x] **Database Layer (SQLite):** Implemented SQLModel with `RunnerPlan`, `User`, and `PlanWeek` tables.
+- [x] **Domain Services:** Created `PlanService` and `ContextService` to encapsulate business logic using dependency injection.
+- [x] **Thin Controllers:** Refactored API routers to delegate logic strictly to services via DTOs.
+- [ ] **Full Data Migration:** Completely retire `plan.json` and `context.json` in favor of the SQLite database.
+- [ ] **Frontend Update:** Wire the dashboard to consume the new `/api/plans` and `/api/context` endpoints instead of static JSON.
+
 ## Phase 3: Performance Analytics (Weeks 5-10)
 - [ ] **Efficiency Tracking:** Monitor Pace/HR decoupling for Wednesday Steady runs.
 - [ ] **Cramp Correlation:** Log muscle fatigue levels and correlate with hydration/fueling data.
