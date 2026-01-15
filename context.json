@@ -106,10 +106,10 @@
     }
   },
   "status": {
-    "lastUpdated": "2026-01-14",
+    "lastUpdated": "2026-01-15",
     "phase": "Week 1",
     "architecture": "Typed Dataclass architecture (models.py) with JSON backup. Sass-ready structure.",
-    "garminSync": "Plan synced. 12 actuals recorded.",
+    "garminSync": "Plan synced. 14 actuals recorded.",
     "tooling": "uv and GitHub Actions.",
     "recentNotes": "Barefoot beach 8k completed. Strong mechanical resilience after 60k bike commute.",
     "nextAction": "Wednesday Double: 6k Steady (AM) / 10k Intervals (PM)."

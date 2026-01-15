@@ -1,5 +1,241 @@
 [
   {
+    "date": "2026-01-14",
+    "name": "Intervals 6 * 400m",
+    "type": "running",
+    "distance_m": 6397.93017578125,
+    "duration_s": 2453.591064453125,
+    "average_pace_m_s": 2.6080000400543213,
+    "average_hr": 127.0,
+    "max_hr": 151.0,
+    "average_power": 346.0,
+    "aerobic_te": 2.200000047683716,
+    "anaerobic_te": 1.100000023841858,
+    "training_load": 45.09394836425781,
+    "calories": 577.0,
+    "activityId": 21543069121,
+    "hr_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 506.0,
+        "avgValue": 112.51,
+        "zoneLowBoundary": 100
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 1460.0,
+        "avgValue": 129.96,
+        "zoneLowBoundary": 120
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 403.0,
+        "avgValue": 143.34,
+        "zoneLowBoundary": 140
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 160
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 180
+      }
+    ],
+    "power_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 624.0,
+        "avgValue": 405.27,
+        "zoneLowBoundary": 362
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 148.0,
+        "avgValue": 468.43,
+        "zoneLowBoundary": 443
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 110.0,
+        "avgValue": 532.78,
+        "zoneLowBoundary": 511
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 326.0,
+        "avgValue": 589.95,
+        "zoneLowBoundary": 557
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 214.0,
+        "avgValue": 665.55,
+        "zoneLowBoundary": 632
+      }
+    ],
+    "pace_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 780.0,
+        "avgValue": 1.59,
+        "zoneLowBoundary": 0.5
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 774.0,
+        "avgValue": 2.92,
+        "zoneLowBoundary": 2.688
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 107.0,
+        "avgValue": 3.21,
+        "zoneLowBoundary": 3.115
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 6.0,
+        "avgValue": 3.61,
+        "zoneLowBoundary": 3.472
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 7.0,
+        "avgValue": 3.85,
+        "zoneLowBoundary": 3.717
+      },
+      {
+        "zoneNumber": 6,
+        "secsInZone": 568.0,
+        "avgValue": 4.5,
+        "zoneLowBoundary": 3.953
+      }
+    ]
+  },
+  {
+    "date": "2026-01-14",
+    "name": "Steady",
+    "type": "running",
+    "distance_m": 7010.85986328125,
+    "duration_s": 2216.373046875,
+    "average_pace_m_s": 3.1630001068115234,
+    "average_hr": 130.0,
+    "max_hr": 147.0,
+    "average_power": 435.0,
+    "aerobic_te": 2.4000000953674316,
+    "anaerobic_te": 0.0,
+    "training_load": 41.68109130859375,
+    "calories": 595.0,
+    "activityId": 21539159466,
+    "hr_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 220.0,
+        "avgValue": 113.8,
+        "zoneLowBoundary": 100
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 1796.0,
+        "avgValue": 131.86,
+        "zoneLowBoundary": 120
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 156.0,
+        "avgValue": 143.96,
+        "zoneLowBoundary": 140
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 160
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 180
+      }
+    ],
+    "power_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 991.0,
+        "avgValue": 411.29,
+        "zoneLowBoundary": 362
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 844.0,
+        "avgValue": 470.62,
+        "zoneLowBoundary": 443
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 147.0,
+        "avgValue": 526.67,
+        "zoneLowBoundary": 511
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 34.0,
+        "avgValue": 580.41,
+        "zoneLowBoundary": 557
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 0.0,
+        "avgValue": 0,
+        "zoneLowBoundary": 632
+      }
+    ],
+    "pace_zones": [
+      {
+        "zoneNumber": 1,
+        "secsInZone": 184.0,
+        "avgValue": 2.49,
+        "zoneLowBoundary": 0.5
+      },
+      {
+        "zoneNumber": 2,
+        "secsInZone": 822.0,
+        "avgValue": 2.97,
+        "zoneLowBoundary": 2.688
+      },
+      {
+        "zoneNumber": 3,
+        "secsInZone": 888.0,
+        "avgValue": 3.36,
+        "zoneLowBoundary": 3.115
+      },
+      {
+        "zoneNumber": 4,
+        "secsInZone": 280.0,
+        "avgValue": 3.54,
+        "zoneLowBoundary": 3.472
+      },
+      {
+        "zoneNumber": 5,
+        "secsInZone": 34.0,
+        "avgValue": 3.79,
+        "zoneLowBoundary": 3.717
+      },
+      {
+        "zoneNumber": 6,
+        "secsInZone": 4.0,
+        "avgValue": 3.97,
+        "zoneLowBoundary": 3.953
+      }
+    ]
+  },
+  {
     "date": "2026-01-13",
     "name": "Easy",
     "type": "running",
