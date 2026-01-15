@@ -2,13 +2,14 @@
 
 When working in this workspace, always refer to the following files to maintain context of the marathon training plan:
 
-1.  **Architecture**: This is a **FastAPI** application using **SQLModel** (SQLite) and **Jinja2/HTMX** for the frontend.
+1.  **Architecture**: This is a **FastAPI** application using **SQLModel** (SQLite/ostgreSQL) for the backend API, and a **React** (Vite) frontend using **TanStack Router/Query**.
 2.  **Source of Truth**:
-    *   **Logic**: `app/` contains the web application, `scripts/` contains automation logic.
-    *   **Data**: `database.db` is the primary persistence. `plan.json` and `context.json` are currently being transitioned into the DB but remain valid references.
+    *   **Logic**: `app/` contains the API, `frontend/` contains the UI, `scripts/` contains automation.
+    *   **Data**: `database.db` (Local) or PostgreSQL (Docker) is the primary persistence. `plan.json` and `context.json` are currently being transitioned into the DB but remain valid references.
 
 ### Project Structure Guidance
-- **Web App**: `app/main.py` is the entry point. Routes are in `app/routers/`.
+- **Web App**: `app/main.py` is the data API.
+- **Frontend**: `frontend/` directory contains the React app.
 - **Domain Services**: `app/services/` contains business logic (`PlanService`, `ContextService`).
 - **Scripts**: Automation scripts (Garmin sync, etc.) reside in `scripts/`. Always run them via `uv run scripts/dataset_name.py`.
 - **Models**:
@@ -22,8 +23,14 @@ When working in this workspace, always refer to the following files to maintain 
 - **Style Rule**: Strictly no emojis in any responses, code, or documentation.
 
 ### Standard Operations:
-- **Start Server**: `uv run uvicorn app.main:app --reload`
+- **Start Backend**: `uv run uvicorn app.main:app --reload`
+- **Start Frontend**: `cd frontend && npm run dev`
 - **Garmin Sync**: `uv run scripts/fetch_actuals.py` (Hourly via CI/CD)
+
+### Lessons Learned & Best Practices:
+- **Git History First**: Before recreating "missing" files/configs, check `git log` or `git show` for prior existence in other branches.
+- **Infrastructure Awareness**: When refactoring one layer (e.g., Frontend), explicitly verify integration points with Deployment/Infrastructure (Docker) to ensure no regressions.
+- **Environment Parity**: Always check for environment variable usages (e.g., `DATABASE_URL`) that indicate alternative configurations (like Postgres) versus default local paths.
 
 ### Architectural Guidelines (Clean Architecture)
 - **Thin Controllers**: API routers (`app/routers/`) must be thin. They:

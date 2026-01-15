@@ -27,7 +27,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "alembic", specifier = ">=1.18.0" },
+    { name = "alembic", specifier = ">=1.18.1" },
     { name = "fastapi", specifier = ">=0.128.0" },
     { name = "garminconnect", specifier = ">=0.2.36" },
     { name = "jinja2", specifier = ">=3.1.6" },
@@ -47,16 +47,16 @@ dev = [
 
 [[package]]
 name = "alembic"
-version = "1.18.0"
+version = "1.18.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mako" },
     { name = "sqlalchemy" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/70/a5/57f989c26c078567a08f1d88c337acfcb69c8c9cac6876a34054f35b8112/alembic-1.18.0.tar.gz", hash = "sha256:0c4c03c927dc54d4c56821bdcc988652f4f63bf7b9017fd9d78d63f09fd22b48", size = 2043788, upload-time = "2026-01-09T21:22:23.683Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/cc/aca263693b2ece99fa99a09b6d092acb89973eb2bb575faef1777e04f8b4/alembic-1.18.1.tar.gz", hash = "sha256:83ac6b81359596816fb3b893099841a0862f2117b2963258e965d70dc62fb866", size = 2044319, upload-time = "2026-01-14T18:53:14.907Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ed/fd/68773667babd452fb48f974c4c1f6e6852c6e41bcf622c745faca1b06605/alembic-1.18.0-py3-none-any.whl", hash = "sha256:3993fcfbc371aa80cdcf13f928b7da21b1c9f783c914f03c3c6375f58efd9250", size = 260967, upload-time = "2026-01-09T21:22:25.333Z" },
+    { url = "https://files.pythonhosted.org/packages/83/36/cd9cb6101e81e39076b2fbe303bfa3c85ca34e55142b0324fcbf22c5c6e2/alembic-1.18.1-py3-none-any.whl", hash = "sha256:f1c3b0920b87134e851c25f1f7f236d8a332c34b75416802d06971df5d1b7810", size = 260973, upload-time = "2026-01-14T18:53:17.533Z" },
 ]
 
 [[package]]
@@ -91,11 +91,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2025.11.12"
+version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a2/8c/58f469717fa48465e4a50c014a0400602d3c437d7c0c468e17ada824da3a/certifi-2025.11.12.tar.gz", hash = "sha256:d8ab5478f2ecd78af242878415affce761ca6bc54a22a27e026d7c25357c3316", size = 160538, upload-time = "2025-11-12T02:54:51.517Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/2d/a891ca51311197f6ad14a7ef42e2399f36cf2f9bd44752b3dc4eab60fdc5/certifi-2026.1.4.tar.gz", hash = "sha256:ac726dd470482006e014ad384921ed6438c457018f4b3d204aea4281258b2120", size = 154268, upload-time = "2026-01-04T02:42:41.825Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/7d/9bc192684cea499815ff478dfcdc13835ddf401365057044fb721ec6bddb/certifi-2025.11.12-py3-none-any.whl", hash = "sha256:97de8790030bbd5c2d96b7ec782fc2f7820ef8dba6db909ccf95449f2d062d4b", size = 159438, upload-time = "2025-11-12T02:54:49.735Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/ad/3cc14f097111b4de0040c83a525973216457bbeeb63739ef1ed275c1c021/certifi-2026.1.4-py3-none-any.whl", hash = "sha256:9943707519e4add1115f44c2bc244f782c0249876bf51b6599fee1ffbedd685c", size = 152900, upload-time = "2026-01-04T02:42:40.15Z" },
 ]
 
 [[package]]
@@ -177,28 +177,28 @@ wheels = [
 
 [[package]]
 name = "garminconnect"
-version = "0.2.36"
+version = "0.2.38"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "garth" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/d7/49795d92cb854ea135e1ea000485c61a90e1c3d1fc38be06fa9039c94e3e/garminconnect-0.2.36.tar.gz", hash = "sha256:5fec197f634edbe2860f20dcb3b2d73b7471b122ff65bd038bd7043e49f0966d", size = 36190, upload-time = "2025-11-29T16:57:14.224Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/b5/c2d3c7fb53c98f74ef208b44b686e48f01cb6434d091f66593e29fd4d2ed/garminconnect-0.2.38.tar.gz", hash = "sha256:53f0d73e821dfa9e93731a6a1c81c34e689ce157c2751edd22dd462d4e4f9e04", size = 37502, upload-time = "2026-01-04T12:08:57.563Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/3d/6e91cd32cb37f2ec44ffd8c6ea9b3641ae2fc25d6218f43dd2750326ae0e/garminconnect-0.2.36-py3-none-any.whl", hash = "sha256:c00fafe51a96889fbe6544cfb2c529077c06447e26aafdde983b926c54c254d1", size = 31758, upload-time = "2025-11-29T16:57:12.382Z" },
+    { url = "https://files.pythonhosted.org/packages/91/dc/9e0b1eee113fedfefd6577de45205e33505fcdc1520d4d28ee4c339e9862/garminconnect-0.2.38-py3-none-any.whl", hash = "sha256:801f64834d8d2ff41f10679e4111fc157312550980b0e29b0c2f263fd628a604", size = 32733, upload-time = "2026-01-04T12:08:55.45Z" },
 ]
 
 [[package]]
 name = "garth"
-version = "0.5.20"
+version = "0.5.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "requests" },
     { name = "requests-oauthlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ff/51/e7bc1e592476ed3ae1cce63f6a60125a0990abdb570def075d7177f94f1f/garth-0.5.20.tar.gz", hash = "sha256:76a9ff49e2d0313fba5ceafae6195abd97f5cdd1e72022a6f5508587d0cc2e99", size = 1822313, upload-time = "2025-12-19T22:41:33.327Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/14/1a/e559feb5efd53e9a5d15c28007a714e240a51363c79a306727977fe1999b/garth-0.5.21.tar.gz", hash = "sha256:8d979595d1d4ea23a1b466ab4a60955d139b71f886f46490be140fcee584dab4", size = 1840358, upload-time = "2026-01-07T23:12:33.828Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/bd/51df036de4122571fe02c857bd0b29bd450eb8f242ea9de9cbf1b667360a/garth-0.5.20-py3-none-any.whl", hash = "sha256:fcaaec60c625973d0d9f7be5cab0464303300b425a4ff6ea9003a46947a0f9da", size = 33189, upload-time = "2025-12-19T22:41:31.735Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/14/b7c77f363ff04cc0c57991277b8c3564df5210b0879894e2033f90f55ff5/garth-0.5.21-py3-none-any.whl", hash = "sha256:24b8c517ef24ef030bca14cf4e8d7ad7a191d9bc60ece6077fec6ea743a5d039", size = 33265, upload-time = "2026-01-07T23:12:32.069Z" },
 ]
 
 [[package]]
@@ -703,7 +703,7 @@ wheels = [
 
 [[package]]
 name = "textual"
-version = "7.1.0"
+version = "7.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py", extra = ["linkify"] },
@@ -713,9 +713,9 @@ dependencies = [
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/71/13/b5cb4995d1390dd6e43c89bfa879ae41fc1b97551ce1f6d29bd01d0f9395/textual-7.1.0.tar.gz", hash = "sha256:3c7148ef00a9277b45fd78a1a6adc7c419c451d3ed714a0b015b16eaa2a8a73b", size = 1582455, upload-time = "2026-01-10T10:32:36.791Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/15/4b/24ae02d857ec0fa6661d27a989994e65c6a3b3d56c7177b2d8e022d29ccc/textual-7.2.0.tar.gz", hash = "sha256:5355f2dc16fbdc452a714dee2e440125e33b82373b3032cb53bea96e7019fa0b", size = 1582530, upload-time = "2026-01-11T17:40:50.75Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/f4/48e4a4c77ab7eea48d3b0a77f8dea0be101c83421abc64da0888c77c47cf/textual-7.1.0-py3-none-any.whl", hash = "sha256:9209dd0d1d958316832f7e59328f3911112f8e951abef7c3fbe54effd4e4caed", size = 715555, upload-time = "2026-01-10T10:32:35.117Z" },
+    { url = "https://files.pythonhosted.org/packages/48/b8/cc8ed2548ff1bf0fd719dd399bb56869d82a57143c2772cfd57f68efc1d3/textual-7.2.0-py3-none-any.whl", hash = "sha256:2624077f02dbd504beea9a24a943770f954f500a5f29a0bfa83465c52fa3ea1c", size = 715809, upload-time = "2026-01-11T17:40:48.679Z" },
 ]
 
 [[package]]
@@ -759,11 +759,11 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "2.6.2"
+version = "2.6.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1e/24/a2a2ed9addd907787d7aa0355ba36a6cadf1768b934c652ea78acbd59dcd/urllib3-2.6.2.tar.gz", hash = "sha256:016f9c98bb7e98085cb2b4b17b87d2c702975664e4f060c6532e64d1c1a5e797", size = 432930, upload-time = "2025-12-11T15:56:40.252Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/24/5f1b3bdffd70275f6661c76461e25f024d5a38a46f04aaca912426a2b1d3/urllib3-2.6.3.tar.gz", hash = "sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed", size = 435556, upload-time = "2026-01-07T16:24:43.925Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/b9/4095b668ea3678bf6a0af005527f39de12fb026516fb3df17495a733b7f8/urllib3-2.6.2-py3-none-any.whl", hash = "sha256:ec21cddfe7724fc7cb4ba4bea7aa8e2ef36f607a4bab81aa6ce42a13dc3f03dd", size = 131182, upload-time = "2025-12-11T15:56:38.584Z" },
+    { url = "https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4", size = 131584, upload-time = "2026-01-07T16:24:42.685Z" },
 ]
 
 [[package]]

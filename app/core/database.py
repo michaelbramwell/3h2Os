@@ -85,6 +85,7 @@ class WeightEntry(SQLModel, table=True):
 
 # --- Database Connection ---
 import os
+<<<<<<< Updated upstream
 
 database_url = os.getenv("DATABASE_URL")
 
@@ -96,13 +97,22 @@ else:
     sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
     sqlite_url = f"sqlite:///{sqlite_file_name}"
     # check_same_thread=False is needed for SQLite with FastAPI
-    # WARNING:
-    #   check_same_thread=False disables SQLite's same-thread safety check for a connection.
-    #   This is required when using SQLite with FastAPI's default multi-threaded workers,
-    #   but it is only safe when all access to the engine goes through properly scoped
-    #   sessions (for example, via the get_session() dependency below) so that connections
-    #   are not shared across threads.
-    #   Do NOT reuse a Session or raw connection created from this engine across threads.
+
+# --- Database Connection ---
+import os
+from sqlmodel import create_engine, SQLModel, Session
+
+# Environment variables
+sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
+database_url = os.getenv("DATABASE_URL")
+
+if database_url:
+    # Use the provided DATABASE_URL (e.g., for Postgres)
+    engine = create_engine(database_url, echo=True)
+else:
+    # Fallback to SQLite
+    sqlite_url = f"sqlite:///{sqlite_file_name}"
+    # check_same_thread=False is needed for SQLite with FastAPI
     connect_args = {"check_same_thread": False}
     engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
 
@@ -113,3 +123,4 @@ def create_db_and_tables():
 def get_session():
     with Session(engine) as session:
         yield session
+

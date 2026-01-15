@@ -43,10 +43,12 @@
 - [ ] **Race Report:** Automated summary of splits and fueling effectiveness.
 - [ ] **Recovery Plan:** 4-week reverse-taper for injury prevention.
 
-## Phase 6: SaaS Transformation (Future)
+## Phase 6: SaaS Transformation (In Progress)
 - [ ] **Multi-User Architecture:** Decouple from personal repo to a scalable multi-tenant SaaS.
-- [ ] **Database Layer:** Migrate from JSON flat-files to a NoSQL/Relational DB (e.g., Azure Cosmos DB for low-latency global distribution).
-- [ ] **API Service:** Develop a REST/GraphQL API to handle Garmin webhooks and frontend requests.
-- [ ] **Modern Frontend:** Transition to a React/Next.js dashboard with authenticated user profiles.
+- [x] **Database Layer:** Migrated to SQLModel (SQLite).
+- [x] **API Service:** Developed FastAPI service.
+- [ ] **Modern Frontend:** Refactoring to React (Vite + TanStack).
+  - [x] Project Setup (Vite, Tailwind, TanStack Router/Query).
+  - [ ] Feature Implementation.
 - [ ] **Cloud-Native Auth:** Implement secure login via GitHub OAuth or Clerk.
 - [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week, with a simple "Accept/Decline" UX for the user.

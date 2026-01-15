@@ -11,23 +11,23 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 - **Strategy:** Progressive Long Runs (PLR), 90/900 Fueling Rule, and Mechanical Resilience (Strength).
 - **Status:** 14-week plan synced to Garmin Connect.
 
-## Structure
+## Project Structure
 
-- `plan.json`: The source of truth for training data (used by sync tool and dashboard).
-- `context.json`: The source of truth for runner profile and goals.
-- `generate_plan_md.py`: Script to generate Markdown files from JSON.
+- **`frontend/`**: The React-based user interface (Vite, TanStack). See [`frontend/README.md`](frontend/README.md).
+- **`app/`**: The FastAPI backend API and database models. See [`app/README.md`](app/README.md).
+- **`scripts/`**: Automation scripts for Garmin sync and data processing.
+- **`data/`**: JSON data files (`plan.json`, `context.json`).
 - `marathon_plan.md`: Human-readable reference (auto-generated).
-- `context.md`: Runner profile and strategy (auto-generated).
-- `index.html`: The dashboard (hosted on GitHub Pages).
-- `sync_to_garmin.py`: Python script to sync the plan to your Garmin Calendar.
-- `fetch_actuals.py`: Python script to fetch completed activities from Garmin.
-- `roadmap.md`: Future features and development phases.
-- `pyproject.toml`: Project configuration and dependencies (managed by `uv`).
 
 ## Getting Started
 
-### 1. Setup Environment
-This project uses a hybrid Python/Node.js stack.
+This is a hybrid Python/Node.js project.
+
+### 1. Backend Setup
+See [`app/README.md`](app/README.md) for instructions on setting up the FastAPI server and database.
+
+### 2. Frontend Setup
+See [`frontend/README.md`](frontend/README.md) for instructions on running the React dashboard.
 - **Python**: Managed by `uv`.
 - **Frontend**: Managed by `npm` (TypeScript).
 
