@@ -12,7 +12,9 @@ import sys
 sys.path.append(os.getcwd())
 
 # Import your models here (so they are registered with SQLModel.metadata)
-from app.core.database import User, RunnerPlan
+# from app.core.database import User, RunnerPlan # Imported for side-effects if needed, but unused directly here
+from app.core import database # Ensure models are imported/registered
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,7 +1,6 @@
 from sqlmodel import Session, select
 import json
 import os
-from typing import Optional
 
 from app.core.database import User
 from app.schemas import ContextSchema, ProjectContext, RunnerContext, WeightContext, WeightRecord

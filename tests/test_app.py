@@ -4,7 +4,6 @@ from sqlalchemy.pool import StaticPool
 import pytest
 from app.main import app
 from app.core.database import get_session, RunnerPlan, User
-import json
 
 # Use in-memory DB for tests
 @pytest.fixture(name="client")
@@ -29,7 +28,8 @@ def client_fixture():
         yield client
     
     app.dependency_overrides.clear()
-    del app.state.test_engine
+    if hasattr(app.state, 'test_engine'):
+        del app.state.test_engine
 
 def test_read_dashboard(client):
     response = client.get("/")

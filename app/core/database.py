@@ -96,6 +96,13 @@ else:
     sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
     sqlite_url = f"sqlite:///{sqlite_file_name}"
     # check_same_thread=False is needed for SQLite with FastAPI
+    # WARNING:
+    #   check_same_thread=False disables SQLite's same-thread safety check for a connection.
+    #   This is required when using SQLite with FastAPI's default multi-threaded workers,
+    #   but it is only safe when all access to the engine goes through properly scoped
+    #   sessions (for example, via the get_session() dependency below) so that connections
+    #   are not shared across threads.
+    #   Do NOT reuse a Session or raw connection created from this engine across threads.
     connect_args = {"check_same_thread": False}
     engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
 

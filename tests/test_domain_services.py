@@ -1,10 +1,9 @@
 import pytest
-import json
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
 from app.services.plans import PlanService
 from app.services.context import ContextService
-from app.core.database import User, RunnerPlan, PlanWeek, PlanWorkout
+# Removed unused imports: User, RunnerPlan, PlanWeek, PlanWorkout
 
 # Create an in-memory database for testing
 @pytest.fixture(name="session")

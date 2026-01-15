@@ -2,7 +2,7 @@ from sqlmodel import Session, select
 from datetime import datetime
 import json
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 from app.core.database import RunnerPlan, User, PlanWeek
 from app.core.mappers import plan_to_relational, relational_to_plan

@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
-from datetime import datetime, date, timedelta
-from sqlmodel import Session, select
+from datetime import datetime, timedelta
+from sqlmodel import Session, select, delete
 from app.core.database import RunnerPlan, PlanWeek, PlanWorkout
 
 def plan_to_relational(session: Session, plan: RunnerPlan, plan_data_list: List[Dict[str, Any]]):
@@ -10,14 +10,13 @@ def plan_to_relational(session: Session, plan: RunnerPlan, plan_data_list: List[
     """
     
     # 1. Clear existing relational data for this plan
-    # Note: Cascades usually handle this if configured, but explicit is safe
+    # Use bulk delete logic via fetching week IDs first to avoid N+1 scans or complex subqueries in SQLite
     weeks = session.exec(select(PlanWeek).where(PlanWeek.plan_id == plan.id)).all()
-    for w in weeks:
-        # Delete workouts for this week
-        workouts = session.exec(select(PlanWorkout).where(PlanWorkout.week_id == w.id)).all()
-        for wk in workouts:
-            session.delete(wk)
-        session.delete(w)
+    week_ids = [w.id for w in weeks]
+    
+    if week_ids:
+        session.exec(delete(PlanWorkout).where(PlanWorkout.week_id.in_(week_ids)))
+        session.exec(delete(PlanWeek).where(PlanWeek.plan_id == plan.id))
     
     session.commit()
     

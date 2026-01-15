@@ -6,9 +6,9 @@ from app.core.database import RunnerPlan, User, PlanWeek
 from app.core.mappers import relational_to_plan, plan_to_relational
 from app.schemas import (
     WeekSchema, ContextSchema, ProjectContext, RunnerContext, 
-    WeightContext, WeightRecord, PlanUpdateResponse
+    WeightContext, WeightRecord
 )
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 def get_context_dto(session: Session, username: str = "mike") -> ContextSchema:
     """

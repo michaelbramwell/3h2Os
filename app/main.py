@@ -14,11 +14,9 @@ async def lifespan(app: FastAPI):
     # create_db_and_tables() # Disabled in favor of Alembic migrations
     # Create a default user and plan if none exist (for local dev transition)
     # Note: This logic might fail if tables don't exist yet (i.e. if migration hasn't run)
-    pass
+
     try:
         with Session(engine) as session:
-            # Ensure tables exist (quick fix for dev environment if almebic not used)
-            create_db_and_tables() 
             
             user = session.exec(select(User).where(User.username == "mike")).first()
             if not user:
