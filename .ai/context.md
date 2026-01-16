@@ -19,6 +19,7 @@ When working in this workspace, always refer to the following files to maintain 
 ### Guidelines:
 - **Timezone**: All automated logic and date-logging MUST use AWST (Perth, UTC+8).
 - **Database**: When modifying data structure, prefer updating `app/core/database.py` over legacy JSON files if possible.
+- **API Documentation**: Maintain `tests/api_requests.http` as a live reference for all available API endpoints. Update it whenever routes change.
 - **Testing**: Maintain the `tests/` suite. Run with `uv run pytest`.
 - **Style Rule**: Strictly no emojis in any responses, code, or documentation.
 

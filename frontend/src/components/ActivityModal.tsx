@@ -30,7 +30,7 @@ function getTEData(score: number): { label: string; color: string } {
 
 function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'power' }) {
     if (!zones || zones.length === 0) return null;
-    
+
     const active = zones.filter(z => (z.secsInZone || 0) > 10);
     if (active.length === 0) return null;
 
@@ -41,21 +41,29 @@ function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'po
                 const secs = Math.round(z.secsInZone % 60);
                 const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
                 
+                // Helper to resolve potentially aliased boundaries
+                const low = z.zoneLow ?? z.zoneLowBoundary ?? 0;
+                const high = z.zoneHigh ?? z.zoneHighBoundary ?? 0;
+
                 let valStr = '';
-                // For pace zones, we might not have avgValue populated yet depending on fetch_actuals logic
-                // But dashboard.js tried to use it. If not present, we can just show time.
-                // Assuming we stored it in DB correctly.
                 
-                // Note: The python script didn't consistently populate avgValue for all types, 
-                // but let's try to infer if we can, or just show the range.
-                if (type === 'pace' && z.avgValue && z.avgValue > 0) {
-                     valStr = formatPace(1000 / z.avgValue);
+                if (type === 'pace') {
+                     if (z.avgValue && z.avgValue > 0) {
+                        valStr = formatPace(1000 / z.avgValue);
+                     } else if (low > 0 || high > 0) {
+                        // Fallback: Use zone boundaries
+                        // Note: Zone 1 is slowest. 
+                        // Z1 Low Boundary = 0.5 m/s. High Boundary = 2.6 m/s.
+                        // Pace: 1000/0.5 = 2000s/km (33:00/km) -> 1000/2.6 (6:24/km)
+                        if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
+                        else if (highPace) valStr = `< ${highPace}`; // Faster than X
+                        else if (lowPace) valStr = `> ${lowPace}`; // Slower than Y
                 } else if (z.avgValue && z.avgValue > 0) {
                      valStr = Math.round(z.avgValue) + (type === 'hr' ? 'bpm' : (type === 'power' ? 'W' : ''));
-                } else {
-                    // Fallback to range if no avg
-                    // For HR: 140-150
-                    if (type === 'hr') valStr = `${Math.round(z.zoneLow)}-${Math.round(z.zoneHigh)}`;
+                } else if (type === 'hr') {
+                    valStr = `${Math.round(low)}-${Math.round(high)}`;
+                } else if (type === 'power') {
+                    valStr = `${Math.round(low)}-${Math.round(high)} W`;
                 }
 
                 return (

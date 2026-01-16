@@ -32,9 +32,7 @@ function PhaseCard({ status }: { status: ContextData['status'] }) {
 function WeightCard({ weight }: { weight: RunnerContext['weight_kg'] }) {
     if (!weight) return null;
     
-    // Better progress calculation: (Start - Current) / (Start - Target)
-    // Assuming history[0] is start. Or just context.weight_kg.history[0] if available.
-    // Actually let's just use current vs target for display.
+    // Display recent weight history chart
     
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -43,10 +41,6 @@ function WeightCard({ weight }: { weight: RunnerContext['weight_kg'] }) {
                 <p className="text-2xl font-bold text-slate-900">{weight.current}kg</p>
                 <p className="text-sm text-slate-500 mb-1">/ {weight.target}kg target</p>
             </div>
-            {/* <div className="w-full bg-slate-100 h-2 rounded-full mt-3">
-                <div className="bg-orange-500 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
-            </div> */} 
-            {/* Progress bar seems tricky without consistent start weight. Skipping specific percent for now, just chart. */}
             
             <div className="mt-4 h-32">
                 <WeightChart data={weight} />
@@ -60,7 +54,7 @@ function FuelingCard() {
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Fueling Audit</h2>
-            <div className="space-y-3">
+       Static fueling guidelines
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <p className="text-xs text-slate-600">90g Carbs / hour (Long Runs)</p>
@@ -90,20 +84,16 @@ function ZonesCard({ zones }: { zones: RunnerContext['trainingZones'] }) {
     if (!zones) return null;
 
     const renderPaceRow = (z: any, idx: number, all: any[]) => {
-        // Current Zone Start (Slowest speed for this zone)
+        // Current Zone Start (Slowest speed)
         const currentZoneStartSpeed = z.lowBoundary_m_s;
         
-        // Next Zone Start (Fastest speed for this zone - effectively)
+        // Next Zone Start (Fastest speed)
         const nextZone = all[idx + 1];
         const nextZoneStartSpeed = nextZone?.lowBoundary_m_s;
 
         // Calculate Paces (min/km)
-        // Speed = m/s. Pace = 1000/Speed s/km.
-        // Higher speed = Lower Pace number.
-        
-        // Z1: 0.5 m/s. Next: 2.688 m/s.
-        // Z1 is everything from 0.5 to 2.688. 
-        // Display: "> 6:12 min/km" (slower than Z2 start).
+        // Note: Higher speed (m/s) = Lower Pace number (min/km)
+        // Z1 is everything slower than Z2's start speed.
         
         let rangeLabel = '';
         
@@ -111,7 +101,7 @@ function ZonesCard({ zones }: { zones: RunnerContext['trainingZones'] }) {
              const limit = formatPace(nextZoneStartSpeed);
              rangeLabel = `> ${limit}`;
         } else if (!nextZone) {
-            // Last Zone (Z6)
+            // Last Zone (Z6+)
              const limit = formatPace(currentZoneStartSpeed);
              rangeLabel = `< ${limit}`;
         } else {

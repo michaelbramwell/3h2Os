@@ -50,5 +50,6 @@
 - [ ] **Modern Frontend:** Refactoring to React (Vite + TanStack).
   - [x] Project Setup (Vite, Tailwind, TanStack Router/Query).
   - [ ] Feature Implementation.
+- [ ] **Date/Time Handling:** Store all timestamps as UTC in DB and cast to user's preferred timezone on display.
 - [ ] **Cloud-Native Auth:** Implement secure login via GitHub OAuth or Clerk.
 - [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week, with a simple "Accept/Decline" UX for the user.

@@ -81,6 +81,8 @@ export interface HrZone {
     zoneHigh: number;
     percentInZone: number;
     avgValue?: number; // Added to match usage in dashboard.js
+    zoneLowBoundary?: number; // Fallback for legacy API responses
+    zoneHighBoundary?: number; // Fallback for legacy API responses
 }
 
 export interface Activity {

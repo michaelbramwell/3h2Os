@@ -4,17 +4,28 @@
 GET {{baseUrl}}/
 
 ### Get Plan (JSON)
-GET {{baseUrl}}/plan.json
+GET {{baseUrl}}/api/plan.json
 
 ### Get Context (JSON)
-GET {{baseUrl}}/context.json
+GET {{baseUrl}}/api/context.json
 
 ### Get Actuals (JSON)
-GET {{baseUrl}}/actuals.json
+GET {{baseUrl}}/api/actuals.json
+
+### Get Context Markdown
+GET {{baseUrl}}/api/context/markdown
+
+### Update Weight (POST)
+POST {{baseUrl}}/api/context/weight
+Content-Type: application/json
+
+{
+    "weight": 98.5
+}
 
 ### Update Plan (POST)
 # Warning: This will overwrite the current plan in the database/file!
-POST {{baseUrl}}/plan.json
+POST {{baseUrl}}/api/plan.json
 Content-Type: application/json
 
 [
@@ -42,7 +53,7 @@ Content-Type: application/json
 
 ### Create Plan (POST /plans)
 # Creates a new INACTIVE plan.
-POST {{baseUrl}}/plans
+POST {{baseUrl}}/api/plans
 Content-Type: application/json
 
 {
@@ -62,4 +73,4 @@ Content-Type: application/json
 
 ### Activate Plan (PUT)
 # Replace {plan_id} with the ID returned from creation
-PUT {{baseUrl}}/plans/1/activate
+PUT {{baseUrl}}/api/plans/1/activate

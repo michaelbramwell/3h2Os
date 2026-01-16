@@ -74,9 +74,12 @@ class ContextSchema(BaseModel):
 class HrZone(BaseModel):
     zoneNumber: int
     secsInZone: float
-    zoneLow: float
-    zoneHigh: float
-    percentInZone: float
+    zoneLow: Optional[float] = Field(default=0.0, validation_alias="zoneLowBoundary")
+    zoneHigh: Optional[float] = 0.0
+    percentInZone: Optional[float] = 0.0
+    avgValue: Optional[float] = 0.0
+
+    model_config = ConfigDict(populate_by_name=True)
 
 class ActivitySchema(BaseModel):
     date: str
@@ -94,3 +97,5 @@ class ActivitySchema(BaseModel):
     training_load: Optional[float] = None
     calories: Optional[float] = None
     hr_zones: Optional[List[HrZone]] = None
+    pace_zones: Optional[List[HrZone]] = None
+    power_zones: Optional[List[HrZone]] = None

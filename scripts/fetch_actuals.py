@@ -90,7 +90,7 @@ class GarminActualsFetcher:
             logger.warning(f"Could not load pace thresholds from data/context.json: {e}")
 
         for act in activities:
-            # act['startTimeLocal'] is usually "2025-12-31 08:00:00"
+            # Extract date part from YYYY-MM-DD HH:MM:SS format
             act_date_str = act['startTimeLocal'].split(' ')[0]
             
             if start_date <= act_date_str <= end_date:
@@ -187,8 +187,16 @@ class GarminActualsFetcher:
 
         # Setup accumulator structures
         def init_acc(thresholds, key_name):
-            # Pre-calculate highs for thresholds if needed (simplified: passed in usually)
-            return {t[key_name]: {"secs": 0.0, "sum": 0.0, "boundary": t["lowBoundary"], "high": t.get("highBoundary", 999.0)} for t in thresholds}
+            # Initialize accumulator dictionary for each zone threshold
+            return {
+                t[key_name]: {
+                    "secs": 0.0, 
+                    "sum": 0.0, 
+                    "boundary": t["lowBoundary"], 
+                    "high": t.get("highBoundary", 999.0)
+                } 
+                for t in thresholds
+            }
 
         # Helper to add high boundaries to processed list
         def add_highs(proc_list):
@@ -197,7 +205,7 @@ class GarminActualsFetcher:
                 if i < len(sorted_p) - 1:
                     sorted_p[i]["highBoundary"] = sorted_p[i+1]["lowBoundary"]
                 else:
-                    sorted_p[i]["highBoundary"] = 999.0 # Infinity/Max
+                    sorted_p[i]["highBoundary"] = 999.0 # Upper bound
             return sorted_p
 
         # Format summaries/thresholds for processing
@@ -274,14 +282,14 @@ class GarminActualsFetcher:
                 res.append({
                     "zoneNumber": z,
                     "secsInZone": round(data["secs"], 3),
-                    # "avgValue": round(data["sum"] / data["secs"], 2) if data["secs"] > 0 else 0, # Ignored by schema
+                    "avgValue": round(data["sum"] / data["secs"], 2) if data["secs"] > 0 else 0,
                     "zoneLow": data["boundary"],
                     "zoneHigh": data["high"],
                     "percentInZone": round(percent, 2)
                 })
             return res
 
-        return finalize(hr_acc, total_dur_calc), [], [] # Only returning HR zones for now to match Schema strictness
+        return finalize(hr_acc, total_dur_calc), finalize(power_acc, total_dur_calc), finalize(pace_acc, total_dur_calc)
 
     def fetch_activities(self, start_date: str, end_date: str) -> List[ActualActivity]:
         """Fetches activities between start_date and end_date (YYYY-MM-DD)."""
@@ -324,13 +332,13 @@ async def run_async():
     # Use AWST (UTC+8) for "today"
     awst_now = get_awst_now()
     
-    # Plan starts Jan 5, 2026. We'll fetch from then until today.
+    # Plan starts Jan 5, 2026. Fetch from start date until today.
     start_date = "2026-01-05"
     end_date = awst_now.strftime("%Y-%m-%d")
     
-    # If today is before the plan start, let's just fetch the last 7 days for testing
+    # Validation: If currently before plan start, default to 7-day lookback
     if end_date < start_date:
-        logger.info("Today is before plan start. Fetching last 7 days for testing purposes.")
+        logger.info("Current date is before plan start. Fetching last 7 days.")
         start_date = (awst_now - timedelta(days=7)).strftime("%Y-%m-%d")
 
     activities = fetcher.fetch_activities(start_date, end_date)

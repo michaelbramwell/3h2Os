@@ -49,8 +49,8 @@ class ActivityService:
                 "training_load": act.training_load,
                 "calories": act.calories,
                 "hr_zones_json": dump_zones(act.hr_zones),
-                # "pace_zones_json": dump_zones(act.pace_zones), # If schema has it
-                # "power_zones_json": dump_zones(act.power_zones)
+                "pace_zones_json": dump_zones(act.pace_zones),
+                "power_zones_json": dump_zones(act.power_zones)
             }
             
             if existing:
@@ -82,6 +82,22 @@ class ActivityService:
                     hr_zones = [HrZone(**z) for z in raw_zones]
                 except:
                     pass
+            
+            pace_zones = []
+            if a.pace_zones_json:
+                try:
+                    raw_zones = json.loads(a.pace_zones_json)
+                    pace_zones = [HrZone(**z) for z in raw_zones]
+                except:
+                    pass
+
+            power_zones = []
+            if a.power_zones_json:
+                try:
+                    raw_zones = json.loads(a.power_zones_json)
+                    power_zones = [HrZone(**z) for z in raw_zones]
+                except:
+                    pass
 
             result.append(ActivitySchema(
                 date=a.date.isoformat(),
@@ -98,6 +114,8 @@ class ActivityService:
                 anaerobic_te=a.anaerobic_te,
                 training_load=a.training_load,
                 calories=a.calories,
-                hr_zones=hr_zones
+                hr_zones=hr_zones,
+                pace_zones=pace_zones,
+                power_zones=power_zones
             ))
         return result
