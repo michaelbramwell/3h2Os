@@ -51,6 +51,9 @@ function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'po
                      if (z.avgValue && z.avgValue > 0) {
                         valStr = formatPace(1000 / z.avgValue);
                      } else if (low > 0 || high > 0) {
+                        const lowPace = low > 0 ? formatPace(1000 / low) : ''; 
+                        const highPace = high > 0 ? formatPace(1000 / high) : '';
+
                         // Fallback: Use zone boundaries
                         // Note: Zone 1 is slowest. 
                         // Z1 Low Boundary = 0.5 m/s. High Boundary = 2.6 m/s.
@@ -58,6 +61,7 @@ function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'po
                         if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
                         else if (highPace) valStr = `< ${highPace}`; // Faster than X
                         else if (lowPace) valStr = `> ${lowPace}`; // Slower than Y
+                     }
                 } else if (z.avgValue && z.avgValue > 0) {
                      valStr = Math.round(z.avgValue) + (type === 'hr' ? 'bpm' : (type === 'power' ? 'W' : ''));
                 } else if (type === 'hr') {

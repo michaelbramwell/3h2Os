@@ -59,8 +59,8 @@ export function WeekStats({
             </div>
 
             <div className="text-right hidden md:flex flex-col items-end gap-2">
-                 <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded ${isCompleted ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                    {status === 'normal' ? (isCompleted ? 'Completed' : 'Upcoming') : status}
+                 <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded ${isCompleted ? 'bg-emerald-100 text-emerald-700' : (isCurrentWeek ? 'bg-orange-100 text-orange-800' : 'bg-slate-100 text-slate-500')}`}>
+                    {status === 'normal' ? (isCompleted ? 'Completed' : (isCurrentWeek ? 'Current' : 'Upcoming')) : status}
                  </span>
                  
                  {onFridgeClick && (

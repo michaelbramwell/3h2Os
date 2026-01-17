@@ -54,7 +54,7 @@ function FuelingCard() {
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Fueling Audit</h2>
-       Static fueling guidelines
+            <div className="space-y-3">
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <p className="text-xs text-slate-600">90g Carbs / hour (Long Runs)</p>

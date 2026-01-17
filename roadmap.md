@@ -22,7 +22,8 @@
 - [ ] **Fueling Audit:** Log actual carb/sodium intake for Sunday PLRs to ensure 90/900 compliance.
 
 ## Phase 2.5: Architecture Migration (Active)
-- [x] **FastAPI Foundation:** Setup `app/` folder with `uvicorn`, routing, and testing support.
+- [x] **FastAPI Foundation:** Setup `backend/app/` folder with `uvicorn`, routing, and testing support.
+- [x] **Monorepo Structure:** Separated backend (`backend/`) and frontend (`frontend/`) codebases.
 - [x] **Database Layer (SQLite):** Implemented SQLModel with `RunnerPlan`, `User`, and `PlanWeek` tables.
 - [x] **Domain Services:** Created `PlanService` and `ContextService` to encapsulate business logic using dependency injection.
 - [x] **Thin Controllers:** Refactored API routers to delegate logic strictly to services via DTOs.

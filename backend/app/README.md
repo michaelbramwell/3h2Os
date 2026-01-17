@@ -34,6 +34,7 @@ This project includes a Docker composition that runs the API alongside a Postgre
 
 1. **Start Services:**
    ```bash
+   # Run from the project root directory
    docker compose up --build
    ```
    This will:

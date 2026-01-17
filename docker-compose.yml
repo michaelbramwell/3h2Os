@@ -1,17 +1,17 @@
 services:
   web:
-    build: .
+    build: ./backend
     container_name: running_app
     ports:
       - "8000:8000"
     volumes:
       # Persist the data directory (database, logs, etc.)
-      - ./data:/app/data
+      - ./backend/data:/app/data
       # Mount local source for development
-      - ./app:/app/app:ro
-      - ./scripts:/app/scripts:ro
-      - ./migrations:/app/migrations:ro
-      - ./alembic.ini:/app/alembic.ini:ro
+      - ./backend/app:/app/app:ro
+      - ./backend/scripts:/app/scripts:ro
+      - ./backend/migrations:/app/migrations:ro
+      - ./backend/alembic.ini:/app/alembic.ini:ro
     env_file:
       - .env
     environment:
@@ -47,6 +47,19 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: running_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Prevent host node_modules from overwriting container's
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Better file watching for Docker on some systems
+    depends_on:
+      - web
 
 volumes:
   postgres_data:
