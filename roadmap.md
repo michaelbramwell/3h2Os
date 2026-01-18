@@ -21,14 +21,14 @@
 - [x] **Dashboard 2.0:** Enhanced visual indicators for week statuses (Rest, Race, Taper, Marathon) and improved badges.
 - [ ] **Fueling Audit:** Log actual carb/sodium intake for Sunday PLRs to ensure 90/900 compliance.
 
-## Phase 2.5: Architecture Migration (Active)
+## Phase 2.5: Architecture Migration (Complete)
 - [x] **FastAPI Foundation:** Setup `backend/app/` folder with `uvicorn`, routing, and testing support.
 - [x] **Monorepo Structure:** Separated backend (`backend/`) and frontend (`frontend/`) codebases.
 - [x] **Database Layer (SQLite):** Implemented SQLModel with `RunnerPlan`, `User`, and `PlanWeek` tables.
 - [x] **Domain Services:** Created `PlanService` and `ContextService` to encapsulate business logic using dependency injection.
 - [x] **Thin Controllers:** Refactored API routers to delegate logic strictly to services via DTOs.
-- [ ] **Full Data Migration:** Completely retire `plan.json` and `context.json` in favor of the SQLite database.
-- [ ] **Frontend Update:** Wire the dashboard to consume the new `/api/plans` and `/api/context` endpoints instead of static JSON.
+- [x] **Full Data Migration:** Completely retire `plan.json` and `context.json` in favor of the SQLite database.
+- [x] **Frontend Update:** Wire the dashboard to consume the new `/api/plans` and `/api/context` endpoints instead of static JSON.
 
 ## Phase 3: Performance Analytics (Weeks 5-10)
 - [ ] **Efficiency Tracking:** Monitor Pace/HR decoupling for Wednesday Steady runs.
@@ -48,9 +48,10 @@
 - [ ] **Multi-User Architecture:** Decouple from personal repo to a scalable multi-tenant SaaS.
 - [x] **Database Layer:** Migrated to SQLModel (SQLite).
 - [x] **API Service:** Developed FastAPI service.
-- [ ] **Modern Frontend:** Refactoring to React (Vite + TanStack).
+- [x] **Modern Frontend:** Refactoring to React (Vite + TanStack).
   - [x] Project Setup (Vite, Tailwind, TanStack Router/Query).
-  - [ ] Feature Implementation.
+  - [x] Read-Only Dashboard (Plans, Actuals, Context).
+  - [ ] **Workout Editor:** Ability to edit planned activities (modify distance, type, description).
 - [ ] **Date/Time Handling:** Store all timestamps as UTC in DB and cast to user's preferred timezone on display.
 - [ ] **Cloud-Native Auth:** Implement secure login via GitHub OAuth or Clerk.
 - [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week, with a simple "Accept/Decline" UX for the user.
