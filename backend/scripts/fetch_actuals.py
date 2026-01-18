@@ -15,7 +15,6 @@ from garminconnect import Garmin
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.models.domain import ActualActivity
-from app.core.database import get_session
 from app.services.context import ContextService
 from app.services.plans import PlanService
 
