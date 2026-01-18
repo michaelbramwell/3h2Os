@@ -5,7 +5,18 @@ export enum ActivityType {
   WORKOUT = "Workout",
   RACE = "Race",
   REST = "Rest",
-  CROSS = "Cross"
+  CROSS = "Cross",
+  STEADY = "Steady",
+  WARMUP = "WarmUp",
+  COOLDOWN = "CoolDown",
+  INTERVALS = "Intervals",
+  TRAIL = "Trail",
+  TEMPO = "Tempo",
+  PLR = "PLR",
+  HILLS = "Hills",
+  THRESHOLD = "Threshold",
+  CYCLING = "Cycling",
+  SWIMMING = "Swimming",
 }
 
 export interface Workout {

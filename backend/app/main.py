@@ -65,3 +65,6 @@ app.include_router(api.router, prefix="/api")
 
 # serve root files as fallback if needed or specific static dir
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Force reload triggers
+

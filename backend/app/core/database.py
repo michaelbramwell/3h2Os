@@ -1,6 +1,6 @@
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
-from sqlalchemy import BigInteger, Column
+from sqlalchemy import BigInteger, Column, String
 from datetime import datetime, date
 import os
 from app.models.domain import ActivityType
@@ -26,7 +26,7 @@ class PlanWorkout(SQLModel, table=True):
     
     name: str
     description: Optional[str] = None
-    activity_type: ActivityType = Field(default=ActivityType.RUN)
+    activity_type: ActivityType = Field(default=ActivityType.RUN, sa_type=String)
     distance_m: float = 0.0
     time_of_day: str = "AM"
     

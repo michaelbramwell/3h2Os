@@ -1,6 +1,15 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Dict, Any, Optional
+from datetime import date
 from app.models.domain import ActivityType
+
+class WorkoutCreate(BaseModel):
+    date: date
+    name: str = "New Workout"
+    type: ActivityType = ActivityType.RUN
+    distance_m: float = 0.0
+    timeOfDay: str = "AM"
+    description: Optional[str] = None
 
 class WorkoutSchema(BaseModel):
     id: Optional[int] = None

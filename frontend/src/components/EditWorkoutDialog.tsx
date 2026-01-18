@@ -1,38 +1,49 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
 import { type Workout, ActivityType } from '../types/schema'
-import { updateWorkout } from '../lib/api'
+import { updateWorkout, createWorkout } from '../lib/api'
 import { X } from 'lucide-react'
+import { useWorkoutForm } from '../hooks/useWorkoutForm'
 
 interface EditWorkoutDialogProps {
-    workout: Workout
+    workout?: Workout;
+    date?: string;
     isOpen: boolean
     onOpenChange: (open: boolean) => void
 }
 
-export function EditWorkoutDialog({ workout, isOpen, onOpenChange }: EditWorkoutDialogProps) {
+export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditWorkoutDialogProps) {
     const queryClient = useQueryClient()
-    const [name, setName] = useState(workout.name)
-    const [description, setDescription] = useState(workout.description || '') // Use empty string if undefined
-    const [type, setType] = useState(workout.type)
-    const [timeOfDay, setTimeOfDay] = useState(workout.timeOfDay || 'AM')
-    const [distance, setDistance] = useState((workout.distance_m / 1000).toString())
+    const isEditing = !!workout;
+    // Log for debugging
+    if (isEditing && !workout.id) {
+        console.warn("EditWorkoutDialog opened with workout missing ID:", workout);
+    }
 
-    // Update state when workout changes or dialog opens
-    useEffect(() => {
-        if (isOpen) {
-            setName(workout.name)
-            setDescription(workout.description || '')
-            setType(workout.type)
-            setTimeOfDay(workout.timeOfDay || 'AM')
-            setDistance((workout.distance_m / 1000).toString())
-        }
-    }, [isOpen, workout])
+    const {
+        name, setName,
+        description, setDescription,
+        type, setType,
+        timeOfDay, setTimeOfDay,
+        distance, setDistance
+    } = useWorkoutForm(workout, isOpen)
 
     const mutation = useMutation({
-        mutationFn: async (updatedWorkout: { name: string; description: string; type: string; distance_m: number; timeOfDay: string }) => {
-            if (!workout.id) throw new Error("Workout ID is missing")
-            return updateWorkout(workout.id, updatedWorkout)
+        mutationFn: async (data: { name: string; description: string; type: string; distance_m: number; timeOfDay: string }) => {
+            if (isEditing) {
+                // If editing, try to use ID, but fallback to creating new if ID is missing (which shouldn't happen for existing workouts)
+                // However, the error suggests workout.id is undefined.
+                // In PlanWorkout model, id is optional but should be present for fetched data.
+                if (workout?.id) {
+                     return updateWorkout(workout.id, data)
+                } else {
+                     console.error("Attempting to edit workout without ID:", workout);
+                     throw new Error("Cannot update workout: Missing ID. Try refreshing the page.");
+                }
+            } else if (!isEditing && date) {
+                return createWorkout({ ...data, date })
+            } else {
+                throw new Error("Invalid state: Missing ID for edit or Date for create")
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['plan'] })
@@ -40,7 +51,7 @@ export function EditWorkoutDialog({ workout, isOpen, onOpenChange }: EditWorkout
         },
         onError: (error) => {
             console.error(error);
-            alert("Failed to save workout. Ensure backend is running and workout has an ID.");
+            alert("Failed to save workout. " + error);
         }
     })
 
@@ -61,7 +72,7 @@ export function EditWorkoutDialog({ workout, isOpen, onOpenChange }: EditWorkout
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200">
                 <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                    <h2 className="text-lg font-semibold text-slate-900">Edit Workout</h2>
+                    <h2 className="text-lg font-semibold text-slate-900">{isEditing ? 'Edit Workout' : 'Add Workout'}</h2>
                     <button onClick={() => onOpenChange(false)} className="text-slate-400 hover:text-slate-600">
                         <X size={20} />
                     </button>
@@ -75,9 +86,15 @@ export function EditWorkoutDialog({ workout, isOpen, onOpenChange }: EditWorkout
                             onChange={(e) => setType(e.target.value as ActivityType)}
                             className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            {Object.values(ActivityType).map((t) => (
-                                <option key={t} value={t}>{t}</option>
-                            ))}
+                            <option value={ActivityType.RUN}>Running</option>
+                            <option value={ActivityType.TRAIL}>Trail Running</option>
+                            <option value={ActivityType.CYCLING}>Cycling</option>
+                            <option value={ActivityType.SWIMMING}>Swimming</option>
+                            
+                            {/* Preserve current value if not in standard list to avoid data loss */}
+                            {![ActivityType.RUN, ActivityType.TRAIL, ActivityType.CYCLING, ActivityType.SWIMMING].includes(type as ActivityType) && (
+                                <option value={type}>{type} (Legacy)</option>
+                            )}
                         </select>
                     </div>
 

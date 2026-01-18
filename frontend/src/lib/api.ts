@@ -33,4 +33,9 @@ export const updateWorkout = async (id: number, data: { name?: string; descripti
     return response.data;
 };
 
+export const createWorkout = async (data: { date: string; name: string; description?: string; type: string; distance_m: number; timeOfDay: string }): Promise<any> => {
+    const response = await api.post('/api/workouts', data);
+    return response.data;
+};
+
 export default api;

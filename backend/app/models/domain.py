@@ -11,6 +11,17 @@ class ActivityType(str, Enum):
     RACE = "Race"
     REST = "Rest"
     CROSS = "Cross"
+    STEADY = "Steady"
+    WARMUP = "WarmUp"
+    COOLDOWN = "CoolDown"
+    INTERVALS = "Intervals"
+    TRAIL = "Trail"
+    TEMPO = "Tempo"
+    PLR = "PLR"
+    HILLS = "Hills"
+    THRESHOLD = "Threshold"
+    CYCLING = "Cycling"
+    SWIMMING = "Swimming"
 
 class GarminActivityType(str, Enum):
     RUNNING = "running"

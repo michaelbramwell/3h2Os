@@ -38,7 +38,7 @@ export function WorkoutCard({ workout, isToday, isMarathonDay, isPast }: Workout
                 {/* Edit Icon Overlay */}
                 {!isPast && (
                     <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1 rounded-full cursor-pointer hover:bg-white z-10">
-                        <Pencil size={12} className="text-slate-400 hover:text-blue-500" />
+                        <Pencil size={20} className="text-slate-400 hover:text-blue-500" />
                     </div>
                 )}
 

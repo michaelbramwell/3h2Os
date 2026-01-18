@@ -39,10 +39,9 @@ function Dashboard() {
   })
 
   // Start with a safe default for actuals to avoid breaking if file missing/empty
-  const { data: actuals } = useQuery({ 
+  const { data: actuals, isLoading: actualsLoading } = useQuery({ 
     queryKey: ['actuals'], 
-    queryFn: getActuals,
-    initialData: [] 
+    queryFn: getActuals
   })
 
   const { data: markdown } = useQuery({ 
@@ -51,7 +50,32 @@ function Dashboard() {
     initialData: ''
   })
 
-  if (planLoading || contextLoading) return (
+  // Calculate todayStr here so it's available for the effect
+  const todayDate = new Date();
+  const year = todayDate.getFullYear();
+  const month = String(todayDate.getMonth() + 1).padStart(2, '0');
+  const day = String(todayDate.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+
+  // Auto-scroll to current week using robust string comparison
+  useEffect(() => {
+    if (plan && !fridgeWeekId && !actualsLoading) {
+      // Find the latest week that has started (weekStarting <= todayStr)
+      // Assuming plan is sorted ascending by date
+      const currentWeek = [...plan].reverse().find((w: Week) => todayStr >= w.weekStarting);
+
+      if (currentWeek) {
+          setTimeout(() => {
+              const el = document.getElementById(`week-${currentWeek.weekStarting}`);
+              if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+          }, 300);
+      }
+    }
+  }, [plan, fridgeWeekId, actualsLoading, todayStr]);
+
+  if (planLoading || contextLoading || actualsLoading) return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
           <div className="text-center">
               <div className="w-8 h-8 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -67,12 +91,6 @@ function Dashboard() {
   const visibleWeeks = fridgeWeekId 
     ? plan.filter((w: Week) => w.weekStarting === fridgeWeekId)
     : plan;
-
-  const todayDate = new Date();
-  const year = todayDate.getFullYear();
-  const month = String(todayDate.getMonth() + 1).padStart(2, '0');
-  const day = String(todayDate.getDate()).padStart(2, '0');
-  const todayStr = `${year}-${month}-${day}`;
 
   return (
     <div className={`min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans ${fridgeWeekId ? 'bg-white print:p-0' : ''}`}>
@@ -114,7 +132,7 @@ function Dashboard() {
                     }
 
                     return (
-                        <div key={week.weekStarting}>
+                        <div key={week.weekStarting} id={`week-${week.weekStarting}`} className="scroll-mt-4">
                              <WeekCard
                                 week={week}
                                 actuals={actuals as Activity[]}

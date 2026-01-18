@@ -1,12 +1,12 @@
 from sqlmodel import Session, select
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import json
 import os
 from typing import List, Dict, Any
 
 from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout, ActualActivity
 from app.core.mappers import plan_to_relational, relational_to_plan
-from app.schemas import WeekSchema, WorkoutUpdate
+from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate
 
 class PlanService:
     def __init__(self, session: Session):
@@ -149,6 +149,58 @@ class PlanService:
         self.session.commit()
         self.session.refresh(workout)
         return workout
+
+    def add_workout(self, creation_data: WorkoutCreate, username: str = "mike") -> PlanWorkout:
+        """
+        Adds a new workout to the active plan.
+        """
+        # 1. Get Active Plan
+        statement = select(RunnerPlan).join(User).where(User.username == username).where(RunnerPlan.is_active == True)
+        plan = self.session.exec(statement).first()
+        if not plan:
+             raise ValueError("No active plan found for user")
+
+        target_date = creation_data.date
+        
+        # 2. Find correct Week (Monday start)
+        week_start = target_date - timedelta(days=target_date.weekday())
+        
+        week = self.session.exec(
+            select(PlanWeek)
+            .where(PlanWeek.plan_id == plan.id)
+            .where(PlanWeek.start_date == week_start)
+        ).first()
+        
+        if not week:
+            # Create a new week if it doesn't exist
+            week = PlanWeek(
+                plan_id=plan.id,
+                start_date=week_start,
+                status="normal"
+            )
+            self.session.add(week)
+            self.session.commit()
+            self.session.refresh(week)
+
+        # 3. Create Workout
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        day_name = day_names[target_date.weekday()]
+
+        new_workout = PlanWorkout(
+            week_id=week.id,
+            date=target_date,
+            day_name=day_name,
+            name=creation_data.name,
+            description=creation_data.description,
+            activity_type=creation_data.type,
+            distance_m=creation_data.distance_m,
+            time_of_day=creation_data.timeOfDay
+        )
+        
+        self.session.add(new_workout)
+        self.session.commit()
+        self.session.refresh(new_workout)
+        return new_workout
 
     def _deactivate_current_plans(self, user_id: int, exclude_id: int = None):
         statement = select(RunnerPlan).where(RunnerPlan.user_id == user_id).where(RunnerPlan.is_active == True)
