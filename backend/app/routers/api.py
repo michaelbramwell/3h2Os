@@ -138,25 +138,14 @@ async def get_context(
 async def get_actuals(
     service: ActivityService = Depends(get_activity_service)
 ):
-    # Prefer DB, fallback to file if DB empty? 
-    # Or just use DB as we are "migrating" to DB. 
-    # Let's check DB first.
-    activities = service.get_activities()
-    if activities:
-        return activities
-    
-    # Fallback to file for smooth transition
-    if os.path.exists("data/actuals.json"):
-        with open("data/actuals.json", "r") as f:
-            return json.load(f)
-    return []
+    """
+    Get the actual activities from the database.
+    """
+    return service.get_activities()
 
 @router.get("/context/markdown")
 async def get_context_markdown():
-    if os.path.exists("context.md"):
-        with open("context.md", "r") as f:
-            return {"content": f.read()}
-    if os.path.exists("data/context.md"):
-        with open("data/context.md", "r") as f:
-            return {"content": f.read()}
+    """
+    Deprecated: Context is now database-driven.
+    """
     return {"content": ""}

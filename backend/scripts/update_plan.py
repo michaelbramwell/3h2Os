@@ -2,7 +2,7 @@ import json
 import os
 import sys
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List
 from dataclasses import asdict
 
@@ -15,7 +15,12 @@ from app.core.database import engine
 from sqlmodel import Session
 
 # --- Configuration ---
-CURRENT_WEEK_START = "2026-01-12" # Week 2
+def get_current_week_start_str() -> str:
+    today = datetime.now()
+    start = today - timedelta(days=today.weekday())
+    return start.strftime("%Y-%m-%d")
+
+CURRENT_WEEK_START = get_current_week_start_str() # Defaults to current week
 BASE_VOLUME_KM = 62.0 # Starting baseline volume for "Normal" weeks (approx Week 2/3 level)
 MAX_VOLUME_INCREASE = 1.10 # 10% max increase per week
 INTENSITY_RATIO = 0.20 # 80/20 rule target

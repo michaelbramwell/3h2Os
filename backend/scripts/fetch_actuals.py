@@ -346,7 +346,11 @@ def get_plan_start_date():
                 return active_plan[0].weekStarting
     except Exception as e:
         logger.warning(f"Could not load plan start date from DB: {e}")
-    return "2026-01-05"
+    
+    # Fallback: Return date 12 weeks ago from today
+    # This prevents hardcoding "2026-01-05"
+    twelve_weeks_ago = datetime.now() - timedelta(weeks=12)
+    return twelve_weeks_ago.strftime("%Y-%m-%d")
 
 async def run_async(fetch_all: bool = False):
     fetcher = GarminActualsFetcher()

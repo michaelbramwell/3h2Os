@@ -6,7 +6,7 @@ async def test_save():
     url = "http://localhost:8000/api/actuals"
     payload = [{
         "activityId": 123456789,
-        "date": "2026-01-15",
+        "date": date.today().strftime("%Y-%m-%d"),
         "name": "Test Activity API Check",
         "type": "running",
         "distance_m": 5000,

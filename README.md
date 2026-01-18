@@ -1,6 +1,6 @@
 # 3h2Os: Sub-4 Marathon Training Plan
 
-A data-driven marathon training project designed to solve the 30km cramp and achieve a sub-4 hour finish at the Bunbury Marathon (April 12, 2026).
+A data-driven marathon training project designed to solve the 30km cramp and achieve a sub-4 hour finish at the Target Marathon.
 
 ## Project Overview
 
