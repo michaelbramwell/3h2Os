@@ -58,11 +58,28 @@ class WeightContext(BaseModel):
     target: float
     history: List[WeightRecord] = Field(default_factory=list)
 
+class FuelingStrategy(BaseModel):
+    carbsPerHr: int
+    sodiumPerHr: int
+    preRunCarbs: int
+
+class TrainingZone(BaseModel):
+    zone: int
+    lowBoundary_m_s: float
+    description: Optional[str] = None
+
+class TrainingZones(BaseModel):
+    pace: List[TrainingZone] = Field(default_factory=list)
+    heartRate: List[TrainingZone] = Field(default_factory=list)
+
 class RunnerContext(BaseModel):
     age: int
     gender: str
     height_cm: int
     weight_kg: WeightContext
+    fueling: Optional[FuelingStrategy] = None
+    trainingZones: Optional[TrainingZones] = None
+    personalBests: Optional[Dict[str, str]] = None
 
     model_config = ConfigDict(from_attributes=True)
 

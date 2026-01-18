@@ -17,7 +17,7 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 - **`backend/`**: The FastAPI backend API, database models, and scripts. See [`backend/app/README.md`](backend/app/README.md).
   - **`app/`**: API Source code.
   - **`scripts/`**: Automation scripts for Garmin sync and data processing.
-  - **`data/`**: JSON data files (`plan.json`, `context.json`).
+  - **`data/`**: Database files (`database.db`). Legacy JSON files are in `.bak` state.
 - `marathon_plan.md`: Human-readable reference (auto-generated).
 
 ## Getting Started

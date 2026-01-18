@@ -13,6 +13,8 @@ from app.models.domain import Week, Day, Workout, GarminActivityType
 from app.core.validation import ValidationEngine
 from app.core.database import engine, RunnerPlan, User
 from app.core.services import save_plan_to_db
+from app.services.plans import PlanService
+from app.services.activities import ActivityService
 from sqlmodel import Session, select
 
 # Types that contribute to the "Hard" portion of 80/20 rule
@@ -39,17 +41,11 @@ def has_race_workout(week: Week) -> bool:
     return False
 
 def load_actuals_as_weeks(filepath: str) -> Tuple[Dict[str, Week], Dict[str, bool]]:
-    """Load actual weeks and pre-compute race flags for optimization.
-    
-    Returns:
-        Tuple of (weeks_dict, race_flags_dict) where race_flags_dict maps
-        week_start -> bool indicating if that week has a race workout.
-    """
-    if not os.path.exists(filepath):
-        return {}, {}
-
-    with open(filepath, 'r') as f:
-        data = json.load(f)
+    with Session(engine) as session:
+        service = ActivityService(session)
+        activities = service.get_activities()
+        # Convert Schema -> Dict
+        data = [a.model_dump() for a in activities]
     
     weeks = {}
     
@@ -87,17 +83,19 @@ def load_actuals_as_weeks(filepath: str) -> Tuple[Dict[str, Week], Dict[str, boo
     return weeks, race_flags
 
 def load_plan(filepath: str) -> List[Week]:
-    if not os.path.exists(filepath):
-        return []
-    with open(filepath, 'r') as f:
-        data = json.load(f)
-    return [Week.from_dict(w) for w in data]
+    with Session(engine) as session:
+        service = PlanService(session)
+        week_schemas = service.get_active_plan()
+        return [Week.from_dict(w.model_dump()) for w in week_schemas]
 
 def save_plan(weeks: List[Week], filepath: str):
-    # 1. Save to JSON File
-    data = [asdict(w) for w in weeks]
-    with open(filepath, 'w') as f:
-        json.dump(data, f, indent=2)
+    # Save to DB
+    print(f"Saving {len(weeks)} weeks to DB...")
+    plan_dicts = [asdict(w) for w in weeks]
+    with Session(engine) as session:
+        service = PlanService(session)
+        service.create_or_update_plan(plan_dicts, activate=True)
+    print("Plan saved to Database.")
     
     # 2. Save to Database (With History)
     try:
@@ -487,7 +485,7 @@ def main():
         prev_vol = curr_vol
 
     if changes_made:
-        print("\nSaving updated plan to plan.json...")
+        print("\nSaving updated plan to Database...")
         save_plan(planned_weeks, plan_path)
         print("Done.")
     else:

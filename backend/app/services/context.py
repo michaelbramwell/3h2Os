@@ -51,11 +51,6 @@ class ContextService:
         if user and user.project and user.profile:
             return self._map_to_schema(user)
 
-        # Fallback File
-        if os.path.exists("data/context.json"):
-            with open("data/context.json", "r") as f:
-                return ContextSchema.model_validate(json.load(f))
-        
         # Empty
         return self._empty_context()
 

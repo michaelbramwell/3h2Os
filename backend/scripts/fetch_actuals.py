@@ -15,6 +15,9 @@ from garminconnect import Garmin
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.models.domain import ActualActivity
+from app.core.database import get_session
+from app.services.context import ContextService
+from app.services.plans import PlanService
 
 # Configure Logging
 logging.basicConfig(
@@ -80,14 +83,20 @@ class GarminActualsFetcher:
         """Filters raw Garmin activities by date range and maps to our schema."""
         filtered_activities: List[ActualActivity] = []
         
-        # Load pace thresholds from data/context.json
+        # Load pace thresholds from DB
         pace_thresholds = []
         try:
-            with open("data/context.json", "r") as f:
-                context = json.load(f)
-                pace_thresholds = context.get("runner", {}).get("trainingZones", {}).get("pace", [])
+             # Create a session manually since we are in a script
+            from app.core.database import engine
+            from sqlmodel import Session
+            
+            with Session(engine) as session:
+                ctx_service = ContextService(session)
+                ctx = ctx_service.get_context()
+                if ctx.runner.trainingZones and ctx.runner.trainingZones.pace:
+                    pace_thresholds = [z.model_dump() for z in ctx.runner.trainingZones.pace]
         except Exception as e:
-            logger.warning(f"Could not load pace thresholds from data/context.json: {e}")
+            logger.warning(f"Could not load pace thresholds from DB: {e}")
 
         for act in activities:
             # Extract date part from YYYY-MM-DD HH:MM:SS format
@@ -326,27 +335,46 @@ def get_awst_now():
     """Returns the current time in AWST (UTC+8)."""
     return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)
 
-async def run_async():
+def get_plan_start_date():
+    try:
+        from app.core.database import engine
+        from sqlmodel import Session
+        with Session(engine) as session:
+            plan_service = PlanService(session)
+            active_plan = plan_service.get_active_plan()
+            if active_plan and len(active_plan) > 0:
+                return active_plan[0].weekStarting
+    except Exception as e:
+        logger.warning(f"Could not load plan start date from DB: {e}")
+    return "2026-01-05"
+
+async def run_async(fetch_all: bool = False):
     fetcher = GarminActualsFetcher()
     
     # Use AWST (UTC+8) for "today"
     awst_now = get_awst_now()
-    
-    # Plan starts Jan 5, 2026. Fetch from start date until today.
-    start_date = "2026-01-05"
     end_date = awst_now.strftime("%Y-%m-%d")
     
-    # Validation: If currently before plan start, default to 7-day lookback
-    if end_date < start_date:
-        logger.info("Current date is before plan start. Fetching last 7 days.")
+    if fetch_all:
+        start_date = get_plan_start_date()
+        logger.info(f"Fetching ALL actuals from plan start: {start_date} to {end_date}")
+    else:
+        # Default: Fetch last 7 days
         start_date = (awst_now - timedelta(days=7)).strftime("%Y-%m-%d")
+        logger.info(f"Fetching actuals for last 7 days: {start_date} to {end_date}")
 
     activities = fetcher.fetch_activities(start_date, end_date)
     await fetcher.save_actuals(activities)
 
 def main():
+    import argparse
     import asyncio
-    asyncio.run(run_async())
+    
+    parser = argparse.ArgumentParser(description="Fetch Garmin actuals.")
+    parser.add_argument("--all", action="store_true", help="Fetch all actuals over the marathon plan period.")
+    args = parser.parse_args()
+    
+    asyncio.run(run_async(fetch_all=args.all))
 
 if __name__ == "__main__":
     main()

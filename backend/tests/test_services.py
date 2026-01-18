@@ -39,7 +39,7 @@ def test_save_plan_to_db_creates_user_and_plan(session):
     ]
     
     # 1. First run, user doesn't exist
-    new_plan = save_plan_to_db(plan_data, session, username="testuser")
+    new_plan = save_plan_to_db(plan_data, session, username="testuser", activate=True)
     
     assert new_plan.title.startswith("Plan Update")
     assert new_plan.is_active is True
@@ -73,7 +73,7 @@ def test_save_plan_archives_old_plans(session):
     plan1 = save_plan_to_db(plan_data_1, session, username="testuser")
     
     # 2. Create second plan
-    plan2 = save_plan_to_db(plan_data_2, session, username="testuser")
+    plan2 = save_plan_to_db(plan_data_2, session, username="testuser", activate=True)
     
     # Refresh objects from session
     session.refresh(plan1)

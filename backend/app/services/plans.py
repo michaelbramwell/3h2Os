@@ -35,11 +35,6 @@ class PlanService:
                 # 2. Fallback to Blob
                 plan_data = json.loads(plan.plan_json)
         
-        elif os.path.exists("data/plan.json"):
-            # 3. Fallback to File
-            with open("data/plan.json", "r") as f:
-                plan_data = json.load(f)
-                
         return [WeekSchema.model_validate(w) for w in plan_data]
 
     def create_or_update_plan(self, plan_data: List[Dict[str, Any]], username: str = "mike", title: str = None, activate: bool = False) -> RunnerPlan:

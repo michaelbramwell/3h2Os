@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 from scripts.fetch_actuals import get_awst_now
-from scripts.update_weight import get_awst_today
 
 def test_get_awst_now():
     # Force a UTC time
@@ -12,13 +11,6 @@ def test_get_awst_now():
     
     # This might fail if the test runs exactly at midnight, but usually it's fine
     assert actual_awst == expected_awst
-
-def test_get_awst_today_format():
-    today = get_awst_today()
-    # Check format YYYY-MM-DD
-    assert len(today) == 10
-    assert today[4] == "-"
-    assert today[7] == "-"
     
 def test_midnight_rollover():
     # If it's 23:00 UTC, it should be 07:00 AWST next day

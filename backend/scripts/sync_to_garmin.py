@@ -13,6 +13,13 @@ from typing import List, Optional, Dict, Any
 
 from dotenv import load_dotenv
 from garminconnect import Garmin
+from sqlmodel import Session
+
+# Ensure we can import from app
+sys.path.append(os.getcwd())
+
+from app.core.database import engine
+from app.services.plans import PlanService
 
 # Configure Logging
 logging.basicConfig(
@@ -21,6 +28,42 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
+
+def get_pace_target(name: str) -> Optional[Dict[str, Any]]:
+    """Returns pace target in m/s for different workout types."""
+    if "MP" in name:
+        return {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (5.5 * 60),
+            "targetValueTwo": 1000 / (5.66 * 60)
+        }
+    elif "Thresh" in name:
+        return {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (4.66 * 60),
+            "targetValueTwo": 1000 / (4.83 * 60)
+        }
+    elif "Steady" in name:
+        return {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (5.16 * 60),
+            "targetValueTwo": 1000 / (5.33 * 60)
+        }
+    elif "Easy" in name or "Recov" in name or "Trail" in name or "PLR" in name:
+        return {
+            "workoutTargetTypeId": 6,
+            "workoutTargetTypeKey": "pace.zone",
+            "targetValueOne": 1000 / (6.25 * 60), # 6:15
+            "targetValueTwo": 1000 / (6.75 * 60)  # 6:45
+        }
+    
+    return {
+        "workoutTargetTypeId": 1,
+        "workoutTargetTypeKey": "no.target"
+    }
 
 class MarathonPlanSync:
     def __init__(self):
@@ -73,58 +116,28 @@ class MarathonPlanSync:
                 logger.error(f"Login failed: {e}")
                 sys.exit(1)
 
-    def parse_plan(self, file_path: str) -> List[Dict[str, Any]]:
-        """Reads the plan from plan.json."""
-        with open(file_path, "r") as f:
-            plan_data = json.load(f)
-
+    def parse_plan(self) -> List[Dict[str, Any]]:
+        """Reads the plan from Database."""
         entries = []
-        for week in plan_data:
-            for day_name, day_info in week["days"].items():
-                for workout in day_info["workouts"]:
+        with Session(engine) as session:
+             service = PlanService(session)
+             try:
+                 plan_weeks = service.get_active_plan()
+             except Exception:
+                 logging.error("No active plan found in DB.")
+                 return []
+        
+        for week in plan_weeks:
+            for day_name, day_info in week.days.items():
+                for workout in day_info.workouts:
                     entries.append({
-                        "date": day_info["date"],
-                        "name": workout["name"],
-                        "distance_m": workout["distance_m"]
+                        "date": day_info.date,
+                        "name": workout.name,
+                        "distance_m": workout.distance_m
                     })
-
         return entries
 
-def get_pace_target(name: str) -> Optional[Dict[str, Any]]:
-    """Returns pace target in m/s for different workout types."""
-    if "MP" in name:
-        return {
-            "workoutTargetTypeId": 6,
-            "workoutTargetTypeKey": "pace.zone",
-            "targetValueOne": 1000 / (5.5 * 60),
-            "targetValueTwo": 1000 / (5.66 * 60)
-        }
-    elif "Thresh" in name:
-        return {
-            "workoutTargetTypeId": 6,
-            "workoutTargetTypeKey": "pace.zone",
-            "targetValueOne": 1000 / (4.66 * 60),
-            "targetValueTwo": 1000 / (4.83 * 60)
-        }
-    elif "Steady" in name:
-        return {
-            "workoutTargetTypeId": 6,
-            "workoutTargetTypeKey": "pace.zone",
-            "targetValueOne": 1000 / (5.16 * 60),
-            "targetValueTwo": 1000 / (5.33 * 60)
-        }
-    elif "Easy" in name or "Recov" in name or "Trail" in name or "PLR" in name:
-        return {
-            "workoutTargetTypeId": 6,
-            "workoutTargetTypeKey": "pace.zone",
-            "targetValueOne": 1000 / (6.25 * 60), # 6:15
-            "targetValueTwo": 1000 / (6.75 * 60)  # 6:45
-        }
-    
-    return {
-        "workoutTargetTypeId": 1,
-        "workoutTargetTypeKey": "no.target"
-    }
+
 
     def cleanup_existing_workouts(self, entries: List[Dict[str, Any]]):
         """Deletes existing workouts that match names in the plan to avoid duplicates."""
@@ -142,8 +155,8 @@ def get_pace_target(name: str) -> Optional[Dict[str, Any]]:
             logger.warning(f"Cleanup failed (non-critical): {e}")
 
     def sync(self):
-        plan_path = os.path.join(os.getcwd(), "data/plan.json")
-        entries = self.parse_plan(plan_path)
+        # Read from DB
+        entries = self.parse_plan()
 
         if not entries:
             logger.warning("No entries found to sync.")
@@ -200,5 +213,9 @@ def get_pace_target(name: str) -> Optional[Dict[str, Any]]:
                 logger.error(f"Failed to sync {entry['date']}: {e}")
 
 if __name__ == "__main__":
-    syncer = MarathonPlanSync()
-    syncer.sync()
+    try:
+        syncer = MarathonPlanSync()
+        syncer.sync()
+    except Exception:
+        import traceback
+        traceback.print_exc()

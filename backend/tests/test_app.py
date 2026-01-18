@@ -140,7 +140,7 @@ def test_create_plan_v2_endpoint(client):
             }
         ]
     }
-    response = client.post("/plans", json=payload)
+    response = client.post("/api/plans", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
@@ -153,7 +153,7 @@ def test_create_plan_v2_endpoint(client):
     assert fetched[0]["weekStarting"] == "2026-02-01"
 
     # Activate the new plan
-    response = client.put(f"/plans/{new_id}/activate")
+    response = client.put(f"/api/plans/{new_id}/activate")
     assert response.status_code == 200
     
     # Verify the NEW plan is now active

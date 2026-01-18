@@ -5,7 +5,7 @@ When working in this workspace, always refer to the following files to maintain 
 1.  **Architecture**: This is a **FastAPI** application using **SQLModel** (SQLite/ostgreSQL) for the backend API, and a **React** (Vite) frontend using **TanStack Router/Query**.
 2.  **Source of Truth**:
     *   **Logic**: `app/` contains the API, `frontend/` contains the UI, `scripts/` contains automation.
-    *   **Data**: `database.db` (Local) or PostgreSQL (Docker) is the primary persistence. `plan.json` and `context.json` are currently being transitioned into the DB but remain valid references.
+    *   **Data**: `database.db` (Local) or PostgreSQL (Docker) is the **single source of truth**. Legacy JSON files have been deprecated.
 
 ### Project Structure Guidance
 - **Web App**: `backend/app/main.py` is the data API.
@@ -18,7 +18,7 @@ When working in this workspace, always refer to the following files to maintain 
 
 ### Guidelines:
 - **Timezone**: All automated logic and date-logging MUST use AWST (Perth, UTC+8).
-- **Database**: When modifying data structure, prefer updating `backend/app/core/database.py` over legacy JSON files if possible.
+- **Database**: Data structure changes must be done via SQLModel/Alembic. Do not edit legacy JSON files.
 - **API Documentation**: Maintain `backend/tests/api_requests.http` as a live reference for all available API endpoints. Update it whenever routes change.
 - **Testing**: Maintain the `backend/tests/` suite. Run with `cd backend && uv run pytest`.
 - **Style Rule**: Strictly no emojis in any responses, code, or documentation.

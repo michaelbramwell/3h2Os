@@ -94,12 +94,11 @@ def test_context_service_defaults(session):
     service = ContextService(session)
     username = "no_context_user"
     
-    # Since 'data/context.json' exists in the workspace, the service should fallback to scanning that file
-    # when the user is not found in the DB.
+    # Service should return empty context when user not found (no file fallback)
     ctx = service.get_context(username=username)
     
-    # Assert values found in actuals.json / context.json
-    assert ctx.runner.age == 48 
-    assert ctx.project.name == "3h2Os"
-    assert ctx.project.event == "Bunbury Marathon"
+    # Assert values are defaults/empty
+    assert ctx.runner.age == 0
+    assert ctx.project.name == ""
+    assert ctx.project.event == ""
 

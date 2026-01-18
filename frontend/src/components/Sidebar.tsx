@@ -1,4 +1,4 @@
-import type { ContextData, RunnerContext } from '../types/schema';
+import type { ContextData, RunnerContext, FuelingStrategy } from '../types/schema';
 import { WeightChart } from './WeightChart';
 import { ContextSection } from './ContextSection';
 
@@ -49,23 +49,23 @@ function WeightCard({ weight }: { weight: RunnerContext['weight_kg'] }) {
     );
 }
 
-function FuelingCard() {
-    // Hardcoded for now based on legacy HTML as it doesn't seem to be in JSON fully structured
+function FuelingCard({ fueling }: { fueling?: FuelingStrategy }) {
+    if (!fueling) return null;
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Fueling Audit</h2>
             <div className="space-y-3">
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <p className="text-xs text-slate-600">90g Carbs / hour (Long Runs)</p>
+                    <p className="text-xs text-slate-600">{fueling.carbsPerHr}g Carbs / hour (Long Runs)</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <p className="text-xs text-slate-600">900mg Sodium / hour</p>
+                    <p className="text-xs text-slate-600">{fueling.sodiumPerHr}mg Sodium / hour</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <p className="text-xs text-slate-600">Pre-run: 50g Carbs</p>
+                    <p className="text-xs text-slate-600">Pre-run: {fueling.preRunCarbs}g Carbs</p>
                 </div>
             </div>
         </div>
@@ -156,7 +156,7 @@ export function Sidebar({ context, markdown }: SidebarProps) {
             <GoalCard project={context.project} />
             <PhaseCard status={context.status} />
             <WeightCard weight={context.runner.weight_kg} />
-            <FuelingCard />
+            <FuelingCard fueling={context.runner.fueling} />
             <ZonesCard zones={context.runner.trainingZones} />
             <GarminStatusCard />
             {markdown && <ContextSection markdown={markdown} />}
