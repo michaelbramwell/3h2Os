@@ -8,4 +8,3 @@ Please refer to the following files for all architectural rules, coding guidelin
 2.  **Agent Skills & Tools**: [.ai/skills/3h2os/SKILL.md](../.ai/skills/3h2os/SKILL.md)
 
 Always load these files into context when assisting with this project.
-

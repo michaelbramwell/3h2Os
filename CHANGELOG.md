@@ -1,5 +1,20 @@
 # Release Notes
 
+## [v0.4.0] - 2026-01-18
+
+### Architecture
+- **Database First**: Completed the transition to a pure SQLModel database architecture. Removed all legacy JSON persistence logic.
+- **Legacy Cleanup**: Deleted `backend/data/*.json` (plan, actuals, context) and static HTML dashboards (`dashboard.html`, `index.html`).
+- **Date Agnostic**: Refactored automation scripts (`fetch_actuals.py`, `update_plan.py`) to remove hardcoded year dependencies, using dynamic current-date logic.
+
+### Automation & Scripts
+- **Unified Services**: All scripts (`fetch_actuals`, `reflect_and_validate`, `sync_to_garmin`) now inject `PlanService` and `ActivityService` to interact directly with the DB.
+- **Garmin Sync Fix**: Resolved import path issues in `sync_to_garmin.py` to allow standalone execution.
+
+### Testing
+- **Validation Engine**: Added `tests/test_validation_engine.py` to test core "Guardrails" logic (Volume, 80/20 Rule) without file system dependencies.
+- **Suite Cleanup**: Removed obsolete tests dependent on legacy JSON structures.
+
 ## [v0.3.0] - 2026-01-15
 
 ### Added

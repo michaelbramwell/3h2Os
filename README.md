@@ -1,6 +1,6 @@
 # 3h2Os: Sub-4 Marathon Training Plan
 
-A data-driven marathon training project designed to solve the 30km cramp and achieve a sub-4 hour finish at the Bunbury Marathon (April 12, 2026).
+A data-driven marathon training project designed to solve the 30km cramp and achieve a sub-4 hour finish at the Target Marathon.
 
 ## Project Overview
 
@@ -11,23 +11,25 @@ This repository contains a 14-week "smoothed" training plan, a local visualizati
 - **Strategy:** Progressive Long Runs (PLR), 90/900 Fueling Rule, and Mechanical Resilience (Strength).
 - **Status:** 14-week plan synced to Garmin Connect.
 
-## Structure
+## Project Structure
 
-- `plan.json`: The source of truth for training data (used by sync tool and dashboard).
-- `context.json`: The source of truth for runner profile and goals.
-- `generate_plan_md.py`: Script to generate Markdown files from JSON.
+- **`frontend/`**: The React-based user interface (Vite, TanStack). See [`frontend/README.md`](frontend/README.md).
+- **`backend/`**: The FastAPI backend API, database models, and scripts. See [`backend/app/README.md`](backend/app/README.md).
+  - **`app/`**: API Source code.
+  - **`scripts/`**: Automation scripts for Garmin sync and data processing.
+  - **`data/`**: Database files (`database.db`). Legacy JSON files are in `.bak` state.
 - `marathon_plan.md`: Human-readable reference (auto-generated).
-- `context.md`: Runner profile and strategy (auto-generated).
-- `index.html`: The dashboard (hosted on GitHub Pages).
-- `sync_to_garmin.py`: Python script to sync the plan to your Garmin Calendar.
-- `fetch_actuals.py`: Python script to fetch completed activities from Garmin.
-- `roadmap.md`: Future features and development phases.
-- `pyproject.toml`: Project configuration and dependencies (managed by `uv`).
 
 ## Getting Started
 
-### 1. Setup Environment
-This project uses a hybrid Python/Node.js stack.
+This is a hybrid Python/Node.js project.
+
+### 1. Backend Setup
+See [`backend/app/README.md`](backend/app/README.md) for instructions on setting up the FastAPI server, database, and running scripts.
+All backend commands (like `uv run`) must be executed from the `backend/` directory.
+
+### 2. Frontend Setup
+See [`frontend/README.md`](frontend/README.md) for instructions on running the React dashboard.
 - **Python**: Managed by `uv`.
 - **Frontend**: Managed by `npm` (TypeScript).
 
@@ -35,30 +37,46 @@ This project uses a hybrid Python/Node.js stack.
 # 1. Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. Sync Python dependencies
+# 2. Setup Backend
+cd backend
 uv sync
+cd ..
 
-# 3. Install Frontend dependencies
-cd app/static
+# 3. Setup Frontend
+cd frontend
 npm install
-npm run build  # Compiles TypeScript to JS
-cd ../..
+npm run build
 ```
 
-### 2. Run Local Application
+## Running with Docker (Optional)
+
+You can run the entire stack (Frontend, Backend, Database) using Docker.
+
+```bash
+docker compose up --build
+```
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8000
+- **Database**: PostgreSQL (Internal)
+
+### 3. Run Local Application
 The project runs as a FastAPI application for local development.
 
 ```bash
 # Start the server (runs on localhost:8000)
+cd backend
 uv run uvicorn app.main:app --reload
 ```
-Visit `http://localhost:8000` to view the dashboard.
+Visit `http://localhost:8000` to view the dashboard (if you are serving the built frontend via static files).
+For React development, run `npm run dev` in `frontend/` and visit `http://localhost:5173`.
 
-### 3. Training Logic & Tools
+### 4. Training Logic & Tools
 
 #### Validation Engine ("The Guardrails")
 To analyze your actual running data against the plan and safety-check the future weeks:
 ```bash
+cd backend
 uv run scripts/reflect_and_validate.py
 ```
 This script acts as the "Guardrails" for your training:
@@ -70,6 +88,7 @@ This script acts as the "Guardrails" for your training:
 #### Plan Updates ("The Architect")
 To aggressively recalculate the entire future plan based on a new strategy:
 ```bash
+cd backend
 uv run scripts/update_plan.py
 ```
 This script is the "Architect":
@@ -80,22 +99,23 @@ This script is the "Architect":
 #### Sync to Garmin
 To push the current `plan.json` to your Garmin Calendar:
 ```bash
+cd backend
 uv run scripts/sync_to_garmin.py
 ```
 
-### 4. Deployment (Static Site)
+### 5. Deployment (Static Site)
 GitHub Pages hosts a static version of the site. The `scripts/build_static.py` script "freezes" the dynamic FastAPI app into static HTML/JSON files.
 
 - **Automated**: Runs via GitHub Actions on every push.
-- **Manual**: `uv run scripts/build_static.py`
+- **Manual**: `cd backend && uv run scripts/build_static.py`
 
 ## Architecture & Data Flow
 
-1.  **Input**: `data/actuals.json` (Synced from Garmin) & `data/plan.json` (The Master Plan).
+1.  **Input**: `backend/data/actuals.json` (Synced from Garmin) & `backend/data/plan.json` (The Master Plan).
 2.  **Processing**: `reflect_and_validate.py` reads inputs -> applies logic -> updates Plan -> saves to Database.
 3.  **Visualization**:
     - **FastAPI**: `app/` serves dynamic content locally.
-    - **Dashboard**: `static/js/dashboard.js` renders the plan with distinct styling for Week Statuses (Normal, Rest, Race, Taper, Marathon).
+    - **Frontend**: React-based dashboard consumes API.
 4.  **Deployment**: Build script copies JSON & HTML to root for GitHub Pages.
 
 ### 4. Sync to Garmin
