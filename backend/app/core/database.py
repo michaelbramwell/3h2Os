@@ -3,6 +3,7 @@ from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
 from sqlalchemy import BigInteger, Column
 from datetime import datetime, date
 import os
+from app.models.domain import ActivityType
 
 # --- Models ---
 
@@ -25,7 +26,7 @@ class PlanWorkout(SQLModel, table=True):
     
     name: str
     description: Optional[str] = None
-    activity_type: str = "Run" # Run, Rest, Cross, etc.
+    activity_type: ActivityType = Field(default=ActivityType.RUN)
     distance_m: float = 0.0
     time_of_day: str = "AM"
     

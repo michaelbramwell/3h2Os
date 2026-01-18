@@ -28,4 +28,9 @@ export const getContextMarkdown = async (): Promise<string> => {
     return response.data.content;
 };
 
+export const updateWorkout = async (id: number, data: { name?: string; description?: string; type?: string; distance_m?: number; timeOfDay?: string }): Promise<any> => {
+    const response = await api.put(`/api/workouts/${id}`, data);
+    return response.data;
+};
+
 export default api;

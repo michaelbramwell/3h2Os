@@ -1,4 +1,4 @@
-import type { Day, Activity, Workout } from '../types/schema'
+import { type Day, type Activity, type Workout, ActivityType } from '../types/schema'
 import { WorkoutCard } from './WorkoutCard'
 import { ActualCard } from './ActualCard'
 
@@ -14,6 +14,8 @@ interface DayCardProps {
 export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivityClick }: DayCardProps) {
     const hasWorkouts = day.workouts && day.workouts.length > 0;
     const isToday = day.date === todayStr;
+    const isPast = day.date < todayStr;
+    const hasActuals = actuals && actuals.length > 0;
 
     // Check for Race/Marathon in Workouts
     let isRaceDay = false;
@@ -21,7 +23,7 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
     
     if (day.workouts) {
         day.workouts.forEach((w: Workout) => {
-            if (w.type === 'Race') {
+            if (w.type === ActivityType.RACE) {
                 if (weekStatus.toLowerCase() === 'marathon') isMarathonDay = true;
                 else isRaceDay = true;
             }
@@ -66,7 +68,8 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
                         key={`plan-${idx}`} 
                         workout={workout} 
                         isToday={isToday} 
-                        isMarathonDay={isMarathonDay} 
+                        isMarathonDay={isMarathonDay}
+                        isPast={isPast || (isToday && hasActuals)}
                     />
                 ))}
 

@@ -1,8 +1,20 @@
+export enum ActivityType {
+  RUN = "Run",
+  EASY = "Easy",
+  LONG = "Long",
+  WORKOUT = "Workout",
+  RACE = "Race",
+  REST = "Rest",
+  CROSS = "Cross"
+}
+
 export interface Workout {
+  id?: number;
   name: string;
-  type: string;
+  type: ActivityType;
   distance_m: number;
   timeOfDay: string;
+  description?: string;
 }
 
 export interface Day {

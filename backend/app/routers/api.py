@@ -10,7 +10,7 @@ from app.services.plans import PlanService
 from app.services.context import ContextService
 from app.services.activities import ActivityService
 from app.schemas import (
-    WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate
+    WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate, WorkoutUpdate
 )
 from pydantic import BaseModel
 
@@ -149,3 +149,20 @@ async def get_context_markdown():
     Deprecated: Context is now database-driven.
     """
     return {"content": ""}
+
+@router.put("/workouts/{workout_id}")
+async def update_workout_endpoint(
+    workout_id: int, 
+    update_data: WorkoutUpdate,
+    service: PlanService = Depends(get_plan_service)
+):
+    """
+    Update a specific workout (distance, type, description, etc).
+    """
+    try:
+        updated = service.update_workout(workout_id, update_data)
+        return {"status": "success", "message": "Workout updated", "id": updated.id}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

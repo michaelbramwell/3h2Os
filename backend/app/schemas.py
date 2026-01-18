@@ -1,13 +1,23 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Dict, Any, Optional
+from app.models.domain import ActivityType
 
 class WorkoutSchema(BaseModel):
+    id: Optional[int] = None
     name: str = ""
-    type: str = "rest"
+    type: ActivityType = ActivityType.REST
     distance_m: float = 0.0
     timeOfDay: str = "AM"
+    description: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True)
+
+class WorkoutUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[ActivityType] = None
+    distance_m: Optional[float] = None
+    description: Optional[str] = None
+    timeOfDay: Optional[str] = None
 
 class DaySchema(BaseModel):
     date: str

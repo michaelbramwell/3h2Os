@@ -1,12 +1,12 @@
 from sqlmodel import Session, select
-from datetime import datetime
+from datetime import datetime, date
 import json
 import os
 from typing import List, Dict, Any
 
-from app.core.database import RunnerPlan, User, PlanWeek
+from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout, ActualActivity
 from app.core.mappers import plan_to_relational, relational_to_plan
-from app.schemas import WeekSchema
+from app.schemas import WeekSchema, WorkoutUpdate
 
 class PlanService:
     def __init__(self, session: Session):
@@ -88,6 +88,67 @@ class PlanService:
         self.session.commit()
         self.session.refresh(plan)
         return plan
+
+    def update_workout(self, workout_id: int, update_data: WorkoutUpdate) -> PlanWorkout:
+        """
+        Updates a specific planned workout.
+        """
+        workout = self.session.get(PlanWorkout, workout_id)
+        if not workout:
+            raise ValueError(f"Workout with ID {workout_id} not found")
+
+        # Prevent editing past workouts
+        if workout.date < date.today():
+             raise ValueError("Cannot edit workouts that have already occurred")
+
+        # Check for completed actuals today
+        if workout.date == date.today():
+             # Navigate relationship to find user_id: Workout -> Week -> Plan -> User
+             # Note: We need to ensure relationships are loaded or query directly with join
+             statement = (
+                 select(ActualActivity)
+                 .join(User)
+                 .join(RunnerPlan)
+                 .join(PlanWeek)
+                 .join(PlanWorkout)
+                 .where(PlanWorkout.id == workout_id)
+                 .where(ActualActivity.date == workout.date)
+             )
+             # Simplify: Just assume if any activity exists for this day for this user?
+             # But we need user_id. workout -> week -> plan -> user_id
+             # Let's just load the week.plan relationship since it's likely not eagerly loaded
+             # Re-fetch workout with relationships or multiple queries?
+             pass 
+             # Simpler approach:
+             week = self.session.get(PlanWeek, workout.week_id)
+             if week:
+                 plan = self.session.get(RunnerPlan, week.plan_id)
+                 if plan:
+                     actuals = self.session.exec(
+                         select(ActualActivity)
+                         .where(ActualActivity.user_id == plan.user_id)
+                         .where(ActualActivity.date == workout.date)
+                     ).all()
+                     if actuals:
+                         raise ValueError("Cannot edit workouts that have already occurred (Activity logged)")
+
+        update_dict = update_data.model_dump(exclude_unset=True)
+        
+        # Handle field name mismatches (Schema vs DB)
+        if "type" in update_dict:
+            workout.activity_type = update_dict.pop("type")
+        if "timeOfDay" in update_dict:
+            workout.time_of_day = update_dict.pop("timeOfDay")
+            
+        # Update remaining fields
+        for key, value in update_dict.items():
+            if hasattr(workout, key):
+                setattr(workout, key, value)
+            
+        self.session.add(workout)
+        self.session.commit()
+        self.session.refresh(workout)
+        return workout
 
     def _deactivate_current_plans(self, user_id: int, exclude_id: int = None):
         statement = select(RunnerPlan).where(RunnerPlan.user_id == user_id).where(RunnerPlan.is_active == True)
