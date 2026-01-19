@@ -28,13 +28,13 @@ export const getContextMarkdown = async (): Promise<string> => {
     return response.data.content;
 };
 
-export const updateWorkout = async (id: number, data: { name?: string; description?: string; type?: string; distance_m?: number; timeOfDay?: string }): Promise<any> => {
-    const response = await api.put(`/api/workouts/${id}`, data);
+export const updateWorkout = async (id: number, data: { name?: string; description?: string; type?: string; distance_m?: number; timeOfDay?: string }, force: boolean = false): Promise<any> => {
+    const response = await api.put(`/api/workouts/${id}?force=${force}`, data);
     return response.data;
 };
 
-export const createWorkout = async (data: { date: string; name: string; description?: string; type: string; distance_m: number; timeOfDay: string }): Promise<any> => {
-    const response = await api.post('/api/workouts', data);
+export const createWorkout = async (data: { date: string; name: string; description?: string; type: string; distance_m: number; timeOfDay: string }, force: boolean = false): Promise<any> => {
+    const response = await api.post(`/api/workouts?force=${force}`, data);
     return response.data;
 };
 

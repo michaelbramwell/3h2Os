@@ -28,19 +28,23 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
     } = useWorkoutForm(workout, isOpen)
 
     const mutation = useMutation({
-        mutationFn: async (data: { name: string; description: string; type: string; distance_m: number; timeOfDay: string }) => {
+        mutationFn: async (data: { name: string; description: string; type: string; distance_m: number; timeOfDay: string; force?: boolean }) => {
+            const force = data.force || false;
+            const apiData = { ...data };
+            if ('force' in apiData) delete (apiData as any).force;
+
             if (isEditing) {
                 // If editing, try to use ID, but fallback to creating new if ID is missing (which shouldn't happen for existing workouts)
                 // However, the error suggests workout.id is undefined.
                 // In PlanWorkout model, id is optional but should be present for fetched data.
                 if (workout?.id) {
-                     return updateWorkout(workout.id, data)
+                     return updateWorkout(workout.id, apiData, force)
                 } else {
                      console.error("Attempting to edit workout without ID:", workout);
                      throw new Error("Cannot update workout: Missing ID. Try refreshing the page.");
                 }
             } else if (!isEditing && date) {
-                return createWorkout({ ...data, date })
+                return createWorkout({ ...apiData, date }, force)
             } else {
                 throw new Error("Invalid state: Missing ID for edit or Date for create")
             }
@@ -49,9 +53,24 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
             queryClient.invalidateQueries({ queryKey: ['plan'] })
             onOpenChange(false)
         },
-        onError: (error) => {
-            console.error(error);
-            alert("Failed to save workout. " + error);
+        onError: (error: any) => {
+            if (error.response && error.response.status === 409) {
+                 const warningMsg = error.response.data.message || "Validation warning.";
+                 if (window.confirm(`Plan Validation Warning:\n\n${warningMsg}\n\nDo you want to save anyway?`)) {
+                     const distanceM = parseFloat(distance) * 1000
+                     mutation.mutate({
+                         name,
+                         description,
+                         type,
+                         distance_m: distanceM,
+                         timeOfDay,
+                         force: true
+                     })
+                 }
+            } else {
+                console.error(error);
+                alert("Failed to save workout. " + (error.response?.data?.detail || error.message || error));
+            }
         }
     })
 
