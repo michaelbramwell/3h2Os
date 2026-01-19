@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createPortal } from 'react-dom'
+import { toast } from 'sonner'
 import { type Workout, ActivityType } from '../types/schema'
-import { updateWorkout, createWorkout } from '../lib/api'
-import { X } from 'lucide-react'
+import { updateWorkout, createWorkout, deleteWorkout } from '../lib/api'
+import { X, Trash2 } from 'lucide-react'
 import { useWorkoutForm } from '../hooks/useWorkoutForm'
+import { ConfirmDialog } from './ui/ConfirmDialog'
 
 interface EditWorkoutDialogProps {
     workout?: Workout;
@@ -14,7 +18,20 @@ interface EditWorkoutDialogProps {
 export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditWorkoutDialogProps) {
     const queryClient = useQueryClient()
     const isEditing = !!workout;
-    // Log for debugging
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        description: string;
+        variant: 'danger' | 'warning';
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        description: '',
+        variant: 'danger',
+        onConfirm: () => {}
+    });
+
     if (isEditing && !workout.id) {
         console.warn("EditWorkoutDialog opened with workout missing ID:", workout);
     }
@@ -51,25 +68,34 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['plan'] })
+            toast.success(isEditing ? 'Workout updated successfully' : 'Workout created successfully')
             onOpenChange(false)
         },
         onError: (error: any) => {
             if (error.response && error.response.status === 409) {
                  const warningMsg = error.response.data.message || "Validation warning.";
-                 if (window.confirm(`Plan Validation Warning:\n\n${warningMsg}\n\nDo you want to save anyway?`)) {
-                     const distanceM = parseFloat(distance) * 1000
-                     mutation.mutate({
-                         name,
-                         description,
-                         type,
-                         distance_m: distanceM,
-                         timeOfDay,
-                         force: true
-                     })
-                 }
+                 
+                 setConfirmConfig({
+                     isOpen: true,
+                     title: "Plan Validation Warning",
+                     description: `${warningMsg}\n\nDo you want to save anyway?`,
+                     variant: 'warning',
+                     onConfirm: () => {
+                         const distanceM = parseFloat(distance) * 1000
+                         mutation.mutate({
+                             name,
+                             description,
+                             type,
+                             distance_m: distanceM,
+                             timeOfDay,
+                             force: true
+                         })
+                         setConfirmConfig(prev => ({ ...prev, isOpen: false }))
+                     }
+                 })
             } else {
                 console.error(error);
-                alert("Failed to save workout. " + (error.response?.data?.detail || error.message || error));
+                toast.error("Failed to save workout. " + (error.response?.data?.detail || error.message || error));
             }
         }
     })
@@ -85,10 +111,50 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
         })
     }
 
+    const deleteMutation = useMutation({
+        mutationFn: async (id: number) => {
+            return deleteWorkout(id)
+        },
+        onSuccess: () => {
+             queryClient.invalidateQueries({ queryKey: ['plan'] })
+             toast.success('Workout deleted successfully')
+             onOpenChange(false)
+        },
+        onError: (error: any) => {
+             console.error(error);
+             toast.error("Failed to delete workout. " + (error.response?.data?.detail || error.message || error));
+        }
+    })
+
+    const handleDelete = () => {
+        if (!workout?.id) return;
+        
+        setConfirmConfig({
+            isOpen: true,
+            title: "Delete Workout",
+            description: "Are you sure you want to delete this workout? This action cannot be undone.",
+            variant: 'danger',
+            onConfirm: () => {
+                deleteMutation.mutate(workout.id!);
+                setConfirmConfig(prev => ({ ...prev, isOpen: false }))
+            }
+        });
+    }
+
     if (!isOpen) return null
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    return createPortal(
+        <>
+            <ConfirmDialog
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                description={confirmConfig.description}
+                variant={confirmConfig.variant}
+                onConfirm={confirmConfig.onConfirm}
+                onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+            />
+
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200">
                 <div className="flex items-center justify-between p-4 border-b border-slate-100">
                     <h2 className="text-lg font-semibold text-slate-900">{isEditing ? 'Edit Workout' : 'Add Workout'}</h2>
@@ -161,22 +227,38 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
                     </div>
                 </div>
 
-                <div className="p-4 bg-slate-50 flex justify-end gap-2 border-t border-slate-100">
-                    <button 
-                        onClick={() => onOpenChange(false)}
-                        className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-md transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={handleSave}
-                        disabled={mutation.isPending}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
-                    >
-                        {mutation.isPending ? 'Saving...' : 'Save Changes'}
-                    </button>
+                <div className="p-4 bg-slate-50 flex justify-between items-center border-t border-slate-100">
+                    <div>
+                        {isEditing && (
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleteMutation.isPending}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Delete Workout"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => onOpenChange(false)}
+                            className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-md transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onClick={handleSave}
+                            disabled={mutation.isPending}
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
+                        >
+                            {mutation.isPending ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+            </div>
+        </>,
+        document.body
     )
 }

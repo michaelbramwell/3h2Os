@@ -135,6 +135,21 @@ class PlanService:
         self.session.refresh(plan)
         return plan
 
+    def delete_workout(self, workout_id: int) -> None:
+        """
+        Deletes a specific planned workout.
+        """
+        workout = self.session.get(PlanWorkout, workout_id)
+        if not workout:
+            raise ValueError(f"Workout with ID {workout_id} not found")
+
+        # Prevent editing past workouts
+        if workout.date < date.today():
+             raise ValueError("Cannot delete workouts that have already occurred")
+        
+        self.session.delete(workout)
+        self.session.commit()
+
     def update_workout(self, workout_id: int, update_data: WorkoutUpdate, force: bool = False) -> PlanWorkout:
         """
         Updates a specific planned workout.

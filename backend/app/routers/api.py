@@ -204,3 +204,19 @@ async def update_workout_endpoint(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/workouts/{workout_id}")
+async def delete_workout_endpoint(
+    workout_id: int,
+    service: PlanService = Depends(get_plan_service)
+):
+    """
+    Delete a specific planned workout.
+    """
+    try:
+        service.delete_workout(workout_id)
+        return {"status": "success", "message": "Workout deleted"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

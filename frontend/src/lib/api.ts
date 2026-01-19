@@ -38,4 +38,9 @@ export const createWorkout = async (data: { date: string; name: string; descript
     return response.data;
 };
 
+export const deleteWorkout = async (id: number): Promise<any> => {
+    const response = await api.delete(`/api/workouts/${id}`);
+    return response.data;
+};
+
 export default api;

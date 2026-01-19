@@ -10,7 +10,11 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from dataclasses import asdict
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
+
+# Load env vars early, searching up the tree (e.g., project root .env)
+load_dotenv(find_dotenv())
+
 from garminconnect import Garmin
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -28,7 +32,6 @@ logger = logging.getLogger(__name__)
 
 class GarminActualsFetcher:
     def __init__(self):
-        load_dotenv()
         self.email = os.getenv("GARMIN_EMAIL")
         self.password = os.getenv("GARMIN_PASSWORD")
         self.tokens_b64 = os.getenv("GARMIN_TOKENS")
