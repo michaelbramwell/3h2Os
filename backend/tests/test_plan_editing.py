@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from datetime import date, timedelta
 from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
@@ -30,7 +31,12 @@ def create_test_data(session: Session):
     
     return user, plan
 
-def test_update_future_workout(session):
+@patch("app.services.plans.ValidationEngine")
+def test_update_future_workout(MockValidationEngine, session):
+    # Mock validation
+    MockValidationEngine.return_value.validate_progression.return_value = []
+    MockValidationEngine.return_value.validate_structure.return_value = []
+
     user, plan = create_test_data(session)
     future_date = date.today() + timedelta(days=5)
     
@@ -81,7 +87,12 @@ def test_prevent_update_past_workout(session):
     with pytest.raises(ValueError, match="already occurred"):
         service.update_workout(workout.id, update)
 
-def test_prevent_update_today_workout_if_completed(session):
+@patch("app.services.plans.ValidationEngine")
+def test_prevent_update_today_workout_if_completed(MockValidationEngine, session):
+    # Mock validation to reach "Activity logged" check
+    MockValidationEngine.return_value.validate_progression.return_value = []
+    MockValidationEngine.return_value.validate_structure.return_value = []
+
     user, plan = create_test_data(session)
     today = date.today()
     
@@ -119,7 +130,12 @@ def test_prevent_update_today_workout_if_completed(session):
     with pytest.raises(ValueError, match="Activity logged"):
         service.update_workout(workout.id, update)
 
-def test_allow_update_today_workout_if_not_completed(session):
+@patch("app.services.plans.ValidationEngine")
+def test_allow_update_today_workout_if_not_completed(MockValidationEngine, session):
+    # Mock validation
+    MockValidationEngine.return_value.validate_progression.return_value = []
+    MockValidationEngine.return_value.validate_structure.return_value = []
+
     user, plan = create_test_data(session)
     today = date.today()
     

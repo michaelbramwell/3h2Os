@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from datetime import date, timedelta
 from sqlmodel import Session, select, create_engine, SQLModel
 from sqlalchemy.pool import StaticPool
@@ -17,8 +18,13 @@ def session_fixture():
     with Session(engine) as session:
         yield session
 
-def test_add_workout_creates_week_if_missing(session: Session):
-    # Setup
+@patch("app.services.plans.ValidationEngine")
+def test_add_workout_creates_week_if_missing(MockValidationEngine, session: Session):
+    # Setup - mock validation to avoid strict rules on empty plan
+    mock_instance = MockValidationEngine.return_value
+    mock_instance.validate_progression.return_value = []
+    mock_instance.validate_structure.return_value = []
+
     user = User(username="mike", email="mike@test.com")
     session.add(user)
     session.commit()

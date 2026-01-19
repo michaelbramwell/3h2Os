@@ -19,7 +19,6 @@ from pydantic import BaseModel
 router = APIRouter()
 
 # --- Dependency Injection Functions ---
-# These act like the "ServiceCollection.AddScoped<IPlanService, PlanService>()" in .NET
 def get_plan_service(session: Session = Depends(get_session)) -> PlanService:
     return PlanService(session)
 

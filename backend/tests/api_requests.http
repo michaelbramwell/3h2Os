@@ -85,3 +85,7 @@ Content-Type: application/json
     "distance_m": 5000,
     "description": "Updated via API"
 }
+
+### Delete Workout (DELETE)
+# Replace {workout_id} with actual ID
+DELETE {{baseUrl}}/api/workouts/999

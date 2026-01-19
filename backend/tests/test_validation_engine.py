@@ -57,7 +57,7 @@ def test_validate_progression_spike(normal_week, heavy_week):
     volume_errors = [i for i in issues if i.rule_id == "volume_progression"]
     assert len(volume_errors) == 1
     assert volume_errors[0].severity == "error"
-    assert "Volume spike detected" in volume_errors[0].message
+    assert "increase over previous week" in volume_errors[0].message
 
 def test_validate_long_run_ratio(heavy_week):
     engine = ValidationEngine(max_long_run_ratio=0.40)
