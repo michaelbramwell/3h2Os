@@ -113,7 +113,7 @@ describe('EditWorkoutDialog', () => {
     it('calls deleteWorkout when confirmed', async () => {
         render(<EditWorkoutDialog workout={mockWorkout} isOpen={true} onOpenChange={vi.fn()} />)
         
-        // Open delete confirmaton
+        // Open delete confirmation
         fireEvent.click(screen.getByTitle('Delete Workout'))
         
         // Confirm - The ConfirmDialog uses a button with text "Confirm" by default

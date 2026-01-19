@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from sqlmodel import Session, select, create_engine, SQLModel
 from sqlalchemy.pool import StaticPool
 from app.services.plans import PlanService
-from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout
+from app.core.database import RunnerPlan, User, PlanWeek
 from app.schemas import WorkoutCreate, ActivityType
 
 @pytest.fixture(name="session")

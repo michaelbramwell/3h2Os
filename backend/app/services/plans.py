@@ -1,14 +1,13 @@
 from sqlmodel import Session, select
 from datetime import datetime, date, timedelta
 import json
-import os
 from typing import List, Dict, Any
 
 from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout, ActualActivity
 from app.core.mappers import plan_to_relational, relational_to_plan
 from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate
 from app.core.validation import ValidationEngine, ValidationWarningError
-from app.models.domain import Week as DomainWeek, Day as DomainDay, Workout as DomainWorkout, ActivityType
+from app.models.domain import Week as DomainWeek, Day as DomainDay, Workout as DomainWorkout
 
 class PlanService:
     def __init__(self, session: Session):
@@ -236,7 +235,7 @@ class PlanService:
              # But we need user_id. workout -> week -> plan -> user_id
              # Let's just load the week.plan relationship since it's likely not eagerly loaded
              # Re-fetch workout with relationships or multiple queries?
-             pass 
+             
              # Simpler approach:
              week = self.session.get(PlanWeek, workout.week_id)
              if week:
@@ -279,6 +278,7 @@ class PlanService:
              raise ValueError("No active plan found for user")
 
         target_date = creation_data.date
+        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         
         # 2. Find correct Week (Monday start)
         week_start = target_date - timedelta(days=target_date.weekday())
@@ -315,7 +315,6 @@ class PlanService:
                  select(PlanWorkout).where(PlanWorkout.week_id == week.id)
             ).all()
             
-            day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
             temp_day_name = day_names[target_date.weekday()]
             
             temp_new_workout = PlanWorkout(
@@ -348,7 +347,7 @@ class PlanService:
                 raise ValidationWarningError(issues)
 
         # 3. Create Workout
-        day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        # day_names defined above
         day_name = day_names[target_date.weekday()]
 
         new_workout = PlanWorkout(

@@ -11,6 +11,20 @@ class WorkoutCreate(BaseModel):
     timeOfDay: str = "AM"
     description: Optional[str] = None
 
+    @field_validator('distance_m')
+    @classmethod
+    def validate_distance(cls, v: float) -> float:
+        if v < 0 or v > 1000000:  # 1000km sanity check
+            raise ValueError("Distance must be between 0 and 1000km")
+        return v
+    
+    @field_validator('timeOfDay')
+    @classmethod
+    def validate_time_of_day(cls, v: str) -> str:
+        if v not in ["AM", "PM"]:
+            raise ValueError("timeOfDay must be 'AM' or 'PM'")
+        return v
+
 class WorkoutSchema(BaseModel):
     id: Optional[int] = None
     name: str = ""
@@ -27,6 +41,21 @@ class WorkoutUpdate(BaseModel):
     distance_m: Optional[float] = None
     description: Optional[str] = None
     timeOfDay: Optional[str] = None
+
+    @field_validator('distance_m')
+    @classmethod
+    def validate_distance(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and (v < 0 or v > 1000000):
+            raise ValueError("Distance must be between 0 and 1000km")
+        return v
+    
+    @field_validator('timeOfDay')
+    @classmethod
+    def validate_time_of_day(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ["AM", "PM"]:
+            raise ValueError("timeOfDay must be 'AM' or 'PM'")
+        return v
+
 
 class DaySchema(BaseModel):
     date: str

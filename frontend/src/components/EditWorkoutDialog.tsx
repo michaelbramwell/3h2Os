@@ -16,7 +16,7 @@ interface EditWorkoutDialogProps {
 }
 
 export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditWorkoutDialogProps) {
-    const queryClient = useQueryClient()
+    const queryClient = useQueryClient();
     const isEditing = !!workout;
     const [confirmConfig, setConfirmConfig] = useState<{
         isOpen: boolean;
@@ -42,7 +42,7 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
         type, setType,
         timeOfDay, setTimeOfDay,
         distance, setDistance
-    } = useWorkoutForm(workout, isOpen)
+    } = useWorkoutForm(workout, isOpen);
 
     const mutation = useMutation({
         mutationFn: async (data: { name: string; description: string; type: string; distance_m: number; timeOfDay: string; force?: boolean }) => {

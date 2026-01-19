@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 # Ensure we can import from app
 sys.path.append(os.getcwd())
 
-from app.core.database import engine, RunnerPlan, PlanWeek, PlanWorkout
+from app.core.database import engine, RunnerPlan
 from app.core.mappers import plan_to_relational
 
 def main():

@@ -1,5 +1,4 @@
 from app.main import app
-import json
 
 for route in app.routes:
     if hasattr(route, "methods"):

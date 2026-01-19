@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI):
             
             user = session.exec(select(User).where(User.username == "mike")).first()
             if not user:
+                # TODO: Implement authentication mechanism
                 print("Creating default user 'mike'...")
                 user = User(username="mike", email="mike@example.com")
                 session.add(user)

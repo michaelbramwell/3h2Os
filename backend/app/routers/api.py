@@ -151,6 +151,10 @@ async def get_context_markdown():
     """
     return {"content": ""}
 
+# TODO: Add authentication/authorization checks for all mutation endpoints 
+# (create/update/delete workouts, plans, etc.) to prevent unauthorized access.
+# Currently relies on hardcoded username="mike".
+
 @router.post("/workouts")
 async def create_workout_endpoint(
     workout_create: WorkoutCreate,

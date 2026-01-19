@@ -88,12 +88,6 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
                     />
                 ))}
 
-
-            <EditWorkoutDialog 
-                date={day.date}
-                isOpen={isAddDialogOpen}
-                onOpenChange={setIsAddDialogOpen}
-            />
                 {actuals.map((act: Activity, idx: number) => (
                     <ActualCard 
                         key={`act-${idx}`} 
@@ -105,6 +99,12 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
                     />
                 ))}
             </div>
+
+            <EditWorkoutDialog 
+                date={day.date}
+                isOpen={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+            />
         </div>
     )
 }

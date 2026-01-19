@@ -45,7 +45,7 @@ class ValidationEngine:
                     # But for now, strict %
                     issues.append(ValidationIssue(
                         severity="error",
-                        message=f"Saving this activity puts the weekly volume at {curr_vol/1000:.1f}km ({(ratio-1)*100:.1f}% increase over previous week). Max recommmended increase is {int((self.max_volume_increase_ratio-1)*100)}%.",
+                        message=f"Saving this activity puts the weekly volume at {curr_vol/1000:.1f}km ({(ratio-1)*100:.1f}% increase over previous week). Max recommended increase is {int((self.max_volume_increase_ratio-1)*100)}%.",
                         rule_id="volume_progression",
                         context={"prev": prev_vol, "curr": curr_vol}
                     ))
