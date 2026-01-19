@@ -9,15 +9,16 @@ from app.core.database import get_session
 from app.services.plans import PlanService
 from app.services.context import ContextService
 from app.services.activities import ActivityService
+from app.core.validation import ValidationWarningError
+from dataclasses import asdict
 from app.schemas import (
-    WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate
+    WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate, WorkoutUpdate, WorkoutCreate
 )
 from pydantic import BaseModel
 
 router = APIRouter()
 
 # --- Dependency Injection Functions ---
-# These act like the "ServiceCollection.AddScoped<IPlanService, PlanService>()" in .NET
 def get_plan_service(session: Session = Depends(get_session)) -> PlanService:
     return PlanService(session)
 
@@ -149,3 +150,76 @@ async def get_context_markdown():
     Deprecated: Context is now database-driven.
     """
     return {"content": ""}
+
+# TODO: Add authentication/authorization checks for all mutation endpoints 
+# (create/update/delete workouts, plans, etc.) to prevent unauthorized access.
+# Currently relies on hardcoded username="mike".
+
+@router.post("/workouts")
+async def create_workout_endpoint(
+    workout_create: WorkoutCreate,
+    force: bool = False,
+    service: PlanService = Depends(get_plan_service)
+):
+    """
+    Create a new planned workout.
+    """
+    try:
+        new_w = service.add_workout(workout_create, username="mike", force=force)
+        return {"status": "success", "message": "Workout created", "id": new_w.id}
+    except ValidationWarningError as e:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "status": "warning",
+                "message": e.message,
+                "issues": [asdict(i) for i in e.issues]
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/workouts/{workout_id}")
+async def update_workout_endpoint(
+    workout_id: int, 
+    update_data: WorkoutUpdate,
+    force: bool = False,
+    service: PlanService = Depends(get_plan_service)
+):
+    """
+    Update a specific workout (distance, type, description, etc).
+    """
+    try:
+        updated = service.update_workout(workout_id, update_data, force=force)
+        return {"status": "success", "message": "Workout updated", "id": updated.id}
+    except ValidationWarningError as e:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "status": "warning",
+                "message": e.message,
+                "issues": [asdict(i) for i in e.issues]
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/workouts/{workout_id}")
+async def delete_workout_endpoint(
+    workout_id: int,
+    service: PlanService = Depends(get_plan_service)
+):
+    """
+    Delete a specific planned workout.
+    """
+    try:
+        service.delete_workout(workout_id)
+        return {"status": "success", "message": "Workout deleted"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

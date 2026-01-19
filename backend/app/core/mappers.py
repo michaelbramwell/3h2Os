@@ -98,6 +98,7 @@ def relational_to_plan(session: Session, plan_id: int) -> List[Dict[str, Any]]:
         for wk in workouts:
             # Reconstruct workout dict
             w_dict = {
+                "id": wk.id,
                 "name": wk.name,
                 "type": wk.activity_type,
                 "distance_m": wk.distance_m,

@@ -28,7 +28,7 @@ def test_save_plan_to_db_creates_user_and_plan(session):
                     "workouts": [
                         {
                             "name": "5k Recovery",
-                            "type": "Recovery",
+                            "type": "Easy",
                             "distance_m": 5000,
                             "timeOfDay": "AM"
                         }
@@ -61,7 +61,7 @@ def test_save_plan_to_db_creates_user_and_plan(session):
     
     workouts = session.exec(select(PlanWorkout).where(PlanWorkout.week_id == weeks[0].id)).all()
     assert len(workouts) == 1
-    assert workouts[0].activity_type == "Recovery"
+    assert workouts[0].activity_type == "Easy"
     assert workouts[0].distance_m == 5000
     assert workouts[0].date.isoformat() == "2026-01-05"
 

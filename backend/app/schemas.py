@@ -1,13 +1,61 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Dict, Any, Optional
+from datetime import date
+from app.models.domain import ActivityType
 
-class WorkoutSchema(BaseModel):
-    name: str = ""
-    type: str = "rest"
+class WorkoutCreate(BaseModel):
+    date: date
+    name: str = "New Workout"
+    type: ActivityType = ActivityType.RUN
     distance_m: float = 0.0
     timeOfDay: str = "AM"
+    description: Optional[str] = None
+
+    @field_validator('distance_m')
+    @classmethod
+    def validate_distance(cls, v: float) -> float:
+        if v < 0 or v > 1000000:  # 1000km sanity check
+            raise ValueError("Distance must be between 0 and 1000km")
+        return v
+    
+    @field_validator('timeOfDay')
+    @classmethod
+    def validate_time_of_day(cls, v: str) -> str:
+        if v not in ["AM", "PM"]:
+            raise ValueError("timeOfDay must be 'AM' or 'PM'")
+        return v
+
+class WorkoutSchema(BaseModel):
+    id: Optional[int] = None
+    name: str = ""
+    type: ActivityType = ActivityType.REST
+    distance_m: float = 0.0
+    timeOfDay: str = "AM"
+    description: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True)
+
+class WorkoutUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[ActivityType] = None
+    distance_m: Optional[float] = None
+    description: Optional[str] = None
+    timeOfDay: Optional[str] = None
+
+    @field_validator('distance_m')
+    @classmethod
+    def validate_distance(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and (v < 0 or v > 1000000):
+            raise ValueError("Distance must be between 0 and 1000km")
+        return v
+    
+    @field_validator('timeOfDay')
+    @classmethod
+    def validate_time_of_day(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ["AM", "PM"]:
+            raise ValueError("timeOfDay must be 'AM' or 'PM'")
+        return v
+
 
 class DaySchema(BaseModel):
     date: str

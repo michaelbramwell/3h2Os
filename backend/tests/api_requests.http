@@ -74,3 +74,18 @@ Content-Type: application/json
 ### Activate Plan (PUT)
 # Replace {plan_id} with the ID returned from creation
 PUT {{baseUrl}}/api/plans/1/activate
+
+### Update Workout (PUT)
+# Replace {workout_id} with actual ID
+PUT {{baseUrl}}/api/workouts/999
+Content-Type: application/json
+
+{
+    "name": "Edited Workout",
+    "distance_m": 5000,
+    "description": "Updated via API"
+}
+
+### Delete Workout (DELETE)
+# Replace {workout_id} with actual ID
+DELETE {{baseUrl}}/api/workouts/999

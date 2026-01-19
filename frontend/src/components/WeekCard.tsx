@@ -45,6 +45,10 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
     Object.values(week.days).forEach((day: Day) => {
         if (day.workouts) {
             day.workouts.forEach((w: any) => {
+                const type = w.type?.toLowerCase() || '';
+                // Filter: Only include Running-based activities
+                if (type === 'cycling' || type === 'swimming') return;
+
                 const dist = w.distance_m || 0;
                 weekTargetM += dist;
                 if (day.date > todayStr) {
@@ -59,10 +63,10 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
     
     let weekActualM = 0;
     weekActuals.forEach(a => {
-            // Sum running types
-            if (a.type === 'running' || a.type === 'trail_running' || a.name.toLowerCase().includes('run')) {
-            weekActualM += (a.distance_m || 0);
-        }
+            // Strict Filter: Only running and trail running
+            if (a.type === 'running' || a.type === 'trail_running') {
+                weekActualM += (a.distance_m || 0);
+            }
     });
 
     const projectedM = weekActualM + weekRemainingM;

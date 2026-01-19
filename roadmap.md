@@ -51,7 +51,9 @@
 - [x] **Modern Frontend:** Refactoring to React (Vite + TanStack).
   - [x] Project Setup (Vite, Tailwind, TanStack Router/Query).
   - [x] Read-Only Dashboard (Plans, Actuals, Context).
-  - [ ] **Workout Editor:** Ability to edit planned activities (modify distance, type, description).
+  - [x] **Workout Editor:** Ability to edit and delete planned activities via a modal UI.
+  - [x] **Enhanced UX:** Added toast notifications (Sonner) and confirmation dialogs for critical actions.
+- [x] **Test Coverage:** Established backend (Pytest) and frontend (Vitest) test suites for key features.
 - [ ] **Date/Time Handling:** Store all timestamps as UTC in DB and cast to user's preferred timezone on display.
 - [ ] **Cloud-Native Auth:** Implement secure login via GitHub OAuth or Clerk.
 - [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week, with a simple "Accept/Decline" UX for the user.

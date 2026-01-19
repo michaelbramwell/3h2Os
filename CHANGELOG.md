@@ -1,5 +1,19 @@
 # Release Notes
 
+## [v0.5.0] - 2026-01-20
+
+### Features
+- **Workout Management**: Implemented full CRUD (Create, Read, Update, Delete) capabilities for workouts in the UI.
+- **Enhanced Validation**: Added strict schemas for Distance (0-1000km sanity check) and Time of Day. Integrated `ValidationWarningError` handling in the API to surface guardrail warnings to the user.
+- **UI/UX Improvements**: Overhauled the `EditWorkoutDialog` with better state management, "Delete" confirmation workflows, and smoother interactions.
+
+### Security
+- **Auth Awareness**: flagged lack of authentication on mutation endpoints and added architecture TODOs for future implementation.
+
+### Refactor
+- **Frontend Structure**: Consolidated component logic (moving state from `useState` to props in dialogs) and improved test coverage for UI components.
+- **Code Quality**: Removed unused imports (`json`, `os`) and dead code across backend services based on automated review feedback.
+
 ## [v0.4.0] - 2026-01-18
 
 ### Architecture

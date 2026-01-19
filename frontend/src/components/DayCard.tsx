@@ -1,6 +1,9 @@
-import type { Day, Activity, Workout } from '../types/schema'
+import { useState } from 'react'
+import { Plus } from 'lucide-react'
+import { type Day, type Activity, type Workout, ActivityType } from '../types/schema'
 import { WorkoutCard } from './WorkoutCard'
 import { ActualCard } from './ActualCard'
+import { EditWorkoutDialog } from './EditWorkoutDialog'
 
 interface DayCardProps {
     dayName: string
@@ -12,8 +15,11 @@ interface DayCardProps {
 }
 
 export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivityClick }: DayCardProps) {
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const hasWorkouts = day.workouts && day.workouts.length > 0;
     const isToday = day.date === todayStr;
+    const isPast = day.date < todayStr;
+    const hasActuals = actuals && actuals.length > 0;
 
     // Check for Race/Marathon in Workouts
     let isRaceDay = false;
@@ -21,7 +27,7 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
     
     if (day.workouts) {
         day.workouts.forEach((w: Workout) => {
-            if (w.type === 'Race') {
+            if (w.type === ActivityType.RACE) {
                 if (weekStatus.toLowerCase() === 'marathon') isMarathonDay = true;
                 else isRaceDay = true;
             }
@@ -51,7 +57,18 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
             
             <div className="flex justify-between items-start mb-2">
                 <span className={`text-xs font-bold uppercase ${(isToday || isRaceDay || isMarathonDay) ? 'text-slate-800' : 'text-slate-400'}`}>{dayName}</span>
-                <span className={`text-[10px] font-mono ${(isToday || isRaceDay || isMarathonDay) ? 'text-slate-700 font-bold' : 'text-slate-400'}`}>{new Date(day.date).getDate()}</span>
+                <div className="flex items-center gap-1">
+                    {!isPast && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setIsAddDialogOpen(true); }}
+                            className="p-0.5 rounded hover:bg-slate-100 text-slate-300 hover:text-blue-500 transition-colors"
+                            title="Add Workout"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    )}
+                    <span className={`text-[10px] font-mono ${(isToday || isRaceDay || isMarathonDay) ? 'text-slate-700 font-bold' : 'text-slate-400'}`}>{new Date(day.date).getDate()}</span>
+                </div>
             </div>
             
             <div className="space-y-2 flex-grow">
@@ -66,7 +83,8 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
                         key={`plan-${idx}`} 
                         workout={workout} 
                         isToday={isToday} 
-                        isMarathonDay={isMarathonDay} 
+                        isMarathonDay={isMarathonDay}
+                        isPast={isPast || (isToday && hasActuals)}
                     />
                 ))}
 
@@ -81,6 +99,12 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
                     />
                 ))}
             </div>
+
+            <EditWorkoutDialog 
+                date={day.date}
+                isOpen={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+            />
         </div>
     )
 }

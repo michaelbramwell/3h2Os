@@ -1,8 +1,9 @@
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
-from sqlalchemy import BigInteger, Column
+from sqlalchemy import BigInteger, Column, String
 from datetime import datetime, date
 import os
+from app.models.domain import ActivityType
 
 # --- Models ---
 
@@ -25,7 +26,7 @@ class PlanWorkout(SQLModel, table=True):
     
     name: str
     description: Optional[str] = None
-    activity_type: str = "Run" # Run, Rest, Cross, etc.
+    activity_type: ActivityType = Field(default=ActivityType.RUN, sa_type=String)
     distance_m: float = 0.0
     time_of_day: str = "AM"
     
@@ -119,18 +120,20 @@ class ActualActivity(SQLModel, table=True):
 # --- Database Connection ---
 
 # Environment variables
-sqlite_file_name = os.getenv("SQLITE_DB_PATH", "data/database.db")
+# Use absolute path to ensure DB is found regardless of CWD of the runner script
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sqlite_file_name = os.getenv("SQLITE_DB_PATH", os.path.join(BASE_DIR, "data", "database.db"))
 database_url = os.getenv("DATABASE_URL")
 
 if database_url:
     # Use the provided DATABASE_URL (e.g., for Postgres)
-    engine = create_engine(database_url, echo=True)
+    engine = create_engine(database_url, echo=False)
 else:
     # Fallback to SQLite
     sqlite_url = f"sqlite:///{sqlite_file_name}"
     # check_same_thread=False is needed for SQLite with FastAPI
     connect_args = {"check_same_thread": False}
-    engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+    engine = create_engine(sqlite_url, echo=False, connect_args=connect_args)
 
 
 def create_db_and_tables():

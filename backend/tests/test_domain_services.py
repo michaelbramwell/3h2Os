@@ -33,7 +33,7 @@ def test_plan_service_create_and_retrieve(session):
                     "workouts": [
                         {
                             "name": "5k Recovery",
-                            "type": "Recovery",
+                            "type": "Easy",
                             "distance_m": 5000,
                             "timeOfDay": "AM"
                         }

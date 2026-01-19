@@ -3,6 +3,26 @@ from typing import List, Optional, Dict
 from enum import Enum
 import json
 
+class ActivityType(str, Enum):
+    RUN = "Run"
+    EASY = "Easy"
+    LONG = "Long"
+    WORKOUT = "Workout"
+    RACE = "Race"
+    REST = "Rest"
+    CROSS = "Cross"
+    STEADY = "Steady"
+    WARMUP = "WarmUp"
+    COOLDOWN = "CoolDown"
+    INTERVALS = "Intervals"
+    TRAIL = "Trail"
+    TEMPO = "Tempo"
+    PLR = "PLR"
+    HILLS = "Hills"
+    THRESHOLD = "Threshold"
+    CYCLING = "Cycling"
+    SWIMMING = "Swimming"
+
 class GarminActivityType(str, Enum):
     RUNNING = "running"
     TRAIL_RUNNING = "trail_running"

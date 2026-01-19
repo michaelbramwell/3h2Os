@@ -43,3 +43,14 @@ When working in this workspace, always refer to the following files to maintain 
   - **Scoped**: Initialized with a `Session` (Dependency Injection style).
   - **Mapping Owner**: Responsible for converting SQLModel Entities to Pydantic DTOs (`schemas.py`).
 - **Data Transfer Objects (DTOs)**: Use Pydantic models (Schemas) for all data moving in/out of the API.
+
+### Validation Engine (Guardrails)
+- **Location**: `backend/app/core/validation.py`
+- **Rules**:
+  - **Volume Progression**: Weekly volume increase capped at 15%.
+  - **Long Run Ratio**: Single long run should not exceed 40% of weekly volume.
+  - **Intensity Ratio**: High intensity work should not exceed 25% of weekly volume.
+- **Enforcement**:
+  - Validation runs on **Save/Update**.
+  - Returns `ValidationWarningError` (used by UI to show warnings) or blocks saving if configured strictly.
+  - Tests simulate these rules (and must mock them if testing simple CRUD).
