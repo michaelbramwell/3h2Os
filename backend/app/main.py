@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from app.core.database import create_db_and_tables, engine, User, RunnerPlan
 from app.routers import pages, api
 from app.core.migrations_logic import migrate_context_json
+from app.core.auth import verify_jwt_middleware
 
 # --- Lifecycle ---
 @asynccontextmanager
@@ -18,12 +19,12 @@ async def lifespan(app: FastAPI):
 
     try:
         with Session(engine) as session:
-            
-            user = session.exec(select(User).where(User.username == "mike")).first()
+            default_username = os.environ.get("DEFAULT_USERNAME", "runner")
+            user = session.exec(select(User).where(User.username == default_username)).first()
             if not user:
-                # TODO: Implement authentication mechanism
-                print("Creating default user 'mike'...")
-                user = User(username="mike", email="mike@example.com")
+                # TODO: Transition this to Keycloak user sync or removal
+                print(f"Creating default user '{default_username}'...")
+                user = User(username=default_username, email=f"{default_username}@example.com")
                 session.add(user)
                 session.commit()
                 session.refresh(user)
@@ -46,7 +47,8 @@ async def lifespan(app: FastAPI):
                 
     yield
 
-app = FastAPI(lifespan=lifespan)
+# Apply global auth middleware
+app = FastAPI(lifespan=lifespan, dependencies=[Depends(verify_jwt_middleware)])
 
 origins = [
     "http://localhost:5173",

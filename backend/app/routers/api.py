@@ -124,7 +124,7 @@ async def get_plan(
     """
     Get the currently active plan as a list of Weeks.
     """
-    return service.get_active_plan(username="mike")
+    return service.get_active_plan()
 
 @router.get("/context.json", response_model=ContextSchema)
 async def get_context(
@@ -133,7 +133,7 @@ async def get_context(
     """
     Get the Project and Runner Context.
     """
-    return service.get_context(username="mike")
+    return service.get_context()
 
 @router.get("/actuals.json", response_model=List[ActivitySchema])
 async def get_actuals(
@@ -153,7 +153,7 @@ async def get_context_markdown():
 
 # TODO: Add authentication/authorization checks for all mutation endpoints 
 # (create/update/delete workouts, plans, etc.) to prevent unauthorized access.
-# Currently relies on hardcoded username="mike".
+# Currently relies on default username from environment.
 
 @router.post("/workouts")
 async def create_workout_endpoint(
@@ -165,7 +165,7 @@ async def create_workout_endpoint(
     Create a new planned workout.
     """
     try:
-        new_w = service.add_workout(workout_create, username="mike", force=force)
+        new_w = service.add_workout(workout_create, force=force)
         return {"status": "success", "message": "Workout created", "id": new_w.id}
     except ValidationWarningError as e:
         return JSONResponse(

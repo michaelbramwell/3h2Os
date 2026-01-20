@@ -1,11 +1,22 @@
 import axios from 'axios';
 import type { Week, ContextData, Activity } from '../types/schema';
+import { userManager } from './auth';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+api.interceptors.request.use(async (config) => {
+    // Always try to get the latest token from the manager directly
+    // This handles page refreshes where the user object is in local storage
+    const user = await userManager.getUser();
+    if (user?.access_token) {
+        config.headers.Authorization = `Bearer ${user.access_token}`;
+    }
+    return config;
 });
 
 export const getPlan = async (): Promise<Week[]> => {

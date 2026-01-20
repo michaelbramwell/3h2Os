@@ -10,10 +10,11 @@ class ContextService:
     def __init__(self, session: Session):
         self.session = session
 
-    def update_weight(self, weight: float, username: str = "mike"):
+    def update_weight(self, weight: float, username: str = None):
         """
         Updates the current weight and adds a history entry.
         """
+        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
         user = self.session.exec(select(User).where(User.username == username)).first()
         if not user or not user.profile:
             # Create profile if missing? For now assume user exists from init
@@ -42,10 +43,11 @@ class ContextService:
         self.session.commit()
         return user.profile.current_weight
 
-    def get_context(self, username: str = "mike") -> ContextSchema:
+    def get_context(self, username: str = None) -> ContextSchema:
         """
         Retrieves the Context (Project + Runner Profile).
         """
+        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
         # Try DB
         user = self.session.exec(select(User).where(User.username == username)).first()
         if user and user.project and user.profile:
