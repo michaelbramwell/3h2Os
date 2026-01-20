@@ -72,67 +72,93 @@ function FuelingCard({ fueling }: { fueling?: FuelingStrategy }) {
     );
 }
 
-function formatPace(speedMs: number | undefined): string {
-    if (!speedMs || speedMs === 0) return '--:--';
-    const secondsPerKm = 1000 / speedMs;
+function formatPace(baseValue: number | undefined): string {
+    if (!baseValue || baseValue === 0) return '--:--';
+    // Handle both m/s (small) and seconds/km (large) inputs
+    const secondsPerKm = baseValue < 10 ? 1000 / baseValue : baseValue;
+    
     const min = Math.floor(secondsPerKm / 60);
     const sec = Math.floor(secondsPerKm % 60);
     return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
 function ZonesCard({ zones }: { zones: RunnerContext['trainingZones'] }) {
-    if (!zones) return null;
+    if (!zones || !zones.pace || zones.pace.length === 0) return null;
 
-    const renderPaceRow = (z: any, idx: number, all: any[]) => {
-        // Current Zone Start (Slowest speed)
-        const currentZoneStartSpeed = z.lowBoundary_m_s;
-        
-        // Next Zone Start (Fastest speed)
-        const nextZone = all[idx + 1];
-        const nextZoneStartSpeed = nextZone?.lowBoundary_m_s;
+    const zp = zones.pace;
+    const z2 = zp.find(z => z.zone === 2);
+    const z3 = zp.find(z => z.zone === 3);
+    const z4 = zp.find(z => z.zone === 4);
+    const z5 = zp.find(z => z.zone === 5);
+    const z6 = zp.find(z => z.zone === 6);
 
-        // Calculate Paces (min/km)
-        // Note: Higher speed (m/s) = Lower Pace number (min/km)
-        // Z1 is everything slower than Z2's start speed.
-        
-        let rangeLabel = '';
-        
-        if (z.zone === 1 && nextZoneStartSpeed) {
-             const limit = formatPace(nextZoneStartSpeed);
-             rangeLabel = `> ${limit}`;
-        } else if (!nextZone) {
-            // Last Zone (Z6+)
-             const limit = formatPace(currentZoneStartSpeed);
-             rangeLabel = `< ${limit}`;
-        } else {
-            // Middle Zones
-            const slowerLimit = formatPace(currentZoneStartSpeed);
-            const fasterLimit = formatPace(nextZoneStartSpeed);
-            rangeLabel = `${fasterLimit} - ${slowerLimit}`;
-        }
-
-        return (
-            <tr key={z.zone} className="border-b border-slate-100 last:border-0 text-sm">
-                <td className="py-2 pl-2 font-bold text-slate-500">Z{z.zone}</td>
-                <td className="py-2 pr-2 text-left font-mono text-slate-700">{rangeLabel} min/km</td>
-            </tr>
-        );
+    const formatPace = (baseValue: number | undefined): string => {
+        if (!baseValue || baseValue === 0) return '--:--';
+        const secondsPerKm = baseValue < 10 ? 1000 / baseValue : baseValue;
+        const min = Math.floor(secondsPerKm / 60);
+        const sec = Math.floor(secondsPerKm % 60);
+        return `${min}:${sec.toString().padStart(2, '0')}`;
     };
+
+    // Helper to produce "Slower - Faster" range matching FridgeMode dynamic logic
+    // Z2 Low (Slower) -> Z3 Low (Faster)
+    const range = (low: number | undefined, high: number | undefined) => {
+        if (!low || !high) return '--';
+        return `${formatPace(low)} - ${formatPace(high)}`;
+    };
+
+    const easyRange =  z2 && z3 ? range(z2.lowBoundary_m_s, z3.lowBoundary_m_s) : '--';
+    const tempoRange = z3 && z4 ? range(z3.lowBoundary_m_s, z4.lowBoundary_m_s) : '--';
+    const threshRange = z4 && z5 ? range(z4.lowBoundary_m_s, z5.lowBoundary_m_s) : '--';
+    
+    // VO2 is Z5 -> Z6 (or > Z5)
+    let vo2Range = '';
+    if (z5) {
+        const start = formatPace(z5.lowBoundary_m_s); // Slower bound of Z5
+        if (z6) {
+             const end = formatPace(z6.lowBoundary_m_s);
+             vo2Range = `${start} - ${end}`;
+        } else {
+            vo2Range = `< ${start}`;
+        }
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Training Zones (Pace)</h2>
-            <table className="w-full">
-                <thead>
-                    <tr className="border-b border-slate-200 text-xs uppercase text-slate-400">
-                        <th className="py-2 pl-2 text-left font-semibold">Zone</th>
-                        <th className="py-2 pr-2 text-left font-semibold">Pace Range</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {zones.pace.map((z, i) => renderPaceRow(z, i, zones.pace))}
-                </tbody>
-            </table>
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Training Paces</h2>
+            <div className="space-y-3">
+                 <div className="flex justify-between items-center border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">Easy</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wide">Zone 2</span>
+                    </div>
+                    <span className="font-mono text-sm text-slate-600">{easyRange}</span>
+                 </div>
+
+                 <div className="flex justify-between items-center border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">Tempo</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wide">Zone 3</span>
+                    </div>
+                    <span className="font-mono text-sm text-slate-600">{tempoRange}</span>
+                 </div>
+
+                 <div className="flex justify-between items-center border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">Threshold</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wide">Zone 4 (LT)</span>
+                    </div>
+                    <span className="font-mono text-sm text-red-600">{threshRange}</span>
+                 </div>
+
+                 <div className="flex justify-between items-center border-b border-slate-50 pb-2 last:border-0 last:pb-0">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-700">VO2 Max</span>
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wide">Zone 5</span>
+                    </div>
+                    <span className="font-mono text-sm text-purple-600">{vo2Range}</span>
+                 </div>
+            </div>
         </div>
     );
 }

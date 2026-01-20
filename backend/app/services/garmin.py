@@ -1,46 +1,34 @@
-import json
 import logging
 import os
 import sys
 import base64
 import zipfile
 import io
-import shutil
-from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
-from dataclasses import asdict
-
-from dotenv import load_dotenv, find_dotenv
-
-# Load env vars early, searching up the tree (e.g., project root .env)
-load_dotenv(find_dotenv())
+from datetime import datetime, timedelta, timezone
 
 from garminconnect import Garmin
+from sqlmodel import Session, select
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.models.domain import ActualActivity
 from app.services.context import ContextService
-from app.services.plans import PlanService
+from app.core.database import User
 
-# Configure Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
 logger = logging.getLogger(__name__)
 
-class GarminActualsFetcher:
-    def __init__(self):
+class GarminService:
+    def __init__(self, session: Optional[Session] = None):
+        self.session = session
         self.email = os.getenv("GARMIN_EMAIL")
         self.password = os.getenv("GARMIN_PASSWORD")
         self.tokens_b64 = os.getenv("GARMIN_TOKENS")
-        if self.tokens_b64:
-            self.tokens_b64 = self.tokens_b64.strip()
-        
-        # Try to restore tokens first
+        self.client = None
+        self._login()
+
+    def _login(self):
         if self.tokens_b64:
             try:
+                self.tokens_b64 = self.tokens_b64.strip()
                 token_dir = os.path.expanduser("~/.garth")
                 if not os.path.exists(token_dir):
                     os.makedirs(token_dir)
@@ -53,52 +41,60 @@ class GarminActualsFetcher:
             except Exception as e:
                 logger.warning(f"Failed to restore tokens: {e}")
 
-        self.client = None
-        
         # 1. Try token login (no creds needed if tokens are valid)
         try:
-            # Attempt to init without creds to force token usage
             logger.info("Attempting login with stored tokens...")
             self.client = Garmin()
             self.client.login(os.path.expanduser("~/.garth"))
             logger.info(f"Successfully logged in with tokens as {self.client.display_name}")
+            return
         except Exception as e_token:
             logger.warning(f"Token login failed: {e_token}")
             self.client = None
 
         # 2. Fallback to password login
-        if not self.client:
-            if not self.email or not self.password:
-                logger.error("Login failed and GARMIN_EMAIL/GARMIN_PASSWORD not set.")
-                sys.exit(1)
-                
-            try:
-                logger.info("Attempting login with credentials...")
-                self.client = Garmin(self.email, self.password)
-                self.client.login()
-                logger.info(f"Successfully logged in with credentials as {self.client.display_name}")
-            except Exception as e:
-                logger.error(f"Login failed: {e}")
-                sys.exit(1)
+        if not self.email or not self.password:
+            logger.error("Login failed and GARMIN_EMAIL/GARMIN_PASSWORD not set.")
+            raise ValueError("Garmin credentials not configured")
+            
+        try:
+            logger.info("Attempting login with credentials...")
+            self.client = Garmin(self.email, self.password)
+            self.client.login()
+            logger.info(f"Successfully logged in with credentials as {self.client.display_name}")
+        except Exception as e:
+            logger.error(f"Login failed: {e}")
+            raise
+
+    def fetch_activities(self, start_date: str, end_date: str) -> List[ActualActivity]:
+        """Fetches activities between start_date and end_date (YYYY-MM-DD)."""
+        logger.info(f"Fetching activities from {start_date} to {end_date}...")
+        
+        # Garmin API uses start and limit, so we fetch a batch and filter
+        # For a 14-week plan, 100 activities should be plenty
+        activities = self.client.get_activities(0, 100)
+        
+        filtered_activities = self.filter_activities(activities, start_date, end_date)
+        
+        logger.info(f"Found {len(filtered_activities)} activities in range.")
+        return filtered_activities
 
     def filter_activities(self, activities: List[Dict[str, Any]], start_date: str, end_date: str) -> List[ActualActivity]:
         """Filters raw Garmin activities by date range and maps to our schema."""
         filtered_activities: List[ActualActivity] = []
         
-        # Load pace thresholds from DB
+        # Load pace thresholds from DB or Session
         pace_thresholds = []
-        try:
-             # Create a session manually since we are in a script
-            from app.core.database import engine
-            from sqlmodel import Session
-            
-            with Session(engine) as session:
-                ctx_service = ContextService(session)
-                ctx = ctx_service.get_context()
+        if self.session:
+            try:
+                # Use default user or injecting context? ContextService defaults to "mike" or now "runner"
+                username = os.environ.get("DEFAULT_USERNAME", "runner")
+                ctx_service = ContextService(self.session)
+                ctx = ctx_service.get_context(username=username)
                 if ctx.runner.trainingZones and ctx.runner.trainingZones.pace:
                     pace_thresholds = [z.model_dump() for z in ctx.runner.trainingZones.pace]
-        except Exception as e:
-            logger.warning(f"Could not load pace thresholds from DB: {e}")
+            except Exception as e:
+                logger.warning(f"Could not load pace thresholds from DB: {e}")
 
         for act in activities:
             # Extract date part from YYYY-MM-DD HH:MM:SS format
@@ -158,7 +154,7 @@ class GarminActualsFetcher:
                         logger.warning(f"Failed to enrich zones for {activity_id}: {e}")
                         # Fallback to summaries if telemetry fails
                         hr_zones = self.map_fallback_zones(raw_hr_summary, act['duration'])
-                        power_zones = [] # self.map_fallback_zones(raw_power_summary) # Power ignored in schema for now
+                        power_zones = [] 
 
                 filtered_activities.append(ActualActivity(
                     date=act_date_str,
@@ -324,86 +320,3 @@ class GarminActualsFetcher:
             return res
 
         return finalize(hr_acc, total_dur_calc), finalize(power_acc, total_dur_calc), finalize(pace_acc, total_dur_calc)
-
-    def fetch_activities(self, start_date: str, end_date: str) -> List[ActualActivity]:
-        """Fetches activities between start_date and end_date (YYYY-MM-DD)."""
-        logger.info(f"Fetching activities from {start_date} to {end_date}...")
-        
-        # Garmin API uses start and limit, so we fetch a batch and filter
-        # For a 14-week plan, 100 activities should be plenty
-        activities = self.client.get_activities(0, 100)
-        
-        filtered_activities = self.filter_activities(activities, start_date, end_date)
-        
-        logger.info(f"Found {len(filtered_activities)} activities in range.")
-        return filtered_activities
-
-    async def save_actuals(self, activities: List[ActualActivity]):
-        """Saves the activities via API."""
-        import httpx
-        
-        API_URL = "http://localhost:8000/api"
-        # Convert dataclasses to dicts for JSON serialization
-        serializable_activities = [asdict(a) for a in activities]
-        
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(f"{API_URL}/actuals", json=serializable_activities)
-                if response.status_code == 200:
-                    logger.info(f"Successfully synced {len(activities)} activities via API.")
-                else:
-                    logger.error(f"Failed to sync actuals. Status: {response.status_code}. Msg: {response.text}")
-        except Exception as e:
-            logger.error(f"API Connection Error: {e}")
-
-def get_awst_now():
-    """Returns the current time in AWST (UTC+8)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=8)
-
-def get_plan_start_date():
-    try:
-        from app.core.database import engine
-        from sqlmodel import Session
-        with Session(engine) as session:
-            plan_service = PlanService(session)
-            active_plan = plan_service.get_active_plan()
-            if active_plan and len(active_plan) > 0:
-                return active_plan[0].weekStarting
-    except Exception as e:
-        logger.warning(f"Could not load plan start date from DB: {e}")
-    
-    # Fallback: Return date 12 weeks ago from today
-    # This prevents hardcoding "2026-01-05"
-    twelve_weeks_ago = datetime.now() - timedelta(weeks=12)
-    return twelve_weeks_ago.strftime("%Y-%m-%d")
-
-async def run_async(fetch_all: bool = False):
-    fetcher = GarminActualsFetcher()
-    
-    # Use AWST (UTC+8) for "today"
-    awst_now = get_awst_now()
-    end_date = awst_now.strftime("%Y-%m-%d")
-    
-    if fetch_all:
-        start_date = get_plan_start_date()
-        logger.info(f"Fetching ALL actuals from plan start: {start_date} to {end_date}")
-    else:
-        # Default: Fetch last 7 days
-        start_date = (awst_now - timedelta(days=7)).strftime("%Y-%m-%d")
-        logger.info(f"Fetching actuals for last 7 days: {start_date} to {end_date}")
-
-    activities = fetcher.fetch_activities(start_date, end_date)
-    await fetcher.save_actuals(activities)
-
-def main():
-    import argparse
-    import asyncio
-    
-    parser = argparse.ArgumentParser(description="Fetch Garmin actuals.")
-    parser.add_argument("--all", action="store_true", help="Fetch all actuals over the marathon plan period.")
-    args = parser.parse_args()
-    
-    asyncio.run(run_async(fetch_all=args.all))
-
-if __name__ == "__main__":
-    main()

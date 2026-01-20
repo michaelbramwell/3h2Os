@@ -23,6 +23,30 @@ Content-Type: application/json
     "weight": 98.5
 }
 
+### Post Actuals (Batch)
+POST {{baseUrl}}/api/actuals
+Content-Type: application/json
+
+[
+  {
+    "date": "2026-01-20",
+    "name": "Tempo Run with Splits",
+    "type": "running",
+    "distance_m": 5000,
+    "duration_s": 1200,
+    "activityId": 999999,
+    "average_pace_m_s": 4.16,
+    "average_hr": 165,
+    "splits": [
+        {"distance": 1000, "averageSpeed": 4.1, "averageHR": 160},
+        {"distance": 1000, "averageSpeed": 4.2, "averageHR": 165},
+        {"distance": 1000, "averageSpeed": 4.15, "averageHR": 170},
+        {"distance": 1000, "averageSpeed": 4.2, "averageHR": 172},
+        {"distance": 1000, "averageSpeed": 4.15, "averageHR": 175}
+    ]
+  }
+]
+
 ### Update Plan (POST)
 # Warning: This will overwrite the current plan in the database/file!
 POST {{baseUrl}}/api/plan.json

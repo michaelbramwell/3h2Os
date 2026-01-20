@@ -7,12 +7,14 @@ This skill defines the operational capabilities for the 3h2Os marathon training 
 
 ## Training Operations
 
+> **Infrastructure Note**: This project runs in Docker. Execute these scripts inside the container: `docker exec running_app uv run [script_path]`.
+
 ### Fetch Actuals
 Retrieves recent completed activities from Garmin/Strava sources and persists them to the local dataset.
 - **Script**: [`../../../backend/scripts/fetch_actuals.py`](../../../backend/scripts/fetch_actuals.py)
 - **Command**: `cd backend && uv run scripts/fetch_actuals.py`
 - **Inputs**: Garmin Credentials (Env Vars), Database (for differential sync)
-- **Outputs**: Updates `data/database.db` (Postgres/SQLite)
+- **Outputs**: Updates `data/database.db` (Postgres/SQLite). Includes detailed metric splits and zone distribution.
 
 ### Reflect & Validate
 The "Brain" of the operation. Compares executed runs against the plan. It enforces safety guardrails (15% volume cap, 80/20 intensity distribution) and creates adaptations for future weeks if necessary.

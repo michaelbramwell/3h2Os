@@ -133,4 +133,5 @@ export interface Activity {
     hr_zones?: HrZone[];
     pace_zones?: HrZone[];
     power_zones?: HrZone[];
+    splits?: Record<string, any>[];
 }

@@ -75,6 +75,10 @@ class RunnerProfile(SQLModel, table=True):
     current_weight: float
     target_weight: float
     
+    # JSON strings for complex nested data
+    training_zones_json: Optional[str] = Field(default=None)
+    fueling_json: Optional[str] = Field(default=None)
+
     user: "User" = Relationship(back_populates="profile")
     weight_history: List["WeightEntry"] = Relationship(back_populates="profile")
 
@@ -113,6 +117,7 @@ class ActualActivity(SQLModel, table=True):
     hr_zones_json: Optional[str] = None
     pace_zones_json: Optional[str] = None
     power_zones_json: Optional[str] = None
+    splits_json: Optional[str] = None
     
     user: "User" = Relationship(back_populates="activities")
 

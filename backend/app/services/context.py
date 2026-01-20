@@ -3,7 +3,10 @@ import json
 import os
 
 from app.core.database import User, WeightEntry
-from app.schemas import ContextSchema, ProjectContext, RunnerContext, WeightContext, WeightRecord
+from app.schemas import (
+    ContextSchema, ProjectContext, RunnerContext, WeightContext, WeightRecord,
+    TrainingZones, FuelingStrategy
+)
 from datetime import date
 
 class ContextService:
@@ -70,11 +73,33 @@ class ContextService:
             history=weights
         )
 
+        
+        # Parse JSON fields
+        fueling = None
+        if user.profile.fueling_json:
+            try:
+                fueling = json.loads(user.profile.fueling_json)
+            except json.JSONDecodeError:
+                pass
+
+        zones = None
+        if user.profile.training_zones_json:
+            try:
+                # Load JSON to dict
+                zones_dict = json.loads(user.profile.training_zones_json)
+                # Ensure it's valid schema
+                zones = TrainingZones.model_validate(zones_dict)
+            except Exception as e:
+                print(f"Error parsing zones: {e}")
+                pass
+
         runner_ctx = RunnerContext(
             age=user.profile.age,
             gender=user.profile.gender,
             height_cm=user.profile.height_cm,
-            weight_kg=weight_ctx
+            weight_kg=weight_ctx,
+            fueling=fueling,
+            trainingZones=zones
         )
         return ContextSchema(project=project_ctx, runner=runner_ctx)
 

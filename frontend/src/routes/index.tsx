@@ -113,8 +113,13 @@ function Dashboard() {
             <div className="text-center">
                 <h1 className="text-2xl font-bold mb-4">3h2Os Training Plan</h1>
                 <p className="text-slate-500 mb-6">Please login to view your training plan.</p>
+                {auth.error && (
+                    <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm max-w-md mx-auto">
+                        Authentication Error: {auth.error.message}
+                    </div>
+                )}
                 <button 
-                onClick={() => auth.signinRedirect()}
+                onClick={() => auth.signinRedirect().catch(e => alert("Login failed: " + e))}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transition"
                 >
                 Login using Keycloak
@@ -143,7 +148,7 @@ function Dashboard() {
 
   return (
     <div className={`min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans ${fridgeWeekId ? 'bg-white print:p-0' : ''}`}>
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
+      <div className="absolute top-4 right-4 z-50 flex gap-2 print:hidden">
          {auth.isAuthenticated ? (
              <div className="flex items-center gap-2 bg-white/50 backdrop-blur px-3 py-1.5 rounded-full border border-slate-200">
                  <span className="text-xs text-slate-500 font-medium">
@@ -185,6 +190,7 @@ function Dashboard() {
             {!fridgeWeekId && (
                 <div className="lg:col-span-1 space-y-6">
                     <Sidebar context={context as ContextData} markdown={markdown} />
+                    {/* RecentActivities moved to be a child of Sidebar or separate is fine, but user complained about "under" */}
                     <RecentActivities activities={actuals as Activity[]} />
                 </div>
             )}
@@ -198,7 +204,7 @@ function Dashboard() {
                     if (fridgeWeekId === week.weekStarting) {
                         return (
                             <div key={week.weekStarting}>
-                                <FridgeWeek week={week} weekIndex={originalIndex} />
+                                <FridgeWeek week={week} weekIndex={originalIndex} context={context as ContextData} />
                             </div>
                         )
                     }

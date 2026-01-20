@@ -1,6 +1,8 @@
 {
     "realm": "running-realm",
     "enabled": true,
+    "sslRequired": "none",
+    "registrationAllowed": true,
     "users": [],
     "clients": [
       {

@@ -94,6 +94,7 @@ class ActualActivity:
     hr_zones: List[Dict] = field(default_factory=list)
     power_zones: List[Dict] = field(default_factory=list)
     pace_zones: List[Dict] = field(default_factory=list)
+    splits: List[Dict] = field(default_factory=list)
     
     @staticmethod
     def from_dict(data: dict):
@@ -115,7 +116,8 @@ class ActualActivity:
             activityId=data.get("activityId"),
             hr_zones=data.get("hr_zones", []),
             power_zones=data.get("power_zones", []),
-            pace_zones=data.get("pace_zones", [])
+            pace_zones=data.get("pace_zones", []),
+            splits=data.get("splits", [])
         )
 
 @dataclass

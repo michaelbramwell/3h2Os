@@ -49,6 +49,11 @@ export const createWorkout = async (data: { date: string; name: string; descript
     return response.data;
 };
 
+export const syncActivities = async (days: number = 7): Promise<{ count: number; message: string }> => {
+    const response = await api.post(`/api/integrations/garmin/sync?days=${days}`);
+    return response.data;
+};
+
 export const deleteWorkout = async (id: number): Promise<any> => {
     const response = await api.delete(`/api/workouts/${id}`);
     return response.data;

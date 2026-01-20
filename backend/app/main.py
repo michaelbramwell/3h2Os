@@ -4,6 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
 import os
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv, find_dotenv
+
+# Load environment variables from .env file
+load_dotenv(find_dotenv())
 
 from app.core.database import create_db_and_tables, engine, User, RunnerPlan
 from app.routers import pages, api

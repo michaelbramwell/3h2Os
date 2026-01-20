@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { Activity } from '../types/schema';
 import { ActivityModal } from './ActivityModal';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { syncActivities } from '../lib/api';
+import { RefreshCw, Loader2 } from 'lucide-react';
 
 interface RecentActivitiesProps {
     activities: Activity[];
@@ -8,23 +11,42 @@ interface RecentActivitiesProps {
 
 export function RecentActivities({ activities }: RecentActivitiesProps) {
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+    const queryClient = useQueryClient();
+
+    const syncMutation = useMutation({
+        mutationFn: () => syncActivities(7),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+        }
+    });
 
     // Debug logging
     console.log('RecentActivities Rendered. Activities count:', activities?.length);
 
-    if (!activities || activities.length === 0) {
-        return <div className="text-gray-500 text-sm">No recent activities found.</div>;
-    }
-
-    // Sort by date descending
-    const sortedActivities = [...activities].sort((a, b) => 
+    // Sort by date descending, default to empty array if null
+    const sortedActivities = activities ? [...activities].sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    ) : [];
 
     return (
         <>
             <div className="bg-white rounded-lg shadow p-6 border border-slate-200 relative z-0">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Recent Activities</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Activities</h3>
+                    <button 
+                        onClick={() => syncMutation.mutate()} 
+                        disabled={syncMutation.isPending}
+                        className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+                        title="Fetch latest activities from Garmin"
+                    >
+                        {syncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                        {syncMutation.isPending ? 'Syncing...' : 'Scan for new runs'}
+                    </button>
+                </div>
+                
+                {sortedActivities.length === 0 ? (
+                    <div className="text-gray-500 text-sm italic py-4 text-center">No recent activities found. Click scan to sync from Garmin.</div>
+                ) : (
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                         <thead>
@@ -73,6 +95,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                         </tbody>
                     </table>
                 </div>
+                )}
             </div>
 
             {selectedActivity && (

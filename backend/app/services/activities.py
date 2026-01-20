@@ -1,6 +1,7 @@
 from sqlmodel import Session, select
 from typing import List
 import json
+import os
 from datetime import date
 
 from app.core.database import ActualActivity, User
@@ -10,11 +11,12 @@ class ActivityService:
     def __init__(self, session: Session):
         self.session = session
 
-    def save_activities(self, activities: List[ActivitySchema], username: str = "mike") -> int:
+    def save_activities(self, activities: List[ActivitySchema], username: str = None) -> int:
         """
         Saves a list of activities. Updates if activityId exists, else inserts.
         Returns count of saved activities.
         """
+        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
         user = self.session.exec(select(User).where(User.username == username)).first()
         if not user:
             raise ValueError(f"User {username} not found")
@@ -50,7 +52,8 @@ class ActivityService:
                 "calories": act.calories,
                 "hr_zones_json": dump_zones(act.hr_zones),
                 "pace_zones_json": dump_zones(act.pace_zones),
-                "power_zones_json": dump_zones(act.power_zones)
+                "power_zones_json": dump_zones(act.power_zones),
+                "splits_json": dump_zones(act.splits)
             }
             
             if existing:
@@ -65,7 +68,8 @@ class ActivityService:
         self.session.commit()
         return count
 
-    def get_activities(self, username: str = "mike") -> List[ActivitySchema]:
+    def get_activities(self, username: str = None) -> List[ActivitySchema]:
+        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
         user = self.session.exec(select(User).where(User.username == username)).first()
         if not user:
             return []
@@ -99,6 +103,13 @@ class ActivityService:
                 except:
                     pass
 
+            splits = []
+            if a.splits_json:
+                try:
+                    splits = json.loads(a.splits_json)
+                except:
+                    pass
+
             result.append(ActivitySchema(
                 date=a.date.isoformat(),
                 name=a.name,
@@ -116,6 +127,7 @@ class ActivityService:
                 calories=a.calories,
                 hr_zones=hr_zones,
                 pace_zones=pace_zones,
-                power_zones=power_zones
+                power_zones=power_zones,
+                splits=splits
             ))
         return result

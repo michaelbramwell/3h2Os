@@ -9,12 +9,18 @@ from app.core.database import get_session
 from app.services.plans import PlanService
 from app.services.context import ContextService
 from app.services.activities import ActivityService
+from app.services.garmin import GarminService
 from app.core.validation import ValidationWarningError
 from dataclasses import asdict
 from app.schemas import (
     WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate, WorkoutUpdate, WorkoutCreate
 )
 from pydantic import BaseModel
+import logging
+from datetime import datetime, timedelta
+
+# Setup logger for API routes
+logger = logging.getLogger("app.api")
 
 router = APIRouter()
 
@@ -27,6 +33,9 @@ def get_context_service(session: Session = Depends(get_session)) -> ContextServi
 
 def get_activity_service(session: Session = Depends(get_session)) -> ActivityService:
     return ActivityService(session)
+
+def get_garmin_service(session: Session = Depends(get_session)) -> GarminService:
+    return GarminService(session)
 
 class WeightUpdate(BaseModel):
     weight: float
@@ -143,6 +152,38 @@ async def get_actuals(
     Get the actual activities from the database.
     """
     return service.get_activities()
+
+@router.post("/integrations/garmin/sync")
+async def sync_garmin_activities(
+    days: int = 7,
+    garmin_service: GarminService = Depends(get_garmin_service),
+    activity_service: ActivityService = Depends(get_activity_service)
+):
+    """
+    Syncs activities from Garmin Connect for the specified number of past days.
+    """
+    try:
+        # Use simple server time, defaulting to last N days
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Determine username from context or environment? 
+        # GarminService pulls creds from env, so it's tied to the env user essentially.
+        
+        activities = garmin_service.fetch_activities(
+            start_date.strftime("%Y-%m-%d"), 
+            end_date.strftime("%Y-%m-%d")
+        )
+        
+        # Convert dataclasses to Pydantic models
+        schema_activities = [ActivitySchema(**asdict(a)) for a in activities]
+        
+        count = activity_service.save_activities(schema_activities)
+        return {"status": "success", "count": count, "message": f"Synced {count} activities."}
+    except Exception as e:
+        logger.error(f"Sync failed: {e}")
+        # Return 500 but with JSON detail
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
 
 @router.get("/context/markdown")
 async def get_context_markdown():

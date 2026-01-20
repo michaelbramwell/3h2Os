@@ -1,4 +1,6 @@
-import { Printer } from 'lucide-react'
+import { Printer, RefreshCw, Loader2 } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { syncActivities } from '../lib/api'
 
 interface WeekStatsProps {
     weekStarting: string
@@ -23,14 +25,34 @@ export function WeekStats({
     isCompleted,
     onFridgeClick
 }: WeekStatsProps) {
+    const queryClient = useQueryClient();
+    const syncMutation = useMutation({
+        mutationFn: () => syncActivities(7),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+        }
+    });
+
     return (
         <div className="sticky top-0 z-10 flex flex-col md:flex-row justify-between items-start md:items-center -mx-5 -mt-5 pt-5 px-5 pb-3 mb-4 border-b border-slate-100/50 gap-4 rounded-t-xl backdrop-blur-md bg-white/30">
             <div>
-                <h3 className={`text-lg font-bold ${isCurrentWeek ? 'text-orange-900' : 'text-slate-800'}`}>
-                    Week of {new Date(weekStarting).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
-                    {(status === 'race' || status === 'marathon') && <span className="ml-2 text-yellow-600">🏆</span>}
-                    {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
-                </h3>
+                <div className="flex items-center gap-3">
+                    <h3 className={`text-lg font-bold flex items-center ${isCurrentWeek ? 'text-orange-900' : 'text-slate-800'}`}>
+                        Week of {new Date(weekStarting).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
+                        {(status === 'race' || status === 'marathon') && <span className="ml-2 text-yellow-600">🏆</span>}
+                        {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
+                    </h3>
+                    {isCurrentWeek && (
+                        <button
+                            onClick={() => syncMutation.mutate()}
+                            disabled={syncMutation.isPending}
+                            className="p-1 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
+                            title="Scan for new runs"
+                        >
+                            {syncMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        </button>
+                    )}
+                </div>
                 {isCurrentWeek && <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 rounded-full">Current Week</span>}
                 {(status === 'race' || status === 'marathon') && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-yellow-700 bg-yellow-100 rounded-full">Race Week</span>}
                 {status === 'taper' && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 rounded-full">Taper</span>}
