@@ -13,15 +13,17 @@ class ContextService:
     def __init__(self, session: Session):
         self.session = session
 
-    def update_weight(self, weight: float, username: str = None):
+    def update_weight(self, weight: float, user: User = None):
         """
         Updates the current weight and adds a history entry.
         """
-        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
-        user = self.session.exec(select(User).where(User.username == username)).first()
+        if not user:
+            username = os.environ.get("DEFAULT_USERNAME", "runner")
+            user = self.session.exec(select(User).where(User.username == username)).first()
+
         if not user or not user.profile:
             # Create profile if missing? For now assume user exists from init
-            raise ValueError(f"User {username} or profile not found")
+            raise ValueError(f"User or profile not found")
 
         # Update Current
         user.profile.current_weight = weight
@@ -46,13 +48,15 @@ class ContextService:
         self.session.commit()
         return user.profile.current_weight
 
-    def get_context(self, username: str = None) -> ContextSchema:
+    def get_context(self, user: User = None) -> ContextSchema:
         """
         Retrieves the Context (Project + Runner Profile).
         """
-        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
-        # Try DB
-        user = self.session.exec(select(User).where(User.username == username)).first()
+        if not user:
+            username = os.environ.get("DEFAULT_USERNAME", "runner")
+            # Try DB
+            user = self.session.exec(select(User).where(User.username == username)).first()
+
         if user and user.project and user.profile:
             return self._map_to_schema(user)
 

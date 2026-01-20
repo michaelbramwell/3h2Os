@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 import json
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
-from app.core.database import get_session
+from app.core.database import get_session, User
 from app.services.plans import PlanService
 from app.services.context import ContextService
 from app.services.activities import ActivityService
@@ -37,6 +37,36 @@ def get_activity_service(session: Session = Depends(get_session)) -> ActivitySer
 def get_garmin_service(session: Session = Depends(get_session)) -> GarminService:
     return GarminService(session)
 
+async def get_current_user(
+    request: Request,
+    session: Session = Depends(get_session)
+) -> User:
+    # 1. Get Payload from verify_jwt_middleware
+    user_payload = getattr(request.state, "user", None)
+    
+    username = "runner" # Default fallback
+    email = "runner@example.com"
+    
+    if user_payload:
+        # Keycloak usually sends 'preferred_username'
+        username = user_payload.get("preferred_username", user_payload.get("sub", "runner"))
+        email = user_payload.get("email", f"{username}@example.com")
+    else:
+        # Fallback to Env if set (for local dev without auth header)
+        if os.environ.get("DEFAULT_USERNAME"):
+             username = os.environ.get("DEFAULT_USERNAME")
+
+    # 2. Find or Create User in DB
+    user = session.exec(select(User).where(User.username == username)).first()
+    if not user:
+        # Auto-provision (JIT)
+        user = User(username=username, email=email)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        
+    return user
+
 class WeightUpdate(BaseModel):
     weight: float
 
@@ -45,13 +75,14 @@ class WeightUpdate(BaseModel):
 @router.post("/context/weight")
 async def update_weight(
     update: WeightUpdate,
-    service: ContextService = Depends(get_context_service)
+    service: ContextService = Depends(get_context_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Update the runner's weight (Current & History).
     """
     try:
-        new_weight = service.update_weight(update.weight)
+        new_weight = service.update_weight(update.weight, user=user)
         return {"status": "success", "current_weight": new_weight}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -59,13 +90,14 @@ async def update_weight(
 @router.post("/actuals")
 async def save_actuals(
     activities: List[ActivitySchema],
-    service: ActivityService = Depends(get_activity_service)
+    service: ActivityService = Depends(get_activity_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Bulk save/update actual activities.
     """
     try:
-        count = service.save_activities(activities)
+        count = service.save_activities(activities, user=user)
         return {"status": "success", "count": count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -73,7 +105,8 @@ async def save_actuals(
 @router.post("/plans", response_model=PlanUpdateResponse)
 async def create_plan(
     plan_create: PlanCreate, 
-    service: PlanService = Depends(get_plan_service)
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Create a new plan. It is created as inactive by default.
@@ -82,7 +115,7 @@ async def create_plan(
         plan_dicts = [w.model_dump() for w in plan_create.weeks]
         new_plan = service.create_or_update_plan(
             plan_dicts, 
-            username="mike", 
+            user=user, 
             title=plan_create.title, 
             activate=False
         )
@@ -109,7 +142,8 @@ async def set_active_plan(
 @router.post("/plan.json", response_model=PlanUpdateResponse)
 async def update_plan(
     plan_data: List[WeekSchema], 
-    service: PlanService = Depends(get_plan_service)
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Update the active plan for the default user.
@@ -118,8 +152,8 @@ async def update_plan(
     try:
         plan_dicts = [w.model_dump() for w in plan_data]
         new_plan = service.create_or_update_plan(
-            plan_dicts, 
-            username="mike", 
+            plan_dicts,
+            user=user,
             activate=True
         )
         return {"status": "success", "message": "Plan updated", "id": new_plan.id, "title": new_plan.title}
@@ -128,36 +162,40 @@ async def update_plan(
 
 @router.get("/plan.json", response_model=List[WeekSchema])
 async def get_plan(
-    service: PlanService = Depends(get_plan_service)
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Get the currently active plan as a list of Weeks.
     """
-    return service.get_active_plan()
+    return service.get_active_plan(user=user)
 
 @router.get("/context.json", response_model=ContextSchema)
 async def get_context(
-    service: ContextService = Depends(get_context_service)
+    service: ContextService = Depends(get_context_service),
+    user: User = Depends(get_current_user)
 ):
     """
-    Get the Project and Runner Context.
+    Get the context data
     """
-    return service.get_context()
+    return service.get_context(user=user)
 
 @router.get("/actuals.json", response_model=List[ActivitySchema])
 async def get_actuals(
-    service: ActivityService = Depends(get_activity_service)
+    service: ActivityService = Depends(get_activity_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Get the actual activities from the database.
     """
-    return service.get_activities()
+    return service.get_activities(user=user)
 
 @router.post("/integrations/garmin/sync")
 async def sync_garmin_activities(
     days: int = 7,
     garmin_service: GarminService = Depends(get_garmin_service),
-    activity_service: ActivityService = Depends(get_activity_service)
+    activity_service: ActivityService = Depends(get_activity_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Syncs activities from Garmin Connect for the specified number of past days.
@@ -178,7 +216,7 @@ async def sync_garmin_activities(
         # Convert dataclasses to Pydantic models
         schema_activities = [ActivitySchema(**asdict(a)) for a in activities]
         
-        count = activity_service.save_activities(schema_activities)
+        count = activity_service.save_activities(schema_activities, user=user)
         return {"status": "success", "count": count, "message": f"Synced {count} activities."}
     except Exception as e:
         logger.error(f"Sync failed: {e}")
@@ -200,13 +238,14 @@ async def get_context_markdown():
 async def create_workout_endpoint(
     workout_create: WorkoutCreate,
     force: bool = False,
-    service: PlanService = Depends(get_plan_service)
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Create a new planned workout.
     """
     try:
-        new_w = service.add_workout(workout_create, force=force)
+        new_w = service.add_workout(workout_create, user=user, force=force)
         return {"status": "success", "message": "Workout created", "id": new_w.id}
     except ValidationWarningError as e:
         return JSONResponse(
@@ -227,7 +266,8 @@ async def update_workout_endpoint(
     workout_id: int, 
     update_data: WorkoutUpdate,
     force: bool = False,
-    service: PlanService = Depends(get_plan_service)
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Update a specific workout (distance, type, description, etc).
@@ -252,7 +292,8 @@ async def update_workout_endpoint(
 @router.delete("/workouts/{workout_id}")
 async def delete_workout_endpoint(
     workout_id: int,
-    service: PlanService = Depends(get_plan_service)
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user)
 ):
     """
     Delete a specific planned workout.

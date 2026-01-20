@@ -58,13 +58,17 @@ class PlanService:
             days=domain_days
         )
 
-    def get_active_plan(self, username: str = None) -> List[WeekSchema]:
+    def get_active_plan(self, user: User = None) -> List[WeekSchema]:
         """
         Retrieves the active plan for the user.
         Prioritizes Relational DB -> JSON Blob in DB -> JSON File.
         """
-        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
-        statement = select(RunnerPlan).join(User).where(User.username == username).where(RunnerPlan.is_active == True)
+        if user:
+            statement = select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == True)
+        else:
+            username = os.environ.get("DEFAULT_USERNAME", "runner")
+            statement = select(RunnerPlan).join(User).where(User.username == username).where(RunnerPlan.is_active == True)
+            
         plan = self.session.exec(statement).first()
         
         plan_data = []
@@ -84,19 +88,20 @@ class PlanService:
         
         return [WeekSchema.model_validate(w) for w in plan_data]
 
-    def create_or_update_plan(self, plan_data: List[Dict[str, Any]], username: str = None, title: str = None, activate: bool = False) -> RunnerPlan:
+    def create_or_update_plan(self, plan_data: List[Dict[str, Any]], user: User = None, title: str = None, activate: bool = False) -> RunnerPlan:
         """
         Creates a new plan version. Optionally activates it.
         """
-        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
-        # Ensure user exists
-        user = self.session.exec(select(User).where(User.username == username)).first()
         if not user:
-            print(f"User '{username}' not found. Creating...")
-            user = User(username=username, email=f"{username}@example.com")
-            self.session.add(user)
-            self.session.commit()
-            self.session.refresh(user)
+            username = os.environ.get("DEFAULT_USERNAME", "runner")
+            # Ensure user exists
+            user = self.session.exec(select(User).where(User.username == username)).first()
+            if not user:
+                print(f"User '{username}' not found. Creating...")
+                user = User(username=username, email=f"{username}@example.com")
+                self.session.add(user)
+                self.session.commit()
+                self.session.refresh(user)
 
         if activate:
             self._deactivate_current_plans(user.id)
@@ -270,13 +275,17 @@ class PlanService:
         self.session.refresh(workout)
         return workout
 
-    def add_workout(self, creation_data: WorkoutCreate, username: str = None, force: bool = False) -> PlanWorkout:
+    def add_workout(self, creation_data: WorkoutCreate, user: User = None, force: bool = False) -> PlanWorkout:
         """
         Adds a new workout to the active plan.
         """
-        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
-        # 1. Get Active Plan
-        statement = select(RunnerPlan).join(User).where(User.username == username).where(RunnerPlan.is_active == True)
+        if not user:
+            username = os.environ.get("DEFAULT_USERNAME", "runner")
+            # 1. Get Active Plan
+            statement = select(RunnerPlan).join(User).where(User.username == username).where(RunnerPlan.is_active == True)
+        else:
+            statement = select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == True)
+            
         plan = self.session.exec(statement).first()
         if not plan:
              raise ValueError("No active plan found for user")

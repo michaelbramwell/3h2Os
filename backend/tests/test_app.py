@@ -4,6 +4,9 @@ from sqlalchemy.pool import StaticPool
 import pytest
 from app.main import app
 from app.core.database import get_session, RunnerPlan, User
+from app.routers.api import get_current_user
+from app.core.auth import verify_jwt_middleware
+from fastapi import Request
 
 # Use in-memory DB for tests
 @pytest.fixture(name="client")
@@ -21,8 +24,24 @@ def client_fixture():
     def get_session_override():
         with Session(engine) as session:
             yield session
-            
+
+    def get_current_user_override():
+         with Session(engine) as session:
+             user = session.exec(select(User).where(User.username == "test_runner")).first()
+             if not user:
+                 user = User(username="test_runner", email="test@runner.com")
+                 session.add(user)
+                 session.commit()
+                 session.refresh(user)
+             return user
+
+    async def verify_jwt_middleware_override(request: Request):
+        # Bypass auth for tests
+        return None
+
     app.dependency_overrides[get_session] = get_session_override
+    app.dependency_overrides[get_current_user] = get_current_user_override
+    app.dependency_overrides[verify_jwt_middleware] = verify_jwt_middleware_override
     
     with TestClient(app) as client:
         yield client
@@ -107,8 +126,8 @@ def test_get_plan_uses_relational_data(client):
     # 3. Sabotage the JSON blob in the DB to prove we read from Relational tables
     # using the engine we stored in app.state
     with Session(app.state.test_engine) as session:
-        # User is created by the POST logic in save_plan_to_db -> username="mike"
-        user = session.exec(select(User).where(User.username == "mike")).first()
+        # User is created by the POST logic in save_plan_to_db -> username="test_runner" (override)
+        user = session.exec(select(User).where(User.username == "test_runner")).first()
         plan = session.exec(select(RunnerPlan).where(RunnerPlan.user_id == user.id).where(RunnerPlan.is_active == True)).first()
         # Corrupt/Clear the blob
         plan.plan_json = "[]" 

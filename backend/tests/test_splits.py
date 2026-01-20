@@ -43,10 +43,10 @@ def test_save_and_retrieve_activity_with_splits(session):
     )
     
     # Save
-    service.save_activities([activity])
+    service.save_activities([activity], user=user)
     
     # Retrieve
-    activities = service.get_activities(username="runner")
+    activities = service.get_activities(user=user)
     assert len(activities) == 1
     saved_activity = activities[0]
     

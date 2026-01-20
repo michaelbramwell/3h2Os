@@ -11,15 +11,16 @@ class ActivityService:
     def __init__(self, session: Session):
         self.session = session
 
-    def save_activities(self, activities: List[ActivitySchema], username: str = None) -> int:
+    def save_activities(self, activities: List[ActivitySchema], user: User = None) -> int:
         """
         Saves a list of activities. Updates if activityId exists, else inserts.
         Returns count of saved activities.
         """
-        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
-        user = self.session.exec(select(User).where(User.username == username)).first()
         if not user:
-            raise ValueError(f"User {username} not found")
+            username = os.environ.get("DEFAULT_USERNAME", "runner")
+            user = self.session.exec(select(User).where(User.username == username)).first()
+            if not user:
+                raise ValueError(f"User not found")
 
         count = 0
         for act in activities:
@@ -68,9 +69,11 @@ class ActivityService:
         self.session.commit()
         return count
 
-    def get_activities(self, username: str = None) -> List[ActivitySchema]:
-        username = username or os.environ.get("DEFAULT_USERNAME", "runner")
-        user = self.session.exec(select(User).where(User.username == username)).first()
+    def get_activities(self, user: User = None) -> List[ActivitySchema]:
+        if not user:
+             username = os.environ.get("DEFAULT_USERNAME", "runner")
+             user = self.session.exec(select(User).where(User.username == username)).first()
+        
         if not user:
             return []
         
