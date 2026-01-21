@@ -11,9 +11,9 @@
 - [x] **Automated Documentation:** `generate_plan_md.py` to keep `marathon_plan.md` and `context.md` in sync.
 
 ## Phase 2: Data Integration & Intelligence (Weeks 1-4)
-- [x] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard.
+- [x] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard (UI Driven).
 - [x] **Weight Integration:** Mechanism to update current weight and track history via `update_weight.py`.
-- [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` to run hourly.
+- [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` (Deprecated in favor of UI sync).
 - [x] **Fridge Mode:** Print-friendly weekly sheets available via dashboard and CLI.
 - [x] **Zone Alignment:** Aligned pace zones with Strava ranges (Z1-Z6) and enriched documentation.
 - [x] **Dynamic Validation:** Guardrails logic (`reflect_and_validate.py`) to manage baselines, volume caps, and intelligent baseline detection (ignoring Rest/Race weeks).

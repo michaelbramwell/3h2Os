@@ -396,14 +396,8 @@ async def run_async(fetch_all: bool = False):
     await fetcher.save_actuals(activities)
 
 def main():
-    import argparse
-    import asyncio
-    
-    parser = argparse.ArgumentParser(description="Fetch Garmin actuals.")
-    parser.add_argument("--all", action="store_true", help="Fetch all actuals over the marathon plan period.")
-    args = parser.parse_args()
-    
-    asyncio.run(run_async(fetch_all=args.all))
+    print("Error: Automated fetch is deprecated. Please use the Web UI to sync activities because Garmin tokens are now stored locally in the browser for security.")
+    sys.exit(1)
 
 if __name__ == "__main__":
     main()

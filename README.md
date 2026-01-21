@@ -119,9 +119,8 @@ GitHub Pages hosts a static version of the site. The `scripts/build_static.py` s
 4.  **Deployment**: Build script copies JSON & HTML to root for GitHub Pages.
 
 ### 4. Sync to Garmin
-1. Copy `.env.example` to `.env`.
-2. Add your Garmin Connect credentials.
-3. Run the sync script:
+*Feature deprecated pending security updates/UI integration.*
+Original command was:
 ```bash
 uv run sync_to_garmin.py
 ```

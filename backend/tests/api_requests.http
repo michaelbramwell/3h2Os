@@ -12,6 +12,22 @@ GET {{baseUrl}}/api/context.json
 ### Get Actuals (JSON)
 GET {{baseUrl}}/api/actuals.json
 
+### POST Garmin Token (Auth)
+POST {{baseUrl}}/api/garmin/token
+Content-Type: application/json
+
+{
+    "email": "user@example.com",
+    "password": "password123"
+}
+
+### Sync Garmin Activities (Requires Token)
+# 1. First get the token from above or your browser local storage
+# 2. Add it to the header below
+POST {{baseUrl}}/api/integrations/garmin/sync?days=7
+X-Garmin-Token: <INSERT_BASE64_TOKEN_HERE>
+Content-Type: application/json
+
 ### Get Context Markdown
 GET {{baseUrl}}/api/context/markdown
 

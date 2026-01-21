@@ -213,9 +213,5 @@ class MarathonPlanSync:
                 logger.error(f"Failed to sync {entry['date']}: {e}")
 
 if __name__ == "__main__":
-    try:
-        syncer = MarathonPlanSync()
-        syncer.sync()
-    except Exception:
-        import traceback
-        traceback.print_exc()
+    print("Error: Automated sync to Garmin is temporarily disabled/deprecated due to security updates (Token Auth). Please wait for UI integration.")
+    sys.exit(1)
