@@ -5,15 +5,16 @@ Revises: f28be068126f
 Create Date: 2026-01-20 15:52:55.980280
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
-import sqlalchemy as sa
+# from alembic import op
+# import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1cd48c1e883a'
-down_revision: Union[str, Sequence[str], None] = 'f28be068126f'
+revision: str = "1cd48c1e883a"
+down_revision: Union[str, Sequence[str], None] = "f28be068126f"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

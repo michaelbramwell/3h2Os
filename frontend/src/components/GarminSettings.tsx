@@ -26,7 +26,7 @@ export function GarminSettings() {
         
         return () => {
              document.removeEventListener('mousedown', handleClickOutside);
-        }
+        };
     }, [isOpen]);
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -39,9 +39,10 @@ export function GarminSettings() {
             setPassword('');
             setIsOpen(false);
             toast.success("Garmin connected successfully");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error(error.response?.data?.detail || "Failed to connect to Garmin");
+            const errMsg = (error as any).response?.data?.detail || "Failed to connect to Garmin";
+            toast.error(errMsg);
         } finally {
             setIsLoading(false);
         }
@@ -130,5 +131,5 @@ export function GarminSettings() {
                  </div>
              )}
         </div>
-    )
+    );
 }

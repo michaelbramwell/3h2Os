@@ -72,16 +72,6 @@ function FuelingCard({ fueling }: { fueling?: FuelingStrategy }) {
     );
 }
 
-function formatPace(baseValue: number | undefined): string {
-    if (!baseValue || baseValue === 0) return '--:--';
-    // Handle both m/s (small) and seconds/km (large) inputs
-    const secondsPerKm = baseValue < 10 ? 1000 / baseValue : baseValue;
-    
-    const min = Math.floor(secondsPerKm / 60);
-    const sec = Math.floor(secondsPerKm % 60);
-    return `${min}:${sec.toString().padStart(2, '0')}`;
-}
-
 function ZonesCard({ zones }: { zones: RunnerContext['trainingZones'] }) {
     if (!zones || !zones.pace || zones.pace.length === 0) return null;
 

@@ -23,7 +23,7 @@ export function FridgeWeek({ week, weekIndex, context }: FridgeWeekProps) {
         const mins = Math.floor(secondsPerKm / 60);
         const secs = Math.floor(secondsPerKm % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
+    };
 
     // Zone Logic
     let easyLabel = "Easy: 5:45-6:15";
@@ -35,7 +35,7 @@ export function FridgeWeek({ week, weekIndex, context }: FridgeWeekProps) {
     // But user asked for 5:30-5:40 for MP? That allows for a very slow marathon (3h50+). 
     // Maybe it's "Marathon Pace" for a training block (Long Run pace vs Race Pace).
     // Sticking to user provided MP for stability unless context overrides.
-    let mpLabel = "MP: 5:30-5:40"; 
+    const mpLabel = "MP: 5:30-5:40"; 
 
     if (context?.runner?.trainingZones?.pace) {
         const zones = context.runner.trainingZones.pace;

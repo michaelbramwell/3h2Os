@@ -1,10 +1,8 @@
-from typing import Optional, Callable
 from fastapi import Request, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 from jose import jwt, JWTError
 import os
 import logging
-from functools import wraps
 
 # Constants
 # In production, these should be environment variables
@@ -14,14 +12,16 @@ ALGORITHMS = ["RS256"]
 
 logger = logging.getLogger("auth")
 
+
 class AuthManager:
     """
     Handles JWT validation and anonymous access control.
     """
+
     def __init__(self):
         self.jwks_client = None
         self.public_key = None
-        
+
     def get_public_key(self):
         """
         In a real scenario, this should fetch JWKS from Keycloak:
@@ -29,12 +29,14 @@ class AuthManager:
         For simplicity in this MVP, we might rely on the library to fetch or cache it.
         Or, we assume standard OIDC discovery.
         """
-        # For now, we'll let python-jose handle JWKS fetching if provided, 
-        # or just fail if not configured. 
+        # For now, we'll let python-jose handle JWKS fetching if provided,
+        # or just fail if not configured.
         # Ideally, we use a library like 'PyJWKClient' or fetch manually.
         pass
 
+
 security = HTTPBearer(auto_error=False)
+
 
 def allow_anonymous(func):
     """
@@ -42,6 +44,7 @@ def allow_anonymous(func):
     """
     setattr(func, "is_public", True)
     return func
+
 
 async def verify_jwt_middleware(request: Request):
     """
@@ -52,7 +55,7 @@ async def verify_jwt_middleware(request: Request):
     # Check if the endpoint handler is marked as public
     # This logic depends on how the dependency is attached.
     # If attached to APIRouter, 'request.scope["endpoint"]' gives us the function.
-    
+
     endpoint = request.scope.get("endpoint")
     is_public = getattr(endpoint, "is_public", False)
 
@@ -64,7 +67,7 @@ async def verify_jwt_middleware(request: Request):
 
     if not token:
         if is_public:
-            return None # Anonymous
+            return None  # Anonymous
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,26 +81,38 @@ async def verify_jwt_middleware(request: Request):
         # For this setup, we assume the token is valid if the IdP is trusted.
         # Ideally: unverified_header = jwt.get_unverified_header(token)
         # Verify signature using JWKS.
-        
+
         # PLEASE NOTE: Implementing full JWKS caching is complex.
         # For this MVP, since we don't have the Realm set up yet,
         # we will decode without signature verification strictly for development
         # OR warn.
-        
+
         # Real Implementation:
         # 1. Fetch https://localhost:8080/realms/running-realm/protocol/openid-connect/certs
         # 2. Find key matching kid
         # 3. Verify.
-        
+
         # Placeholder for now until Keycloak is running and realm exists
+        verify_signature_env = os.getenv("JWT_VERIFY_SIGNATURE", "true").lower()
+        verify_signature = verify_signature_env in ("1", "true", "yes")
+        if not verify_signature:
+            logger.warning(
+                "JWT signature verification is DISABLED via JWT_VERIFY_SIGNATURE=%s. "
+                "This should only be used in development environments.",
+                verify_signature_env,
+            )
+
         options = {
-            "verify_signature": False, # TODO: ENABLE THIS ONCE KEYCLOAK IS UP AND CONFIG IS PASSED
+            "verify_signature": verify_signature,
             "verify_aud": False,
-            "exp": True
+            "exp": True,
         }
-        
-        payload = jwt.decode(token, "secret", algorithms=ALGORITHMS, options=options)
-        
+
+        # Load public key from env or use dummy for dev if signature verification disabled
+        secret = os.getenv("JWT_PUBLIC_KEY", "secret")
+
+        payload = jwt.decode(token, secret, algorithms=ALGORITHMS, options=options)
+
         # Store user info in request state
         request.state.user = payload
         return payload
