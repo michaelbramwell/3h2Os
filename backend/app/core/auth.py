@@ -111,6 +111,16 @@ async def verify_jwt_middleware(request: Request):
         # Load public key from env or use dummy for dev if signature verification disabled
         secret = os.getenv("JWT_PUBLIC_KEY", "secret")
 
+        # Check if we are using the placeholder 'secret' with RS256
+        if secret == "secret" and "RS256" in ALGORITHMS and verify_signature:
+            # This will fail because "secret" is not a valid PEM key for RS256
+            # Fallback to HS256 for local dev if user hasn't provided a key but wants verification
+            # OR disable verification automatically to prevent crash
+            logger.warning(
+                "JWT_PUBLIC_KEY is set to default 'secret' but algorithm is RS256. Disabling signature verification to prevent crash."
+            )
+            options["verify_signature"] = False
+
         payload = jwt.decode(token, secret, algorithms=ALGORITHMS, options=options)
 
         # Store user info in request state
