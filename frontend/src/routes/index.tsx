@@ -7,6 +7,7 @@ import { RecentActivities } from '../components/RecentActivities'
 import { FridgeWeek } from '../components/FridgeWeek'
 import { ActivityModal } from '../components/ActivityModal'
 import { WeekCard } from '../components/WeekCard'
+import { GarminSettings } from '../components/GarminSettings'
 import { X } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
 
@@ -151,12 +152,13 @@ function Dashboard() {
       <div className="absolute top-4 right-4 z-50 flex gap-2 print:hidden">
          {auth.isAuthenticated ? (
              <div className="flex items-center gap-2 bg-white/50 backdrop-blur px-3 py-1.5 rounded-full border border-slate-200">
-                 <span className="text-xs text-slate-500 font-medium">
+                 <GarminSettings />
+                 <span className="text-xs text-slate-500 font-medium border-l border-slate-300 pl-2">
                     {auth.user?.profile.preferred_username || "User"}
                  </span>
                  <button 
                     onClick={() => auth.removeUser()}
-                    className="text-xs text-red-500 hover:text-red-700 font-bold ml-2"
+                    className="text-xs text-red-500 hover:text-red-700 font-bold ml-1"
                  >
                     Logout
                  </button>

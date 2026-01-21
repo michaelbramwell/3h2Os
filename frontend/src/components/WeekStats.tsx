@@ -1,6 +1,7 @@
 import { Printer, RefreshCw, Loader2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { syncActivities } from '../lib/api'
+import { useGarminToken } from '../hooks/useGarminToken'
 
 interface WeekStatsProps {
     weekStarting: string
@@ -26,6 +27,7 @@ export function WeekStats({
     onFridgeClick
 }: WeekStatsProps) {
     const queryClient = useQueryClient();
+    const { hasToken: hasGarminToken } = useGarminToken();
     const syncMutation = useMutation({
         mutationFn: () => syncActivities(7),
         onSuccess: () => {
@@ -42,7 +44,7 @@ export function WeekStats({
                         {(status === 'race' || status === 'marathon') && <span className="ml-2 text-yellow-600">🏆</span>}
                         {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
                     </h3>
-                    {isCurrentWeek && (
+                    {isCurrentWeek && hasGarminToken && (
                         <button
                             onClick={() => syncMutation.mutate()}
                             disabled={syncMutation.isPending}

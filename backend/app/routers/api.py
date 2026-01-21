@@ -13,7 +13,7 @@ from app.services.garmin import GarminService
 from app.core.validation import ValidationWarningError
 from dataclasses import asdict
 from app.schemas import (
-    WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate, WorkoutUpdate, WorkoutCreate
+    WeekSchema, PlanUpdateResponse, ContextSchema, ActivitySchema, PlanCreate, WorkoutUpdate, WorkoutCreate, GarminLogin, GarminToken
 )
 from pydantic import BaseModel
 import logging
@@ -192,32 +192,44 @@ async def get_actuals(
 
 @router.post("/integrations/garmin/sync")
 async def sync_garmin_activities(
+    request: Request,
     days: int = 7,
-    garmin_service: GarminService = Depends(get_garmin_service),
+    # Remove injection here, construct manually with header
+    # garmin_service: GarminService = Depends(get_garmin_service), 
     activity_service: ActivityService = Depends(get_activity_service),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
 ):
     """
     Syncs activities from Garmin Connect for the specified number of past days.
+    Requires X-Garmin-Token header.
     """
+    token = request.headers.get("X-Garmin-Token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing Garmin Token in headers")
+
     try:
-        # Use simple server time, defaulting to last N days
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
-        
-        # Determine username from context or environment? 
-        # GarminService pulls creds from env, so it's tied to the env user essentially.
-        
-        activities = garmin_service.fetch_activities(
-            start_date.strftime("%Y-%m-%d"), 
-            end_date.strftime("%Y-%m-%d")
-        )
-        
-        # Convert dataclasses to Pydantic models
-        schema_activities = [ActivitySchema(**asdict(a)) for a in activities]
-        
-        count = activity_service.save_activities(schema_activities, user=user)
-        return {"status": "success", "count": count, "message": f"Synced {count} activities."}
+        # Initialize service with token from header using context manager
+        with GarminService(session, token_b64=token) as garmin_service:
+            if not garmin_service.client:
+                 raise HTTPException(status_code=401, detail="Garmin token invalid or expired")
+
+            # Use simple server time, defaulting to last N days
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            
+            activities = garmin_service.fetch_activities(
+                start_date.strftime("%Y-%m-%d"), 
+                end_date.strftime("%Y-%m-%d")
+            )
+            
+            # Convert dataclasses to Pydantic models
+            schema_activities = [ActivitySchema(**asdict(a)) for a in activities]
+            
+            count = activity_service.save_activities(schema_activities, user=user)
+            return {"status": "success", "count": count, "message": f"Synced {count} activities."}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Sync failed: {e}")
         # Return 500 but with JSON detail
@@ -305,3 +317,20 @@ async def delete_workout_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/garmin/token", response_model=GarminToken, tags=["Garmin"])
+def get_garmin_token(creds: GarminLogin):
+    """
+    Authenticate with Garmin Connect using credentials and return an OAuth token archive.
+    The credentials are not stored on the server.
+    """
+    try:
+        # Use static method, no session needed for login generation
+        token_str = GarminService.generate_tokens(creds.email, creds.password)
+        return {"token": token_str}
+    except ValueError as e:
+        logger.warning(f"Garmin auth failed: {e}")
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception as e:
+        logger.error(f"Garmin auth internal error: {e}")
+        raise HTTPException(status_code=500, detail="Internal Service Error")

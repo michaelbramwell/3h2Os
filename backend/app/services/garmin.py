@@ -4,6 +4,10 @@ import sys
 import base64
 import zipfile
 import io
+import json
+import tempfile
+import shutil
+import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
 
@@ -17,54 +21,115 @@ from app.core.database import User
 logger = logging.getLogger(__name__)
 
 class GarminService:
-    def __init__(self, session: Optional[Session] = None):
+    def __init__(self, session: Optional[Session] = None, token_b64: Optional[str] = None):
         self.session = session
-        self.email = os.getenv("GARMIN_EMAIL")
-        self.password = os.getenv("GARMIN_PASSWORD")
-        self.tokens_b64 = os.getenv("GARMIN_TOKENS")
+        self.tokens_b64 = token_b64
         self.client = None
-        self._login()
+        self.temp_dir = None
+        
+        # Only attempt login if token is provided (stateless/frontend-driven)
+        if self.tokens_b64:
+            self._login()
+            
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+
+    def cleanup(self):
+        if self.temp_dir and os.path.exists(self.temp_dir):
+            try:
+                shutil.rmtree(self.temp_dir)
+                logger.debug(f"Cleaned up temp Garmin directory: {self.temp_dir}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp Garmin directory {self.temp_dir}: {e}")
+        self.temp_dir = None
 
     def _login(self):
         if self.tokens_b64:
             try:
+                # Create a unique temp directory for this request session
+                session_id = str(uuid.uuid4())
+                self.temp_dir = os.path.join(tempfile.gettempdir(), f"garth_session_{session_id}")
+                os.makedirs(self.temp_dir, exist_ok=True)
+
                 self.tokens_b64 = self.tokens_b64.strip()
-                token_dir = os.path.expanduser("~/.garth")
-                if not os.path.exists(token_dir):
-                    os.makedirs(token_dir)
                 
                 # Decode and extract
                 zip_data = base64.b64decode(self.tokens_b64)
                 with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
-                    zf.extractall(token_dir)
-                logger.info("Restored Garmin tokens from environment variable.")
+                    zf.extractall(self.temp_dir)
+                logger.debug(f"Restored Garmin tokens to temp dir: {self.temp_dir}")
             except Exception as e:
                 logger.warning(f"Failed to restore tokens: {e}")
+                if self.temp_dir: 
+                    self.cleanup()
+                return
 
-        # 1. Try token login (no creds needed if tokens are valid)
+        # 1. Try token login with the specific temp directory
         try:
-            logger.info("Attempting login with stored tokens...")
+            logger.info("Attempting login with provided tokens...")
             self.client = Garmin()
-            self.client.login(os.path.expanduser("~/.garth"))
+            # login(path) tells garth where to load tokens from
+            self.client.login(self.temp_dir)
             logger.info(f"Successfully logged in with tokens as {self.client.display_name}")
             return
         except Exception as e_token:
             logger.warning(f"Token login failed: {e_token}")
             self.client = None
+            self.cleanup()
 
-        # 2. Fallback to password login
-        if not self.email or not self.password:
-            logger.error("Login failed and GARMIN_EMAIL/GARMIN_PASSWORD not set.")
-            raise ValueError("Garmin credentials not configured")
-            
+
+        # 2. Fallback to password login - REMOVED per user request
+        # if not self.email or not self.password: ...
+        
+        # If we reach here and self.client is None, it means token login failed or no token provided.
+        # We do not fallback to env vars anymore.
+        if not self.client:
+             logger.warning("Garmin Service initialized but no valid token provided or token login failed.")
+
+    @staticmethod
+    def generate_tokens(email: str, password: str) -> str:
+        # Create a unique temp directory for this login attempt to avoid collisions
+        session_id = str(uuid.uuid4())
+        # Use standard temp dir
+        temp_dir = os.path.join(tempfile.gettempdir(), f"garth_{session_id}")
+        os.makedirs(temp_dir, exist_ok=True)
+        
         try:
-            logger.info("Attempting login with credentials...")
-            self.client = Garmin(self.email, self.password)
-            self.client.login()
-            logger.info(f"Successfully logged in with credentials as {self.client.display_name}")
+            # Login
+            client = Garmin(email, password)
+            # Perform login without passing a path to avoid attempting to load non-existent/invalid tokens
+            # This forces a fresh login using the provided credentials
+            client.login() 
+            
+            # Now save the tokens to our temp directory so we can zip them
+            # garminconnect wraps garth, which handles the tokens
+            if hasattr(client, 'garth'):
+                client.garth.dump(temp_dir)
+            else:
+                 raise Exception("Garmin client does not expose garth attribute")
+
+            # Zip the directory in memory
+            
+            # Zip the directory in memory
+            bio = io.BytesIO()
+            with zipfile.ZipFile(bio, "w", zipfile.ZIP_DEFLATED) as zf:
+                for root, _, files in os.walk(temp_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        # Archive name should be relative to temp_dir (e.g., 'oauth1_token')
+                        arcname = os.path.relpath(file_path, temp_dir)
+                        zf.write(file_path, arcname)
+            
+            return base64.b64encode(bio.getvalue()).decode("utf-8")
         except Exception as e:
             logger.error(f"Login failed: {e}")
-            raise
+            raise ValueError(f"Garmin login failed: {str(e)}")
+        finally:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
 
     def fetch_activities(self, start_date: str, end_date: str) -> List[ActualActivity]:
         """Fetches activities between start_date and end_date (YYYY-MM-DD)."""

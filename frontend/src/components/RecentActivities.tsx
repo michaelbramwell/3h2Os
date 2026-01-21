@@ -4,6 +4,7 @@ import { ActivityModal } from './ActivityModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { syncActivities } from '../lib/api';
 import { RefreshCw, Loader2 } from 'lucide-react';
+import { useGarminToken } from '../hooks/useGarminToken';
 
 interface RecentActivitiesProps {
     activities: Activity[];
@@ -12,6 +13,8 @@ interface RecentActivitiesProps {
 export function RecentActivities({ activities }: RecentActivitiesProps) {
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
     const queryClient = useQueryClient();
+    const { hasToken: hasGarminToken } = useGarminToken();
+
 
     const syncMutation = useMutation({
         mutationFn: () => syncActivities(7),
@@ -33,15 +36,17 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
             <div className="bg-white rounded-lg shadow p-6 border border-slate-200 relative z-0">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Activities</h3>
-                    <button 
-                        onClick={() => syncMutation.mutate()} 
-                        disabled={syncMutation.isPending}
-                        className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
-                        title="Fetch latest activities from Garmin"
-                    >
-                        {syncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                        {syncMutation.isPending ? 'Syncing...' : 'Scan for new runs'}
-                    </button>
+                    {hasGarminToken && (
+                        <button 
+                            onClick={() => syncMutation.mutate()} 
+                            disabled={syncMutation.isPending}
+                            className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+                            title="Fetch latest activities from Garmin"
+                        >
+                            {syncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            {syncMutation.isPending ? 'Syncing...' : 'Scan for new runs'}
+                        </button>
+                    )}
                 </div>
                 
                 {sortedActivities.length === 0 ? (
