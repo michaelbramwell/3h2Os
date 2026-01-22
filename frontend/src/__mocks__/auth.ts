@@ -1,8 +1,7 @@
-import '@testing-library/jest-dom';
+// Mock Auth Hook
 import { vi } from 'vitest';
 
-// Global Auth Mock
-const mockAuth = {
+export const mockAuth = {
     isAuthenticated: true,
     user: {
         profile: {
@@ -19,5 +18,5 @@ const mockAuth = {
 
 vi.mock('react-oidc-context', () => ({
     useAuth: () => mockAuth,
-    AuthProvider: ({ children }: { children: any }) => children
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));

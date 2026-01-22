@@ -7,6 +7,7 @@ The frontend for the 3h2Os marathon training dashboard, built with React, Vite, 
 - **Routing:** TanStack Router (File-based routing)
 - **State Management:** TanStack Query
 - **Styling:** Tailwind CSS
+- **Authentication:** OIDC Client (Keycloak)
 - **Language:** TypeScript
 
 ## Getting Started
@@ -21,6 +22,8 @@ The frontend for the 3h2Os marathon training dashboard, built with React, Vite, 
    npm run dev
    ```
    Access the app at `http://localhost:5173`.
+   
+   **Note:** The app requires a running Keycloak instance for authentication. If the backend is running via Docker, this is handled automatically.
 
 3. **Build for Production:**
    ```bash

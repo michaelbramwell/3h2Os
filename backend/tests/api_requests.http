@@ -15,6 +15,7 @@ GET {{baseUrl}}/api/actuals.json
 ### POST Garmin Token (Auth)
 POST {{baseUrl}}/api/garmin/token
 Content-Type: application/json
+Authorization: Bearer <INSERT_JWT_TOKEN_HERE>
 
 {
     "email": "user@example.com",

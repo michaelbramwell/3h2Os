@@ -24,3 +24,5 @@ data/database.db
 # /plan.json
 # /context.json
 # /actuals.json
+backend/certs/
+certs/

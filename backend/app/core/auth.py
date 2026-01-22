@@ -108,8 +108,19 @@ async def verify_jwt_middleware(request: Request):
             "exp": True,
         }
 
-        # Load public key from env or use dummy for dev if signature verification disabled
-        secret = os.getenv("JWT_PUBLIC_KEY", "secret")
+        # Load public key: Try file path first (Prod/Best Practice), then raw Env var, then default
+        secret = None
+        key_path = os.getenv("JWT_PUBLIC_KEY_PATH")
+
+        if key_path and os.path.exists(key_path):
+            try:
+                with open(key_path, "r") as f:
+                    secret = f.read()
+            except Exception as e:
+                logger.error(f"Failed to read public key from {key_path}: {e}")
+
+        if not secret:
+            secret = os.getenv("JWT_PUBLIC_KEY", "secret")
 
         # Check if we are using the placeholder 'secret' with RS256
         if secret == "secret" and "RS256" in ALGORITHMS and verify_signature:
