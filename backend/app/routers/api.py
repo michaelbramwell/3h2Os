@@ -258,6 +258,18 @@ async def sync_garmin_activities(
             schema_activities = [ActivitySchema(**asdict(a)) for a in activities]
 
             count = activity_service.save_activities(schema_activities, user=user)
+
+            # Trigger plan recalculation based on new actuals
+            try:
+                # Instantiate PlanService (using existing session/user)
+                # Note: We rely on the fact that 'session' is still open.
+                plan_service = PlanService(session)
+                plan_service.recalculate_plan_progression(user)
+                logger.info(f"Triggered plan recalculation for user {user.username}")
+            except Exception as pe:
+                logger.error(f"Plan recalculation failed after sync: {pe}")
+                # We don't fail the sync request itself, just log the error
+
             return {
                 "status": "success",
                 "count": count,
