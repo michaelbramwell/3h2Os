@@ -6,7 +6,7 @@ __pycache__/
 
 # Environment variables (Sensitive data)
 .env
-
+deployment_config_checklist.txt
 # OS specific
 .DS_Store
 Thumbs.db
