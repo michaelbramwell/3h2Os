@@ -52,12 +52,15 @@ class ValidationEngine:
             if diff > 5000:
                 ratio = curr_vol / prev_vol
                 if ratio > self.max_volume_increase_ratio:
+                    # Debug breakdown
+                    breakdown = self._debug_volume_breakdown(current_week)
+
                     # We allow a grace buffer for very low mileage weeks (e.g. going 10k -> 12k is >10% but fine)
                     # But for now, strict %
                     issues.append(
                         ValidationIssue(
                             severity="error",
-                            message=f"Saving this activity puts the weekly volume at {curr_vol / 1000:.1f}km ({(ratio - 1) * 100:.1f}% increase over previous week). Max recommended increase is {int((self.max_volume_increase_ratio - 1) * 100)}%.",
+                            message=f"Saving this activity puts the weekly volume at {curr_vol / 1000:.1f}km ({(ratio - 1) * 100:.1f}% increase over previous week). Max recommended increase is {int((self.max_volume_increase_ratio - 1) * 100)}%. (Included: {breakdown})",
                             rule_id="volume_progression",
                             context={"prev": prev_vol, "curr": curr_vol},
                         )
@@ -85,6 +88,14 @@ class ValidationEngine:
         issues.extend(self.validate_structure(current_week, focused_workout))
 
         return issues
+
+    def _debug_volume_breakdown(self, week: Week) -> str:
+        parts = []
+        for d in week.days.values():
+            for w in d.workouts:
+                if is_running_activity(w.type):
+                    parts.append(f"{w.name}({w.type})={int(w.distance_m / 1000)}k")
+        return ", ".join(parts)
 
     def validate_structure(
         self, week: Week, focused_workout: Optional[Workout] = None

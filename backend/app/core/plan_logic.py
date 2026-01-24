@@ -169,7 +169,7 @@ def is_running_activity(activity_type: str) -> bool:
     if not activity_type:
         return False
 
-    w_type = str(activity_type).lower()
+    w_type = str(activity_type).lower().strip()
 
     # 1. Explicit Exclusions (Cross-Training)
     excluded_keywords = [
@@ -181,6 +181,7 @@ def is_running_activity(activity_type: str) -> bool:
         "cross",
         "strength",
         "yoga",
+        "ride",
         "other",
     ]
     if any(ex in w_type for ex in excluded_keywords):
@@ -211,7 +212,11 @@ def is_running_activity(activity_type: str) -> bool:
     if any(rt in w_type for rt in RUNNING_TYPES):
         return True
 
-    return False
+    # If the ActivityType is the literal string "ActivityType.RUN", handle it.
+    if "activitytype.run" in w_type:
+        return True
+
+    return True  # Default to True for unknown types (safe fallback for volume)
 
 
 def get_week_volume(week: Union[WeekSchema, DomainWeek]) -> float:

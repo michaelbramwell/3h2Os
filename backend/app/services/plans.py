@@ -204,8 +204,16 @@ class PlanService:
             # Simulate Change
             simulated_workouts = []
             target_simulated = None
+
+            print(
+                f"DEBUG: Updating workout_id={workout_id}. UpdateData={update_data.model_dump(exclude_unset=True)}"
+            )
+
             for w in current_workouts:
                 if w.id == workout_id:
+                    print(
+                        f"DEBUG: Found workout match! ID={w.id}. Current Dist={w.distance_m}"
+                    )
                     # Create a detached copy with updates
                     updated_w = PlanWorkout(**w.model_dump())
                     updated_w.id = w.id  # Keep ID for logic
@@ -213,10 +221,17 @@ class PlanService:
                     data = update_data.model_dump(exclude_unset=True)
                     plan_logic.apply_workout_updates(updated_w, data)
 
+                    print(f"DEBUG: Updated Dist={updated_w.distance_m}")
+
                     simulated_workouts.append(updated_w)
                     target_simulated = updated_w
                 else:
                     simulated_workouts.append(w)
+
+            if not target_simulated:
+                print(
+                    f"DEBUG: CRITICAL - No workout matched ID {workout_id} in current_workouts list: {[w.id for w in current_workouts]}"
+                )
 
             self._validate_progression_safely(
                 target_week, simulated_workouts, target_simulated
