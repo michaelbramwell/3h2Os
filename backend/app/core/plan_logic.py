@@ -161,10 +161,32 @@ def sync_workout_name_to_distance(workout: Any) -> None:
             setattr(workout, "name", new_name)
 
 
-def get_week_volume(week: Union[WeekSchema, DomainWeek]) -> float:
-    """Calculates total distance for a WeekSchema or DomainWeek, strictly counting ONLY running activities."""
-    total = 0.0
-    # normalize types to lower case for comparison
+def is_running_activity(activity_type: str) -> bool:
+    """
+    Determines if an activity type string corresponds to a running activity.
+    Centralized logic for filtering out cross-training (cycling, swimming, etc).
+    """
+    if not activity_type:
+        return False
+
+    w_type = str(activity_type).lower()
+
+    # 1. Explicit Exclusions (Cross-Training)
+    excluded_keywords = [
+        "cycling",
+        "swimming",
+        "bike",
+        "swim",
+        "pool",
+        "cross",
+        "strength",
+        "yoga",
+        "other",
+    ]
+    if any(ex in w_type for ex in excluded_keywords):
+        return False
+
+    # 2. Known Running Types
     RUNNING_TYPES = [
         "run",
         "running",
@@ -185,30 +207,20 @@ def get_week_volume(week: Union[WeekSchema, DomainWeek]) -> float:
         "cooldown",
     ]
 
+    # If it matches a known running type
+    if any(rt in w_type for rt in RUNNING_TYPES):
+        return True
+
+    return False
+
+
+def get_week_volume(week: Union[WeekSchema, DomainWeek]) -> float:
+    """Calculates total distance for a WeekSchema or DomainWeek, strictly counting ONLY running activities."""
+    total = 0.0
+
     for day in week.days.values():
         for w in day.workouts:
-            # Check against running types.
-            # Note: w.type might be an Enum or string depending on where it came from (schema vs domain),
-            # but in WeekSchema it is likely a string or ActivityType enum.
-            w_type = str(w.type).lower()
-
-            # Explicitly exclude non-running
-            if w_type in [
-                "cycling",
-                "swimming",
-                "bike",
-                "swim",
-                "pool",
-                "cross",
-                "strength",
-                "yoga",
-                "other",
-            ]:
-                continue
-
-            # If it's a known running type OR just standard "Run"
-            # Also catch generic cases where type might be "ActivityType.RUN" string representation
-            if any(rt in w_type for rt in RUNNING_TYPES):
+            if is_running_activity(w.type):
                 total += w.distance_m
 
     return total

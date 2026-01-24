@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 from app.models.domain import Week, Workout, ActivityType
-from app.core.plan_logic import get_week_volume
+from app.core.plan_logic import get_week_volume, is_running_activity
 
 
 @dataclass
@@ -172,12 +172,18 @@ class ValidationEngine:
             "hill",
             "hills",
         ]
+
         total = 0
         if not week.days:
             return 0
         for day in week.days.values():
             for w in day.workouts:
-                w_type = w.type.lower()
+                # First check: Is it even a running activity?
+                if not is_running_activity(w.type):
+                    continue
+
+                w_type = str(w.type).lower()
+
                 # Check for "Mixed" types or if type is just a description
                 if any(t in w_type for t in INTENSITY_TYPES):
                     total += w.distance_m
@@ -187,9 +193,10 @@ class ValidationEngine:
         longest = None
         if not week.days:
             return None
+
         for day in week.days.values():
             for w in day.workouts:
-                if w.type in [ActivityType.CYCLING, ActivityType.SWIMMING]:
+                if not is_running_activity(w.type):
                     continue
                 if longest is None or w.distance_m > longest.distance_m:
                     longest = w
