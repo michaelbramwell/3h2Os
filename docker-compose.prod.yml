@@ -1,0 +1,101 @@
+services:
+  caddy:
+    image: caddy:alpine
+    container_name: caddy_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+      - keycloak
+    networks:
+      - default
+
+  frontend:
+    image: ghcr.io/${IMAGE_NAME}-frontend:latest
+    container_name: running_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - default
+
+  backend:
+    image: ghcr.io/${IMAGE_NAME}-backend:latest
+    container_name: running_app
+    restart: unless-stopped
+    volumes:
+      - backend_data:/app/data
+      - ./backend/certs:/app/certs:ro
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - JWT_VERIFY_SIGNATURE=true
+      - JWT_PUBLIC_KEY_PATH=/app/certs/public_key.pem
+    command: /bin/sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+
+  db:
+    image: postgres:15-alpine
+    container_name: running_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init_keycloak.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: running_idp
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: auth.${DOMAIN}
+      KC_PROXY: edge
+    command: start --import-realm
+    volumes:
+      - ./keycloak-realm.json:/opt/keycloak/data/import/realm.json:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  backend_data:
+
+networks:
+  default:
+    driver: bridge
