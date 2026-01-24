@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { syncActivities } from '../lib/api'
 import { useGarminToken } from '../hooks/useGarminToken'
 
+import { formatDistance } from '../lib/formatters'
+
 interface WeekStatsProps {
     weekStarting: string
     status: string
@@ -64,15 +66,15 @@ export function WeekStats({
             <div className="flex gap-4 md:gap-8 bg-white/50 p-2 rounded-lg border border-slate-100 text-xs md:text-sm">
                 <div className="text-center">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Target</div>
-                    <div className="font-bold text-slate-700">{(weekTargetM / 1000).toFixed(0)}km</div>
+                    <div className="font-bold text-slate-700">{formatDistance(weekTargetM, 0)}km</div>
                 </div>
                 <div className="text-center">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Actual</div>
-                    <div className={`font-bold ${weekActualM > 0 ? 'text-green-600' : 'text-slate-300'}`}>{(weekActualM / 1000).toFixed(1)}km</div>
+                    <div className={`font-bold ${weekActualM > 0 ? 'text-green-600' : 'text-slate-300'}`}>{formatDistance(weekActualM)}km</div>
                 </div>
                 <div className="text-center border-l border-slate-200 pl-4">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Projected</div>
-                    <div className="font-bold text-blue-600">{(projectedM / 1000).toFixed(1)}km</div>
+                    <div className="font-bold text-blue-600">{formatDistance(projectedM)}km</div>
                 </div>
                 <div className="text-center hidden sm:block">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Diff</div>

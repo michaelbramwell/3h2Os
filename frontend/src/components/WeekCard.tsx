@@ -1,6 +1,7 @@
 import type { Week, Activity, Day } from '../types/schema'
 import { WeekStats } from './WeekStats'
 import { DayCard } from './DayCard'
+import { calculateWeekVolume, calculateWeekActuals, calculateRemainingWeekVolume } from '../lib/calculations'
 
 interface WeekCardProps {
     week: Week
@@ -38,36 +39,9 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
     const weekStyle = getWeekStyle(status, isCurrentWeek);
     
     // --- Stats Calculation ---
-    let weekTargetM = 0;
-    let weekRemainingM = 0;
-
-    // 1. Calculate Target & Remaining from Plan
-    Object.values(week.days).forEach((day: Day) => {
-        if (day.workouts) {
-            day.workouts.forEach((w: any) => {
-                const type = w.type?.toLowerCase() || '';
-                // Filter: Only include Running-based activities
-                if (type === 'cycling' || type === 'swimming') return;
-
-                const dist = w.distance_m || 0;
-                weekTargetM += dist;
-                if (day.date > todayStr) {
-                    weekRemainingM += dist;
-                }
-            });
-        }
-    });
-
-    // 2. Calculate Actuals from Activity Log
-    const weekActuals = actuals.filter((a: Activity) => weekDatesSet.has(a.date));
-    
-    let weekActualM = 0;
-    weekActuals.forEach(a => {
-            // Strict Filter: Only running and trail running
-            if (a.type === 'running' || a.type === 'trail_running') {
-                weekActualM += (a.distance_m || 0);
-            }
-    });
+    const weekTargetM = calculateWeekVolume(week);
+    const weekActualM = calculateWeekActuals(actuals, week);
+    const weekRemainingM = calculateRemainingWeekVolume(week, todayStr);
 
     const projectedM = weekActualM + weekRemainingM;
     const diffM = projectedM - weekTargetM;

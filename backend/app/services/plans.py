@@ -4,6 +4,7 @@ import json
 import os
 from typing import List, Dict, Any
 
+from app.core import plan_logic
 from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout, ActualActivity
 from app.core.mappers import plan_to_relational, relational_to_plan
 from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate
@@ -19,51 +20,6 @@ class PlanService:
     def __init__(self, session: Session):
         self.session = session
         self.validator = ValidationEngine()
-
-    def _create_domain_week(
-        self, plan_week: PlanWeek, updated_workouts: List[PlanWorkout] = None
-    ) -> DomainWeek:
-        # If no updated list is provided, fetch from DB
-        if updated_workouts is None:
-            updated_workouts = self.session.exec(
-                select(PlanWorkout).where(PlanWorkout.week_id == plan_week.id)
-            ).all()
-
-        # Group by Day Name
-        days_map = {k: [] for k in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]}
-
-        week_start = plan_week.start_date
-
-        # Populate workouts
-        for w in updated_workouts:
-            d_work = DomainWorkout(
-                name=w.name,
-                type=w.activity_type,
-                distance_m=w.distance_m,
-                timeOfDay=w.time_of_day,
-            )
-            # Find which day index
-            if not w.date:
-                continue
-            days_diff = (w.date - week_start).days
-            day_keys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            if 0 <= days_diff < 7:
-                days_map[day_keys[days_diff]].append(d_work)
-
-        # Build Domain Days
-        domain_days = {}
-        day_keys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-        for i, key in enumerate(day_keys):
-            d_date = week_start + timedelta(days=i)
-            domain_days[key] = DomainDay(
-                date=d_date.isoformat(), workouts=days_map[key]
-            )
-
-        return DomainWeek(
-            weekStarting=week_start.isoformat(),
-            status=plan_week.status,
-            days=domain_days,
-        )
 
     def get_active_plan(self, user: User = None) -> List[WeekSchema]:
         """
@@ -198,60 +154,31 @@ class PlanService:
             .where(PlanWeek.start_date == prev_week_start)
         ).first()
 
-        # 2. Create Domain Weeks
-        domain_curr = self._create_domain_week(week, simulated_workouts)
-        domain_prev = (
-            self._create_domain_week(prev_week)
-            if prev_week
-            else DomainWeek(weekStarting="1970-01-01", status="normal", days={})
+        prev_workouts = []
+        prev_status = "normal"
+        if prev_week:
+            prev_workouts = self.session.exec(
+                select(PlanWorkout).where(PlanWorkout.week_id == prev_week.id)
+            ).all()
+            prev_status = prev_week.status
+
+        # 2. Prepare Data via Pure Logic
+        domain_prev, domain_curr, domain_focused = plan_logic.prepare_validation_data(
+            target_week_start=week.start_date,
+            target_week_status=week.status,
+            target_workouts=simulated_workouts,
+            focused_workout=focused_workout,
+            prev_week_start=prev_week_start,
+            prev_week_status=prev_status,
+            prev_week_workouts=prev_workouts,
         )
 
-        # 3. Construct Domain Workout for focus
-        domain_focused_workout = DomainWorkout(
-            name=focused_workout.name,
-            type=focused_workout.activity_type,
-            distance_m=focused_workout.distance_m,
-            timeOfDay=focused_workout.time_of_day,
-        )
-
-        # 4. Validate
+        # 3. Validate
         issues = self.validator.validate_progression(
-            domain_prev, domain_curr, focused_workout=domain_focused_workout
+            domain_prev, domain_curr, focused_workout=domain_focused
         )
         if issues:
             raise ValidationWarningError(issues)
-
-    def _apply_workout_updates(
-        self, workout: PlanWorkout, update_data: WorkoutUpdate | Dict[str, Any]
-    ):
-        """Helper to apply updates from schema to DB model"""
-        data = update_data
-        if hasattr(update_data, "model_dump"):
-            data = update_data.model_dump(exclude_unset=True)
-
-        if "type" in data:
-            workout.activity_type = data.pop("type")
-        if "timeOfDay" in data:
-            workout.time_of_day = data.pop("timeOfDay")
-
-        for key, value in data.items():
-            if hasattr(workout, key):
-                setattr(workout, key, value)
-
-    def _update_workout_name_distance(self, workout: PlanWorkout):
-        """Updates workout name string to match its distance if it follows standard patterns"""
-        import re
-
-        km_val = workout.distance_m / 1000
-        # Match "8k Run", "10.5k Jog" etc.
-        if re.match(r"^\d+(\.\d+)?k\s", workout.name, re.IGNORECASE):
-            parts = workout.name.split(" ", 1)
-            if len(parts) > 1:
-                suffix = parts[1]
-                if km_val.is_integer():
-                    workout.name = f"{int(km_val)}k {suffix}"
-                else:
-                    workout.name = f"{km_val:g}k {suffix}"
 
     def update_workout(
         self, workout_id: int, update_data: WorkoutUpdate, force: bool = False
@@ -264,7 +191,7 @@ class PlanService:
             raise ValueError(f"Workout with ID {workout_id} not found")
 
         # Prevent editing past workouts
-        if workout.date < date.today():
+        if not force and workout.date < date.today():
             raise ValueError("Cannot edit workouts that have already occurred")
 
         # Validation Logic (Progression / Safety)
@@ -282,7 +209,10 @@ class PlanService:
                     # Create a detached copy with updates
                     updated_w = PlanWorkout(**w.model_dump())
                     updated_w.id = w.id  # Keep ID for logic
-                    self._apply_workout_updates(updated_w, update_data)
+
+                    data = update_data.model_dump(exclude_unset=True)
+                    plan_logic.apply_workout_updates(updated_w, data)
+
                     simulated_workouts.append(updated_w)
                     target_simulated = updated_w
                 else:
@@ -293,7 +223,7 @@ class PlanService:
             )
 
         # Check for completed actuals today
-        if workout.date == date.today():
+        if not force and workout.date == date.today():
             week = self.session.get(PlanWeek, workout.week_id)
             if week:
                 plan = self.session.get(RunnerPlan, week.plan_id)
@@ -309,7 +239,8 @@ class PlanService:
                         )
 
         # Apply actual updates
-        self._apply_workout_updates(workout, update_data)
+        data = update_data.model_dump(exclude_unset=True)
+        plan_logic.apply_workout_updates(workout, data)
 
         self.session.add(workout)
         self.session.commit()
@@ -425,37 +356,6 @@ class PlanService:
                 total += act.distance_m
         return total
 
-    def _get_week_volume(self, week: WeekSchema) -> float:
-        total = 0.0
-        for day in week.days.values():
-            for w in day.workouts:
-                total += w.distance_m
-        return total
-
-    def _set_week_volume(self, week: WeekSchema, target_vol: float):
-        current = self._get_week_volume(week)
-        if current == 0:
-            return
-
-        scale = target_vol / current
-
-        for day in week.days.values():
-            for w in day.workouts:
-                if "marathon" in w.name.lower() or "42.2" in w.name:
-                    continue
-
-                new_dist = w.distance_m * scale
-
-                if "race" in w.type.lower():
-                    w.distance_m = new_dist
-                else:
-                    # Round to nearest 1000m
-                    w.distance_m = round(new_dist / 1000) * 1000
-
-                # Update Name
-                
-                self._update_workout_name_distance(w)
-
     def recalculate_plan_progression(self, user: User) -> None:
         """
         Recalculates the plan progression based on actual activity volume.
@@ -498,45 +398,12 @@ class PlanService:
         else:
             current_baseline_vol = DEFAULT_BASE_VOLUME_KM * 1000
 
-        # 5. Iterate and Update
-        for i in range(start_index, len(weeks_schema)):
-            week = weeks_schema[i]
-            status = week.status.lower()
-
-            has_race = False
-            for d in week.days.values():
-                for w in d.workouts:
-                    if "race" in w.type.lower():
-                        has_race = True
-
-            target_vol = 0
-
-            if status == "normal" and not has_race:
-                # Build phase: 7% increase
-                build_factor = 1.07
-                target_vol = current_baseline_vol * build_factor
-                current_baseline_vol = target_vol  # Update baseline for next week
-                self._set_week_volume(week, target_vol)
-
-            elif status in ["rest", "recovery"]:
-                drop_factor = 0.65
-                target_vol = current_baseline_vol * drop_factor
-                # Do not update baseline
-                self._set_week_volume(week, target_vol)
-
-            elif status == "taper":
-                target_vol = current_baseline_vol * 0.60
-                self._set_week_volume(week, target_vol)
-
-            elif status == "race" or has_race:
-                # Cap if exceeds baseline?
-                curr_vol = self._get_week_volume(week)
-                if curr_vol > current_baseline_vol:
-                    self._set_week_volume(week, current_baseline_vol)
-                # Do not update baseline
-
-            elif status == "marathon":
-                pass
+        # 5. Calculate Progression (Pure Logic)
+        plan_logic.calculate_future_progression(
+            weeks_schema,
+            start_index=start_index,
+            initial_baseline_vol=current_baseline_vol,
+        )
 
         # 6. Save
         plan_data = [w.model_dump() for w in weeks_schema]

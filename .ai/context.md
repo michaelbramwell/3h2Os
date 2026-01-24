@@ -18,7 +18,8 @@ When working in this workspace, always refer to the following files to maintain 
 
 ### Guidelines:
 - **Node Environment**: Always run `nvml` before executing any node/npm commands on the host machine.
-- **Docker Environment**: The application runs natively in Docker. 
+- **Docker Environment**: The application runs natively in Docker.
+  - **Environment**: This project is fully containerized. Use `docker-compose` for orchestration.
   - **Execution**: Run scripts/migrations inside the container: `docker exec running_app uv run ...`
   - **Changes**: Restart container (`docker restart running_app`) to apply backend code changes if hot-reload isn't active/working.
 - **Timezone**: All automated logic and date-logging MUST use AWST (Perth, UTC+8).

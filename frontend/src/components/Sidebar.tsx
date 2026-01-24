@@ -1,6 +1,7 @@
 import type { ContextData, RunnerContext, FuelingStrategy } from '../types/schema';
 import { WeightChart } from './WeightChart';
 import { ContextSection } from './ContextSection';
+import { getZoneLabel } from '../lib/calculations';
 
 interface SidebarProps {
     context: ContextData;
@@ -75,43 +76,17 @@ function FuelingCard({ fueling }: { fueling?: FuelingStrategy }) {
 function ZonesCard({ zones }: { zones: RunnerContext['trainingZones'] }) {
     if (!zones || !zones.pace || zones.pace.length === 0) return null;
 
-    const zp = zones.pace;
-    const z2 = zp.find(z => z.zone === 2);
-    const z3 = zp.find(z => z.zone === 3);
-    const z4 = zp.find(z => z.zone === 4);
-    const z5 = zp.find(z => z.zone === 5);
-    const z6 = zp.find(z => z.zone === 6);
-
-    const formatPace = (baseValue: number | undefined): string => {
-        if (!baseValue || baseValue === 0) return '--:--';
-        const secondsPerKm = baseValue < 10 ? 1000 / baseValue : baseValue;
-        const min = Math.floor(secondsPerKm / 60);
-        const sec = Math.floor(secondsPerKm % 60);
-        return `${min}:${sec.toString().padStart(2, '0')}`;
+    // Helper to strip the prefix label "Easy (Z2): " -> "5:30-6:00"
+    const getRangeOnly = (label: string) => {
+        const parts = label.split(': ');
+        return parts.length > 1 ? parts[1] : '--';
     };
 
-    // Helper to produce "Slower - Faster" range matching FridgeMode dynamic logic
-    // Z2 Low (Slower) -> Z3 Low (Faster)
-    const range = (low: number | undefined, high: number | undefined) => {
-        if (!low || !high) return '--';
-        return `${formatPace(low)} - ${formatPace(high)}`;
-    };
-
-    const easyRange =  z2 && z3 ? range(z2.lowBoundary_m_s, z3.lowBoundary_m_s) : '--';
-    const tempoRange = z3 && z4 ? range(z3.lowBoundary_m_s, z4.lowBoundary_m_s) : '--';
-    const threshRange = z4 && z5 ? range(z4.lowBoundary_m_s, z5.lowBoundary_m_s) : '--';
-    
-    // VO2 is Z5 -> Z6 (or > Z5)
-    let vo2Range = '';
-    if (z5) {
-        const start = formatPace(z5.lowBoundary_m_s); // Slower bound of Z5
-        if (z6) {
-             const end = formatPace(z6.lowBoundary_m_s);
-             vo2Range = `${start} - ${end}`;
-        } else {
-            vo2Range = `< ${start}`;
-        }
-    }
+    // Use pure calculation function
+    const easyRange = getRangeOnly(getZoneLabel('Easy', zones.pace));
+    const tempoRange = getRangeOnly(getZoneLabel('Tempo', zones.pace));
+    const threshRange = getRangeOnly(getZoneLabel('Threshold', zones.pace));
+    const vo2Range = getRangeOnly(getZoneLabel('VO2 Max', zones.pace));
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">

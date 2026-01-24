@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { syncActivities } from '../lib/api';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { useGarminToken } from '../hooks/useGarminToken';
+import { formatDistance, formatPace } from '../lib/formatters'
 
 interface RecentActivitiesProps {
     activities: Activity[];
@@ -67,11 +68,6 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                             {sortedActivities.slice(0, 5).map((activity, idx) => {
                                 const date = new Date(activity.date);
                                 const distanceKm = activity.distance_m / 1000;
-                                // Pace calculation: seconds per km
-                                const paceSeconds = distanceKm > 0 ? activity.duration_s / distanceKm : 0;
-                                const paceMin = Math.floor(paceSeconds / 60);
-                                const paceSec = Math.floor(paceSeconds % 60);
-                                const pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
 
                                 return (
                                     <tr 
@@ -86,10 +82,10 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                                             {activity.name}
                                         </td>
                                         <td className="py-3 text-gray-600">
-                                            {distanceKm.toFixed(1)} km
+                                            {formatDistance(activity.distance_m)} km
                                         </td>
                                         <td className="py-3 text-gray-600">
-                                            {pace} /km
+                                            {formatPace(distanceKm > 0 ? activity.duration_s / distanceKm : 0)} /km
                                         </td>
                                         <td className="py-3 text-gray-600">
                                             {activity.average_hr ? Math.round(activity.average_hr) : '-'} bpm

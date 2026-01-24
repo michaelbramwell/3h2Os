@@ -1,21 +1,10 @@
 import { createPortal } from 'react-dom';
 import type { Activity, HrZone } from '../types/schema';
+import { formatPace, formatDistance } from '../lib/formatters';
 
 interface ActivityModalProps {
     activity: Activity | null;
     onClose: () => void;
-}
-
-// Helper: Format Pace (min/km)
-function formatPace(secondsPerKm: number | undefined): string {
-    if (!secondsPerKm || isNaN(secondsPerKm) || secondsPerKm === Infinity) return '--:--';
-    let mins = Math.floor(secondsPerKm / 60);
-    let secs = Math.round(secondsPerKm % 60);
-    if (secs === 60) {
-        mins++;
-        secs = 0;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 // Helper: Get Training Effect Data (colors)
@@ -94,7 +83,7 @@ function SplitsList({ splits }: { splits?: any[] }) {
                 <div>HR</div>
             </div>
             {splits.map((split, idx) => {
-                const dist = (split.distance / 1000).toFixed(2);
+                const dist = formatDistance(split.distance, 2);
                 const pace = split.averageSpeed ? formatPace(1000 / split.averageSpeed) : '--:--';
                 const hr = split.averageHR ? Math.round(split.averageHR) : '-';
                 
@@ -115,7 +104,7 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
     if (!activity) return null;
 
     const dateStr = new Date(activity.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
-    const distKm = (activity.distance_m / 1000).toFixed(2);
+    const distKm = formatDistance(activity.distance_m, 2);
     const paceMinKm = activity.average_pace_m_s && activity.average_pace_m_s > 0 
         ? formatPace(1000 / activity.average_pace_m_s) 
         : '--:--';

@@ -1,4 +1,5 @@
 import type { Activity } from '../types/schema'
+import { formatPace, formatDistance } from '../lib/formatters'
 
 interface ActualCardProps {
     activity: Activity
@@ -8,7 +9,7 @@ interface ActualCardProps {
 export function ActualCard({ activity, onClick }: ActualCardProps) {
     const paceMs = activity.average_pace_m_s || 0;
     const paceLabel = paceMs > 0 
-        ? `${Math.floor(1000 / paceMs / 60)}:${Math.floor((1000 / paceMs % 60)).toFixed(0).padStart(2,'0')}/km` 
+        ? `${formatPace(1000 / paceMs)}/km` 
         : '-:--/km';
 
     return (
@@ -20,7 +21,7 @@ export function ActualCard({ activity, onClick }: ActualCardProps) {
             <div className="pl-2">
                 <div className="font-bold text-[10px] text-emerald-600 uppercase tracking-wider mb-0.5">Actual {activity.type === 'running' ? '🏃' : '✓'}</div>
                 <div className="font-bold text-sm text-slate-800 leading-tight">
-                    {(activity.distance_m / 1000).toFixed(2)}km
+                    {formatDistance(activity.distance_m, 2)}km
                 </div>
                 <div className="text-[10px] text-slate-500 font-mono mt-0.5">
                     @ {paceLabel}

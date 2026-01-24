@@ -7,7 +7,10 @@ This skill defines the operational capabilities for the 3h2Os marathon training 
 
 ## Training Operations
 
-> **Infrastructure Note**: This project runs in Docker. Execute these scripts inside the container: `docker exec running_app uv run [script_path]`.
+> **Infrastructure Note**: This project runs in Docker.
+> - **Container**: Execute scripts inside the container: `docker exec running_app uv run [script_path]`.
+> - **Orchestration**: Use `docker-compose` for managing services.
+> - **Environment**: Ensure Docker Desktop is running before attempting operations.
 
 ### Fetch Actuals
 Retrieves recent completed activities from Garmin/Strava sources and persists them to the local dataset.

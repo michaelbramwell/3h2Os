@@ -1,4 +1,6 @@
 import type { Week, ContextData } from '../types/schema'
+import { formatPace, formatDistance } from '../lib/formatters'
+import { calculateWeekVolume, getZoneLabel } from '../lib/calculations'
 
 interface FridgeWeekProps {
   week: Week;
@@ -10,20 +12,7 @@ export function FridgeWeek({ week, weekIndex, context }: FridgeWeekProps) {
     const dateStr = new Date(week.weekStarting).toLocaleDateString('en-AU', { month: 'long', day: 'numeric', year: 'numeric' });
     const dayOrder = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-    const totalTargetM = Object.values(week.days).reduce((acc, day) => {
-        return acc + (day.workouts || []).reduce((wAcc, w) => wAcc + w.distance_m, 0);
-    }, 0);
-
-    // Pace Helper
-    const formatPace = (baseValue: number) => {
-        if (!baseValue) return '';
-        // If value < 10, assume m/s. If > 10, assume seconds/km
-        const secondsPerKm = baseValue < 10 ? 1000 / baseValue : baseValue;
-        
-        const mins = Math.floor(secondsPerKm / 60);
-        const secs = Math.floor(secondsPerKm % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+    const totalTargetM = calculateWeekVolume(week);
 
     // Zone Logic
     let easyLabel = "Easy: 5:45-6:15";
@@ -32,44 +21,15 @@ export function FridgeWeek({ week, weekIndex, context }: FridgeWeekProps) {
     let vo2Label = "VO2 Max: < 4:40";
     
     // MP is derived or hardcoded for now, assuming 3h20ish goal (4:44/km)
-    // But user asked for 5:30-5:40 for MP? That allows for a very slow marathon (3h50+). 
-    // Maybe it's "Marathon Pace" for a training block (Long Run pace vs Race Pace).
-    // Sticking to user provided MP for stability unless context overrides.
     const mpLabel = "MP: 5:30-5:40"; 
 
     if (context?.runner?.trainingZones?.pace) {
         const zones = context.runner.trainingZones.pace;
-        // Assuming zones: 1=Rec, 2=Aerobic(Easy), 3=Steady/Tempo, 4=Threshold, 5=VO2
-        // Boundary in schemas is 'lowBoundary_m_s' (The SLOW end of the zone, or the START of the NEXT?)
-        // Let's check typical values. Often Z2 starts at 2.5m/s and ends at 3.0m/s.
-        // If lowBoundary_m_s = 2.5, that is the SLOWEST speed (Highest Pace) for that zone.
-        
-        const z2 = zones.find(z => z.zone === 2);
-        const z3 = zones.find(z => z.zone === 3);
-        const z4 = zones.find(z => z.zone === 4);
-        const z5 = zones.find(z => z.zone === 5);
-        const z6 = zones.find(z => z.zone === 6);
-
-        if (z2 && z3) {
-            // Easy is Z2 (Z2 Low -> Z3 Low)
-            // m/s to pace: Higher m/s = Lower Pace (Faster)
-            // Range: Slower (Z2 Low) - Faster (Z3 Low)
-            easyLabel = `Easy (Z2): ${formatPace(z2.lowBoundary_m_s || 0)}-${formatPace(z3.lowBoundary_m_s || 0)}`;
-        }
-        if (z3 && z4) {
-            // Tempo is Z3 (Z3 Low -> Z4 Low)
-            tempoLabel = `Tempo (Z3): ${formatPace(z3.lowBoundary_m_s || 0)}-${formatPace(z4.lowBoundary_m_s || 0)}`;
-        }
-        if (z4 && z5) {
-            // Threshold is Z4 (Z4 Low -> Z5 Low)
-            thresholdLabel = `Threshold (Z4): ${formatPace(z4.lowBoundary_m_s || 0)}-${formatPace(z5.lowBoundary_m_s || 0)}`;
-        }
-        if (z5) {
-             const lower = formatPace(z5.lowBoundary_m_s || 0);
-             const upper = z6 ? formatPace(z6.lowBoundary_m_s || 0) : null;
-             vo2Label = upper ? `VO2 Max (Z5): ${lower}-${upper}` : `VO2 Max (Z5): < ${lower}`;
-        }
-    }
+        easyLabel = getZoneLabel('Easy', zones).replace('Easy (Z2): ', 'Easy (Z2): '); // Keep pure string or format if needed
+        tempoLabel = getZoneLabel('Tempo', zones);
+        thresholdLabel = getZoneLabel('Threshold', zones);
+        vo2Label = getZoneLabel('VO2 Max', zones);
+   }
 
 
     return (
@@ -78,7 +38,7 @@ export function FridgeWeek({ week, weekIndex, context }: FridgeWeekProps) {
                 <div>
                     <div className="flex items-baseline gap-3">
                         <h1 className="text-3xl font-black uppercase print:text-2xl">Week {weekIndex + 1}</h1>
-                        <span className="text-2xl font-bold text-slate-400 print:text-xl">{(totalTargetM / 1000).toFixed(0)}km</span>
+                        <span className="text-2xl font-bold text-slate-400 print:text-xl">{formatDistance(totalTargetM, 0)}km</span>
                     </div>
                 </div>
                 <p className="text-lg font-bold text-slate-600">Starting {dateStr}</p>
@@ -105,7 +65,7 @@ export function FridgeWeek({ week, weekIndex, context }: FridgeWeekProps) {
                                         <div>
                                             <p className="text-[11px] font-black uppercase text-slate-400 leading-none mb-1 print:text-[9px]">{w.timeOfDay || 'AM'}</p>
                                             <p className="text-lg font-black leading-tight print:text-sm">{w.name}</p>
-                                            <div className="text-xs text-slate-500 mt-0.5 print:text-[10px]">{w.type} • {(w.distance_m / 1000).toFixed(1)}km</div>
+                                            <div className="text-xs text-slate-500 mt-0.5 print:text-[10px]">{w.type} • {formatDistance(w.distance_m)}km</div>
                                             {w.description && (
                                                 <p className="text-xs font-serif italic text-slate-600 mt-1 max-w-prose leading-snug">
                                                     {w.description}
