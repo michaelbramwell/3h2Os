@@ -20,7 +20,7 @@ vi.mock('lucide-react', () => ({
 const mockWorkout: Workout = {
     id: 1,
     name: "Test Run",
-    type: "Run",
+    type: "General Aerobic",
     distance_m: 5000,
     timeOfDay: "AM",
     description: undefined // Undefined description to show Name
@@ -29,7 +29,7 @@ const mockWorkout: Workout = {
 describe('WorkoutCard', () => {
     it('renders basic workout info', () => {
         render(<WorkoutCard workout={mockWorkout} isToday={false} isMarathonDay={false} isPast={false} />)
-        expect(screen.getByText('Run')).toBeDefined() // The Type
+        expect(screen.getByText('General Aerobic')).toBeDefined() // The Type
         expect(screen.getByText('Test Run')).toBeDefined() // The Name (fallback)
         expect(screen.getByText(/5.0km/)).toBeDefined() // Distance
         expect(screen.getByText('AM')).toBeDefined()
