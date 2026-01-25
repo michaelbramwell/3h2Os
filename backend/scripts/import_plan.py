@@ -13,7 +13,8 @@ from app.core.services import save_plan_to_db
 def main():
     parser = argparse.ArgumentParser(description="Import a plan JSON file into the database.")
     parser.add_argument("filepath", nargs="?", default="data/plan.json", help="Path to the plan JSON file (default: data/plan.json)")
-    parser.add_argument("--user", default="mike", help="Username to assign plan to (default: mike)")
+    default_user = os.environ.get("DEFAULT_USERNAME", "runner")
+    parser.add_argument("--user", default=default_user, help=f"Username to assign plan to (default: {default_user})")
     
     args = parser.parse_args()
     

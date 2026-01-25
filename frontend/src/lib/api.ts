@@ -1,11 +1,22 @@
 import axios from 'axios';
 import type { Week, ContextData, Activity } from '../types/schema';
+import { userManager } from './auth';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+api.interceptors.request.use(async (config) => {
+    // Always try to get the latest token from the manager directly
+    // This handles page refreshes where the user object is in local storage
+    const user = await userManager.getUser();
+    if (user?.access_token) {
+        config.headers.Authorization = `Bearer ${user.access_token}`;
+    }
+    return config;
 });
 
 export const getPlan = async (): Promise<Week[]> => {
@@ -42,5 +53,18 @@ export const deleteWorkout = async (id: number): Promise<any> => {
     const response = await api.delete(`/api/workouts/${id}`);
     return response.data;
 };
+
+export const getGarminToken = async (email: string, password: string): Promise<string> => {
+    const response = await api.post<{token: string}>('/api/garmin/token', { email, password });
+    return response.data.token;
+};
+
+export const syncActivities = async (days: number = 7): Promise<{ count: number; message: string }> => {
+    const token = localStorage.getItem('garmin_token');
+    const headers = token ? { 'X-Garmin-Token': token } : {};
+    const response = await api.post(`/api/integrations/garmin/sync?days=${days}`, {}, { headers });
+    return response.data;
+};
+
 
 export default api;

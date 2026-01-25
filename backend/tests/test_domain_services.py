@@ -3,6 +3,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlalchemy.pool import StaticPool
 from app.services.plans import PlanService
 from app.services.context import ContextService
+from app.core.database import User
 # Removed unused imports: User, RunnerPlan, PlanWeek, PlanWorkout
 
 # Create an in-memory database for testing
@@ -44,9 +45,13 @@ def test_plan_service_create_and_retrieve(session):
     ]
 
     # 1. Create Plan
+    user = User(username=username, email="test@example.com")
+    session.add(user)
+    session.commit()
+
     new_plan = service.create_or_update_plan(
         plan_data, 
-        username=username, 
+        user=user, 
         title="Test Plan", 
         activate=True
     )
@@ -58,7 +63,7 @@ def test_plan_service_create_and_retrieve(session):
     # 2. Retrieve via Service
     # This exercises the fallback logic (Relational -> Blob -> File)
     # Since we just created it with relational data, it should read from relational tables via mappers
-    fetched_weeks = service.get_active_plan(username=username)
+    fetched_weeks = service.get_active_plan(user=user)
     
     assert len(fetched_weeks) == 1
     # Check data integrity from DTO
@@ -69,13 +74,17 @@ def test_plan_service_create_and_retrieve(session):
 def test_plan_service_activation_logic(session):
     service = PlanService(session)
     username = "activation_user"
+    user = User(username=username, email="activation@test.com")
+    session.add(user)
+    session.commit()
+
     plan_1 = [{"week": 1}] # Simplistic data for blob-only test if mapper fails (though mapper might log error and continue)
     
     # Create Plan A (Active)
-    p1 = service.create_or_update_plan(plan_1, username=username, title="Plan A", activate=True)
+    p1 = service.create_or_update_plan(plan_1, user=user, title="Plan A", activate=True)
     
     # Create Plan B (Inactive)
-    p2 = service.create_or_update_plan(plan_1, username=username, title="Plan B", activate=False)
+    p2 = service.create_or_update_plan(plan_1, user=user, title="Plan B", activate=False)
     
     session.refresh(p1)
     session.refresh(p2)
@@ -93,9 +102,12 @@ def test_plan_service_activation_logic(session):
 def test_context_service_defaults(session):
     service = ContextService(session)
     username = "no_context_user"
+    user = User(username=username, email="noctx@test.com")
+    session.add(user)
+    session.commit()
     
-    # Service should return empty context when user not found (no file fallback)
-    ctx = service.get_context(username=username)
+    # Service should return empty context when user has no profile/project
+    ctx = service.get_context(user=user)
     
     # Assert values are defaults/empty
     assert ctx.runner.age == 0

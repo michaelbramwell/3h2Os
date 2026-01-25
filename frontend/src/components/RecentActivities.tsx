@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import type { Activity } from '../types/schema';
 import { ActivityModal } from './ActivityModal';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { syncActivities } from '../lib/api';
+import { RefreshCw, Loader2 } from 'lucide-react';
+import { useGarminToken } from '../hooks/useGarminToken';
+import { formatDistance, formatPace } from '../lib/formatters'
 
 interface RecentActivitiesProps {
     activities: Activity[];
@@ -8,23 +13,46 @@ interface RecentActivitiesProps {
 
 export function RecentActivities({ activities }: RecentActivitiesProps) {
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+    const queryClient = useQueryClient();
+    const { hasToken: hasGarminToken } = useGarminToken();
+
+
+    const syncMutation = useMutation({
+        mutationFn: () => syncActivities(7),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+        }
+    });
 
     // Debug logging
     console.log('RecentActivities Rendered. Activities count:', activities?.length);
 
-    if (!activities || activities.length === 0) {
-        return <div className="text-gray-500 text-sm">No recent activities found.</div>;
-    }
-
-    // Sort by date descending
-    const sortedActivities = [...activities].sort((a, b) => 
+    // Sort by date descending, default to empty array if null
+    const sortedActivities = activities ? [...activities].sort((a, b) => 
         new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    ) : [];
 
     return (
         <>
             <div className="bg-white rounded-lg shadow p-6 border border-slate-200 relative z-0">
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Recent Activities</h3>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Activities</h3>
+                    {hasGarminToken && (
+                        <button 
+                            onClick={() => syncMutation.mutate()} 
+                            disabled={syncMutation.isPending}
+                            className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+                            title="Fetch latest activities from Garmin"
+                        >
+                            {syncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            {syncMutation.isPending ? 'Syncing...' : 'Scan for new runs'}
+                        </button>
+                    )}
+                </div>
+                
+                {sortedActivities.length === 0 ? (
+                    <div className="text-gray-500 text-sm italic py-4 text-center">No recent activities found. Click scan to sync from Garmin.</div>
+                ) : (
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                         <thead>
@@ -40,11 +68,6 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                             {sortedActivities.slice(0, 5).map((activity, idx) => {
                                 const date = new Date(activity.date);
                                 const distanceKm = activity.distance_m / 1000;
-                                // Pace calculation: seconds per km
-                                const paceSeconds = distanceKm > 0 ? activity.duration_s / distanceKm : 0;
-                                const paceMin = Math.floor(paceSeconds / 60);
-                                const paceSec = Math.floor(paceSeconds % 60);
-                                const pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
 
                                 return (
                                     <tr 
@@ -59,10 +82,10 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                                             {activity.name}
                                         </td>
                                         <td className="py-3 text-gray-600">
-                                            {distanceKm.toFixed(1)} km
+                                            {formatDistance(activity.distance_m)} km
                                         </td>
                                         <td className="py-3 text-gray-600">
-                                            {pace} /km
+                                            {formatPace(distanceKm > 0 ? activity.duration_s / distanceKm : 0)} /km
                                         </td>
                                         <td className="py-3 text-gray-600">
                                             {activity.average_hr ? Math.round(activity.average_hr) : '-'} bpm
@@ -73,6 +96,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                         </tbody>
                     </table>
                 </div>
+                )}
             </div>
 
             {selectedActivity && (

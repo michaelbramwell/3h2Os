@@ -1,21 +1,10 @@
 import { createPortal } from 'react-dom';
 import type { Activity, HrZone } from '../types/schema';
+import { formatPace, formatDistance } from '../lib/formatters';
 
 interface ActivityModalProps {
     activity: Activity | null;
     onClose: () => void;
-}
-
-// Helper: Format Pace (min/km)
-function formatPace(secondsPerKm: number | undefined): string {
-    if (!secondsPerKm || isNaN(secondsPerKm) || secondsPerKm === Infinity) return '--:--';
-    let mins = Math.floor(secondsPerKm / 60);
-    let secs = Math.round(secondsPerKm % 60);
-    if (secs === 60) {
-        mins++;
-        secs = 0;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 // Helper: Get Training Effect Data (colors)
@@ -82,11 +71,40 @@ function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'po
     );
 }
 
+function SplitsList({ splits }: { splits?: any[] }) {
+    if (!splits || splits.length === 0) return null;
+
+    return (
+        <div className="space-y-0.5">
+             <div className="grid grid-cols-4 gap-2 border-b border-slate-100 py-1 text-[9px] font-bold uppercase text-slate-400 text-right">
+                <div className="text-left font-black">#</div>
+                <div>Dist</div>
+                <div>Pace</div>
+                <div>HR</div>
+            </div>
+            {splits.map((split, idx) => {
+                const dist = formatDistance(split.distance, 2);
+                const pace = split.averageSpeed ? formatPace(1000 / split.averageSpeed) : '--:--';
+                const hr = split.averageHR ? Math.round(split.averageHR) : '-';
+                
+                return (
+                    <div key={idx} className="grid grid-cols-4 gap-2 border-b border-slate-50 py-1 last:border-0 items-center text-xs text-right">
+                        <div className="text-[10px] font-black italic text-slate-400 text-left">{idx + 1}</div>
+                        <div className="font-bold text-slate-700 font-mono">{dist}</div>
+                        <div className="font-bold text-slate-700 font-mono">{pace}</div>
+                        <div className="text-slate-500">{hr}</div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 export function ActivityModal({ activity, onClose }: ActivityModalProps) {
     if (!activity) return null;
 
     const dateStr = new Date(activity.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
-    const distKm = (activity.distance_m / 1000).toFixed(2);
+    const distKm = formatDistance(activity.distance_m, 2);
     const paceMinKm = activity.average_pace_m_s && activity.average_pace_m_s > 0 
         ? formatPace(1000 / activity.average_pace_m_s) 
         : '--:--';
@@ -199,6 +217,15 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
                                     <span className="text-[9px] text-slate-300 font-bold uppercase">Zone / Avg / Time</span>
                                 </div>
                                 <ZoneList zones={activity.power_zones} type="power" />
+                            </div>
+                        )}
+
+                        {activity.splits && activity.splits.length > 0 && (
+                             <div>
+                                <div className="flex justify-between items-end border-b-2 border-slate-100 pb-1 mb-2">
+                                    <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Splits</h4>
+                                </div>
+                                <SplitsList splits={activity.splits} />
                             </div>
                         )}
                     </div>

@@ -109,9 +109,31 @@ class GarminActualsFetcher:
                 hr_zones = []
                 power_zones = []
                 pace_zones = []
+                splits = []
 
                 # Fetch detailed zones for running/cycling/trail_running
                 if act['activityType']['typeKey'] in ['running', 'cycling', 'trail_running']:
+                    # Get Splits
+                    try:
+                        splits_result = self.client.get_activity_splits(activity_id)
+                        if splits_result and isinstance(splits_result, dict):
+                            logger.info(f"Splits keys for {activity_id}: {list(splits_result.keys())}")
+                            if 'lapSplits' in splits_result:
+                                splits = splits_result['lapSplits']
+                            elif 'splits' in splits_result:
+                                splits = splits_result['splits']
+                            else:
+                                # Fallback: check if we can find a list property that looks like splits
+                                found_list = next((v for k, v in splits_result.items() if isinstance(v, list) and len(v) > 0), [])
+                                splits = found_list
+                        elif isinstance(splits_result, list):
+                            splits = splits_result
+                        else:
+                            splits = []
+                    except Exception as e:
+                        logger.warning(f"Could not fetch splits for {activity_id}: {e}")
+                        splits = []
+
                     # Try to get existing summaries to use as boundaries
                     raw_hr_summary = []
                     raw_power_summary = []
@@ -155,7 +177,8 @@ class GarminActualsFetcher:
                     activityId=activity_id,
                     hr_zones=hr_zones,
                     power_zones=power_zones,
-                    pace_zones=pace_zones
+                    pace_zones=pace_zones,
+                    splits=splits
                 ))
         return filtered_activities
 
@@ -373,14 +396,8 @@ async def run_async(fetch_all: bool = False):
     await fetcher.save_actuals(activities)
 
 def main():
-    import argparse
-    import asyncio
-    
-    parser = argparse.ArgumentParser(description="Fetch Garmin actuals.")
-    parser.add_argument("--all", action="store_true", help="Fetch all actuals over the marathon plan period.")
-    args = parser.parse_args()
-    
-    asyncio.run(run_async(fetch_all=args.all))
+    print("Error: Automated fetch is deprecated. Please use the Web UI to sync activities because Garmin tokens are now stored locally in the browser for security.")
+    sys.exit(1)
 
 if __name__ == "__main__":
     main()

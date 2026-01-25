@@ -7,12 +7,18 @@ This skill defines the operational capabilities for the 3h2Os marathon training 
 
 ## Training Operations
 
+> **Infrastructure Note**: This project runs in Docker.
+> - **Container**: Execute scripts inside the container: `docker exec running_app uv run [script_path]`.
+> - **Orchestration**: Use `docker-compose` for managing services.
+> - **Environment**: Ensure Docker Desktop is running before attempting operations.
+
 ### Fetch Actuals
 Retrieves recent completed activities from Garmin/Strava sources and persists them to the local dataset.
-- **Script**: [`../../../backend/scripts/fetch_actuals.py`](../../../backend/scripts/fetch_actuals.py)
-- **Command**: `cd backend && uv run scripts/fetch_actuals.py`
-- **Inputs**: Garmin Credentials (Env Vars), Database (for differential sync)
-- **Outputs**: Updates `data/database.db` (Postgres/SQLite)
+**Note**: Automated background sync is deprecated in favor of user-initiated sync via the Web UI to improve security (limiting credential handling).
+- **Trigger**: Web UI (Sync Button) or API call with Token.
+- **Endpoint**: `POST /api/integrations/garmin/sync`
+- **Inputs**: Garmin Token (Header `X-Garmin-Token`), Database
+- **Outputs**: Updates `data/database.db` (Postgres/SQLite). Includes detailed metric splits and zone distribution.
 
 ### Reflect & Validate
 The "Brain" of the operation. Compares executed runs against the plan. It enforces safety guardrails (15% volume cap, 80/20 intensity distribution) and creates adaptations for future weeks if necessary.
@@ -23,10 +29,9 @@ The "Brain" of the operation. Compares executed runs against the plan. It enforc
 
 ### Sync to Garmin
 Pushes structured workouts from the JSON plan to the Garmin Connect Calendar for execution on the watch.
+**Note**: Deprecated/Disabled pending UI integration for Token Auth.
 - **Script**: [`../../../backend/scripts/sync_to_garmin.py`](../../../backend/scripts/sync_to_garmin.py)
-- **Command**: `cd backend && uv run scripts/sync_to_garmin.py`
-- **Inputs**: `database.db`
-- **Outputs**: API calls to Garmin Connect.
+- **Status**: Disabled.
 
 ### Update Weight
 Updates the runner's current weight in the context profile, used for mechanics and fueling calculations.

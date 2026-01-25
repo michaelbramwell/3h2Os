@@ -7,6 +7,8 @@ services:
     volumes:
       # Persist the data directory (database, logs, etc.)
       - ./backend/data:/app/data
+      # Mount certs directory
+      - ./backend/certs:/app/certs:ro
       # Mount local source for development
       - ./backend/app:/app/app:ro
       - ./backend/scripts:/app/scripts:ro
@@ -18,11 +20,15 @@ services:
       # Use psycopg 3 explicitly (postgresql+psycopg://) instead of default (postgresql:// -> psycopg2)
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-running_db}
       - SQLITE_DB_PATH=data/database.db
+      - JWT_VERIFY_SIGNATURE=true
+      - JWT_PUBLIC_KEY_PATH=/app/certs/public_key.pem
     # Run migrations before starting the app
     command: /bin/sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - default
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
@@ -39,6 +45,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-running_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init_keycloak.sql:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -46,7 +53,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - default
     restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: running_idp
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-user}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      KC_HOSTNAME: localhost
+    command: start-dev --import-realm
+    volumes:
+      - ./keycloak-realm.json:/opt/keycloak/data/import/realm.json:ro
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
 
   frontend:
     build: ./frontend
@@ -60,9 +91,15 @@ services:
       - CHOKIDAR_USEPOLLING=true # Better file watching for Docker on some systems
     depends_on:
       - web
+    networks:
+      - default
 
 volumes:
   postgres_data:
+
+networks:
+  default:
+    driver: bridge
 
 
   # Optional: Scheduler/Worker service if you want to run syncs automatically in docker

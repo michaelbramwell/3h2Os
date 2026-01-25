@@ -10,11 +10,12 @@ from app.schemas import (
 )
 from typing import List, Dict, Any
 
-def get_context_dto(session: Session, username: str = "mike") -> ContextSchema:
+def get_context_dto(session: Session, username: str = None) -> ContextSchema:
     """
     Retrieves the context (Project, Runner Profile) for a user and maps it to the ContextSchema DTO.
     Fallback to file if DB is empty.
     """
+    username = username or os.environ.get("DEFAULT_USERNAME", "runner")
     # Try fetching from DB first
     user = session.exec(select(User).where(User.username == username)).first()
     if user and user.project and user.profile:
@@ -52,10 +53,11 @@ def get_context_dto(session: Session, username: str = "mike") -> ContextSchema:
         runner=RunnerContext(age=0, gender="", height_cm=0, weight_kg=WeightContext(current=0, target=0))
     )
 
-def get_active_plan_dto(session: Session, username: str = "mike") -> List[WeekSchema]:
+def get_active_plan_dto(session: Session, username: str = None) -> List[WeekSchema]:
     """
     Retrieves the active plan for the user and maps it to List[WeekSchema].
     """
+    username = username or os.environ.get("DEFAULT_USERNAME", "runner")
     statement = select(RunnerPlan).join(User).where(User.username == username).where(RunnerPlan.is_active == True)
     plan = session.exec(statement).first()
     
@@ -85,13 +87,14 @@ def get_active_plan_dto(session: Session, username: str = "mike") -> List[WeekSc
     # Pydantic's adapter or list comprehension works here
     return [WeekSchema.model_validate(w) for w in plan_data]
 
-def save_plan_to_db(plan_data: List[Dict[str, Any]], session: Session, username: str = "mike", title: str = None, activate: bool = False) -> RunnerPlan:
+def save_plan_to_db(plan_data: List[Dict[str, Any]], session: Session, username: str = None, title: str = None, activate: bool = False) -> RunnerPlan:
     """
     Saves the provided plan data (list of weeks/dicts) to the database.
     If activate=True, archives any existing active plans for the user and makes this one active.
     Creates the user if they don't exist.
     Uses the provided SQLModel Session.
     """
+    username = username or os.environ.get("DEFAULT_USERNAME", "runner")
     # Check for user
     user = session.exec(select(User).where(User.username == username)).first()
     

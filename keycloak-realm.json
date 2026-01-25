@@ -1,0 +1,24 @@
+{
+    "realm": "running-realm",
+    "enabled": true,
+    "sslRequired": "external",
+    "registrationAllowed": true,
+    "users": [],
+    "clients": [
+      {
+        "clientId": "running-app",
+        "enabled": true,
+        "publicClient": true,
+        "directAccessGrantsEnabled": true,
+        "redirectUris": [
+          "http://localhost:5173/*",
+          "http://localhost:8000/*"
+        ],
+        "webOrigins": [
+          "http://localhost:5173",
+          "http://localhost:8000"
+        ],
+        "protocol": "openid-connect"
+      }
+    ]
+  }

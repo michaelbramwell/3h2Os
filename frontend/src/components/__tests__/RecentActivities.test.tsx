@@ -2,6 +2,23 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { RecentActivities } from '../RecentActivities';
 import { describe, it, expect } from 'vitest';
 import type { Activity } from '../../types/schema';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: false,
+        },
+    },
+});
+
+const renderWithClient = (ui: React.ReactElement) => {
+    return render(
+        <QueryClientProvider client={queryClient}>
+            {ui}
+        </QueryClientProvider>
+    );
+};
 
 // Mock data
 const mockActivities: Activity[] = [
@@ -29,7 +46,7 @@ const mockActivities: Activity[] = [
 
 describe('RecentActivities', () => {
     it('renders list of activities sorted by date', () => {
-        render(<RecentActivities activities={mockActivities} />);
+        renderWithClient(<RecentActivities activities={mockActivities} />);
         
         // Expect Morning Run (Jan 14) to be first
         const rows = screen.getAllByRole('row');
@@ -39,7 +56,7 @@ describe('RecentActivities', () => {
     });
 
     it('opens modal when a row is clicked', () => {
-        render(<RecentActivities activities={mockActivities} />);
+        renderWithClient(<RecentActivities activities={mockActivities} />);
         
         const runRow = screen.getByText('Morning Run').closest('tr');
         if (!runRow) throw new Error('Row not found');
@@ -54,7 +71,7 @@ describe('RecentActivities', () => {
     });
     
     it('renders empty state correctly', () => {
-        render(<RecentActivities activities={[]} />);
-        expect(screen.getByText('No recent activities found.')).toBeInTheDocument();
+        renderWithClient(<RecentActivities activities={[]} />);
+        expect(screen.getByText('No recent activities found. Click scan to sync from Garmin.')).toBeInTheDocument();
     });
 });

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pencil, Sun, Moon } from 'lucide-react'
 import { type Workout, ActivityType } from '../types/schema'
 import { EditWorkoutDialog } from './EditWorkoutDialog'
+import { formatDistance } from '../lib/formatters'
 
 // Extend Workout to include optional description as found in legacy code usage
 type WorkoutWithDescription = Workout & { description?: string };
@@ -46,7 +47,7 @@ export function WorkoutCard({ workout, isToday, isMarathonDay, isPast }: Workout
                     <div className={`font-bold ${isRaceWorkout && isMarathonDay ? 'text-lg uppercase text-yellow-900' : 'text-sm text-slate-700'} leading-tight`}>{workout.type}</div>
                     <div className={`${isRaceWorkout && isMarathonDay ? 'text-sm font-bold text-yellow-800' : 'text-xs text-slate-500'} mt-0.5 line-clamp-2`}>{workout.description || workout.name}</div>
                     <div className={`mt-1.5 flex justify-between text-[10px] items-center font-mono ${isRaceWorkout ? 'text-slate-600' : 'text-slate-400'}`}>
-                        <span>{(workout.distance_m / 1000).toFixed(1)}km</span>
+                        <span>{formatDistance(workout.distance_m)}km</span>
                         <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full ${isPM ? 'bg-indigo-50 text-indigo-400' : 'bg-orange-50 text-orange-400'}`}>
                             <TimeIcon size={10} />
                             <span className="font-bold">{workout.timeOfDay}</span>

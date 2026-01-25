@@ -164,3 +164,11 @@ class ActivitySchema(BaseModel):
     hr_zones: Optional[List[HrZone]] = None
     pace_zones: Optional[List[HrZone]] = None
     power_zones: Optional[List[HrZone]] = None
+    splits: Optional[List[Dict[str, Any]]] = None
+
+class GarminLogin(BaseModel):
+    email: str
+    password: str
+
+class GarminToken(BaseModel):
+    token: str

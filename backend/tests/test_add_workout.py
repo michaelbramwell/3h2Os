@@ -47,7 +47,7 @@ def test_add_workout_creates_week_if_missing(MockValidationEngine, session: Sess
         timeOfDay="AM"
     )
     
-    new_workout = service.add_workout(workout_data, username="mike")
+    new_workout = service.add_workout(workout_data, user=user)
     
     # Assert
     assert new_workout.id is not None
@@ -72,4 +72,4 @@ def test_add_workout_fails_no_active_plan(session: Session):
     )
     
     with pytest.raises(ValueError, match="No active plan"):
-        service.add_workout(workout_data, username="mike")
+        service.add_workout(workout_data, user=user)

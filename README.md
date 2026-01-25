@@ -58,6 +58,7 @@ docker compose up --build
 
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:8000
+- **Auth**: Keycloak (Port 8080 or 8443)
 - **Database**: PostgreSQL (Internal)
 
 ### 3. Run Local Application
@@ -119,9 +120,8 @@ GitHub Pages hosts a static version of the site. The `scripts/build_static.py` s
 4.  **Deployment**: Build script copies JSON & HTML to root for GitHub Pages.
 
 ### 4. Sync to Garmin
-1. Copy `.env.example` to `.env`.
-2. Add your Garmin Connect credentials.
-3. Run the sync script:
+*Feature deprecated pending security updates/UI integration.*
+Original command was:
 ```bash
 uv run sync_to_garmin.py
 ```
@@ -201,7 +201,7 @@ The project uses a standard FastAPI + HTMX architecture.
 ## Project Structure
 
 - `app/`: The web application (FastAPI).
-  - `core/`: Database configuration (`database.db` via SQLModel).
+  - `core/`: Database configuration (PostgreSQL via SQLModel).
   - `routers/`: API endpoints and page rendering.
   - `templates/`: HTML/Jinja2 templates.
 - `scripts/`: Standalone automation tools (Garmin sync, MD generation).
@@ -209,9 +209,8 @@ The project uses a standard FastAPI + HTMX architecture.
 
 ## Database
 
-The app uses **SQLite** locally.
-- **Connection**: `sqlite:///database.db`
-- **Tools**: Use DBeaver or standard generic SQL clients to inspect.
-- **Models**: Defined in `app/core/database.py`.
+The app uses **PostgreSQL** in production/Docker and **SQLite** for local testing/dev if configured.
+- **Production**: PostgreSQL via Docker.
+- **ORM**: Defined in `app/core/database.py`.
 
 ## Legacy Files (Transitioning)

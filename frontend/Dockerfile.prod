@@ -1,0 +1,26 @@
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+# Production stage
+FROM caddy:alpine
+
+# Copy built assets
+COPY --from=builder /app/dist /srv
+
+# Create Caddyfile for SPA routing
+RUN echo $':80 {\n\
+    root * /srv\n\
+    encode gzip\n\
+    try_files {path} /index.html\n\
+    file_server\n\
+}' > /etc/caddy/Caddyfile
+
+EXPOSE 80

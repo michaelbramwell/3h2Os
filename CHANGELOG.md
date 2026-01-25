@@ -1,5 +1,21 @@
 # Release Notes
 
+## [v0.6.0] - 2026-01-25
+
+### Infrastructure & Deployment
+- **Production Stack**: Established full deployment architecture for Hetzner Cloud using Docker Compose, Caddy (Edge Router/SSL), and GitHub Container Registry (GHCR).
+- **CI/CD Pipeline**: Implemented multi-arch (Arm64/AMD64) build and deploy workflows via GitHub Actions.
+- **Security**: Added secrets management and deployment checklists for secure production provisioning.
+
+### Authentication (Keycloak)
+- **Identity Provider**: Integrated **Keycloak** for centralized user management and OIDC/JWT authentication.
+- **User-Centricity**: Refactored core domain services (`PlanService`, `GarminService`) to support multi-user context, moving away from hardcoded single-user logic.
+- **JWT Handling**: Implemented robust JWT validation with RS256 signature verification (configurable for dev/prod).
+
+### Logic & Validation
+- **Activity Classification**: Centralized "Is Running?" logic to fix bugs where cross-training (Cycling) incorrectly triggered "Volume Spike" alerts.
+- **Refactoring**: Moved validation rules and volume calculations into pure functions for better testability and reuse.
+
 ## [v0.5.0] - 2026-01-20
 
 ### Features

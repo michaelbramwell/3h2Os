@@ -17,6 +17,11 @@ When working in this workspace, always refer to the following files to maintain 
     - `backend/app/schemas.py`: Pydantic DTOs for API requests/responses.
 
 ### Guidelines:
+- **Node Environment**: Always run `nvml` before executing any node/npm commands on the host machine.
+- **Docker Environment**: The application runs natively in Docker.
+  - **Environment**: This project is fully containerized. Use `docker-compose` for orchestration.
+  - **Execution**: Run scripts/migrations inside the container: `docker exec running_app uv run ...`
+  - **Changes**: Restart container (`docker restart running_app`) to apply backend code changes if hot-reload isn't active/working.
 - **Timezone**: All automated logic and date-logging MUST use AWST (Perth, UTC+8).
 - **Database**: Data structure changes must be done via SQLModel/Alembic. Do not edit legacy JSON files.
 - **API Documentation**: Maintain `backend/tests/api_requests.http` as a live reference for all available API endpoints. Update it whenever routes change.
@@ -24,8 +29,9 @@ When working in this workspace, always refer to the following files to maintain 
 - **Style Rule**: Strictly no emojis in any responses, code, or documentation.
 
 ### Standard Operations:
+- **Environment**: Run `nvml` before any node/npm command on the host to ensure correct Node version (LTS).
 - **Start Backend**: `cd backend && uv run uvicorn app.main:app --reload`
-- **Start Frontend**: `cd frontend && npm run dev`
+- **Start Frontend**: `cd frontend && nvml && npm run dev`
 - **Garmin Sync**: `cd backend && uv run scripts/fetch_actuals.py` (Hourly via CI/CD)
 
 ### Lessons Learned & Best Practices:
