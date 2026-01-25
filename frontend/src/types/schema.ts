@@ -1,23 +1,43 @@
-export enum ActivityType {
-  RUN = "Run",
-  EASY = "Easy",
-  LONG = "Long",
-  WORKOUT = "Workout",
-  RACE = "Race",
-  REST = "Rest",
-  CROSS = "Cross",
-  STEADY = "Steady",
-  WARMUP = "WarmUp",
-  COOLDOWN = "CoolDown",
-  INTERVALS = "Intervals",
-  TRAIL = "Trail",
-  TEMPO = "Tempo",
-  PLR = "PLR",
-  HILLS = "Hills",
-  THRESHOLD = "Threshold",
-  CYCLING = "Cycling",
-  SWIMMING = "Swimming",
-}
+export type ActivityType =
+  | "Run"
+  | "Easy"
+  | "Long"
+  | "Workout"
+  | "Race"
+  | "Rest"
+  | "Cross"
+  | "Steady"
+  | "WarmUp"
+  | "CoolDown"
+  | "Intervals"
+  | "Trail"
+  | "Tempo"
+  | "PLR"
+  | "Hills"
+  | "Threshold"
+  | "Cycling"
+  | "Swimming";
+
+export const ActivityType = {
+  RUN: "Run",
+  EASY: "Easy",
+  LONG: "Long",
+  WORKOUT: "Workout",
+  RACE: "Race",
+  REST: "Rest",
+  CROSS: "Cross",
+  STEADY: "Steady",
+  WARMUP: "WarmUp",
+  COOLDOWN: "CoolDown",
+  INTERVALS: "Intervals",
+  TRAIL: "Trail",
+  TEMPO: "Tempo",
+  PLR: "PLR",
+  HILLS: "Hills",
+  THRESHOLD: "Threshold",
+  CYCLING: "Cycling",
+  SWIMMING: "Swimming",
+} as const;
 
 export interface Workout {
   id?: number;

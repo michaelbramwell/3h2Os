@@ -1,5 +1,5 @@
 import type { Week, ContextData } from '../types/schema'
-import { formatPace, formatDistance } from '../lib/formatters'
+import { formatDistance } from '../lib/formatters'
 import { calculateWeekVolume, getZoneLabel } from '../lib/calculations'
 
 interface FridgeWeekProps {
