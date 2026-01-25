@@ -20,6 +20,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Lowercase Image Name
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
@@ -66,7 +69,7 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> .env
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> .env
           echo "POSTGRES_USER=${{ vars.POSTGRES_USER }}" >> .env
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
           echo "POSTGRES_DB=${{ vars.POSTGRES_DB }}" >> .env
