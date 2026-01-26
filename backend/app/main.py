@@ -68,6 +68,8 @@ app = FastAPI(lifespan=lifespan, dependencies=[Depends(verify_jwt_middleware)])
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://3h2os.com",
+    "https://auth.3h2os.com",
 ]
 
 app.add_middleware(
