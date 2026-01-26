@@ -79,8 +79,8 @@ services:
       KC_DB_URL: jdbc:postgresql://db:5432/keycloak
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HOSTNAME: auth.${DOMAIN}
-      KC_PROXY: edge
+      KC_HOSTNAME: https://auth.${DOMAIN}
+      KC_PROXY_HEADERS: xforwarded
     command: start --import-realm
     volumes:
       - ./keycloak-realm.json:/opt/keycloak/data/import/realm.json:ro
