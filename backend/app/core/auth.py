@@ -1,39 +1,103 @@
 from fastapi import Request, HTTPException, status
 from fastapi.security import HTTPBearer
-from jose import jwt, JWTError
+from jose import jwt, jwk, JWTError
 import os
 import logging
+import httpx
+from datetime import datetime, timedelta
+import asyncio
 
 # Constants
-# In production, these should be environment variables
 KEYCLOAK_URL = os.getenv("IDP_URL", "http://localhost:8080")
 REALM_NAME = os.getenv("IDP_REALM", "running-realm")
+# Remove trailing slash if present to avoid double slashes in constructed URL
+if KEYCLOAK_URL.endswith("/"):
+    KEYCLOAK_URL = KEYCLOAK_URL[:-1]
+
+JWKS_URL = f"{KEYCLOAK_URL}/realms/{REALM_NAME}/protocol/openid-connect/certs"
 ALGORITHMS = ["RS256"]
 
 logger = logging.getLogger("auth")
 
 
-class AuthManager:
+class JWKSManager:
     """
-    Handles JWT validation and anonymous access control.
+    Manages fetching and caching of JSON Web Key Sets (JWKS) from the IdP.
     """
 
-    def __init__(self):
-        self.jwks_client = None
-        self.public_key = None
+    def __init__(self, jwks_url: str, ttl_minutes: int = 60):
+        self.jwks_url = jwks_url
+        self.ttl = timedelta(minutes=ttl_minutes)
+        self.keys = {}
+        self.last_fetch = None
+        self._lock = asyncio.Lock()
 
-    def get_public_key(self):
+    async def get_key(self, kid: str):
         """
-        In a real scenario, this should fetch JWKS from Keycloak:
-        GET {KEYCLOAK_URL}/realms/{REALM_NAME}/protocol/openid-connect/certs
-        For simplicity in this MVP, we might rely on the library to fetch or cache it.
-        Or, we assume standard OIDC discovery.
+        Retrieve a public key by its Key ID (kid).
+        Refreshes cache if key is missing or cache is expired.
         """
-        # For now, we'll let python-jose handle JWKS fetching if provided,
-        # or just fail if not configured.
-        # Ideally, we use a library like 'PyJWKClient' or fetch manually.
-        pass
+        # First check (optimistic)
+        if not self._needs_refresh() and kid in self.keys:
+            return self.keys[kid]
 
+        # Acquire lock to prevent thundering herd
+        async with self._lock:
+            # Double check after acquiring lock
+            if not self._needs_refresh() and kid in self.keys:
+                return self.keys[kid]
+
+            await self._refresh_keys()
+
+            if kid not in self.keys:
+                # If still not found after refresh, force one more refresh IF it wasn't just refreshed
+                # (handled by _needs_refresh logic, but explicit check helps if key rotated immediately)
+                # For now, just raise error.
+                logger.error(f"Key ID {kid} not found in JWKS from {self.jwks_url}")
+                raise JWTError(f"Public key not found for kid: {kid}")
+
+            return self.keys[kid]
+
+    async def _refresh_keys(self):
+        try:
+            logger.info(f"Refreshing JWKS from {self.jwks_url}")
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(self.jwks_url, timeout=10.0)
+                resp.raise_for_status()
+                data = resp.json()
+
+                new_keys = {}
+                for key_data in data.get("keys", []):
+                    kid = key_data.get("kid")
+                    if kid:
+                        # Construct public key object
+                        try:
+                            new_keys[kid] = jwk.construct(key_data)
+                        except Exception as e:
+                            logger.warning(f"Failed to construct key {kid}: {e}")
+
+                self.keys = new_keys
+                self.last_fetch = datetime.now()
+                logger.info(
+                    f"Successfully refreshed JWKS. Loaded {len(self.keys)} keys."
+                )
+
+        except Exception as e:
+            logger.error(f"Failed to fetch JWKS: {e}")
+            # If we have existing keys, we might want to keep using them?
+            # For strict security, we might want to fail.
+            # But transient network errors shouldn't kill auth if keys are old but potentially valid.
+            if not self.keys:
+                raise e
+
+    def _needs_refresh(self):
+        if not self.last_fetch:
+            return True
+        return datetime.now() - self.last_fetch > self.ttl
+
+
+# Initialize singleton
+jwks_manager = JWKSManager(JWKS_URL)
 
 security = HTTPBearer(auto_error=False)
 
@@ -52,10 +116,6 @@ async def verify_jwt_middleware(request: Request):
     If endpoint is public, allow missing token.
     If endpoint is protected (default), require valid token.
     """
-    # Check if the endpoint handler is marked as public
-    # This logic depends on how the dependency is attached.
-    # If attached to APIRouter, 'request.scope["endpoint"]' gives us the function.
-
     endpoint = request.scope.get("endpoint")
     is_public = getattr(endpoint, "is_public", False)
 
@@ -77,30 +137,45 @@ async def verify_jwt_middleware(request: Request):
 
     # Validate Token
     try:
-        # NOTE: A robust implementation fetches keys from the IdP.
-        # For this setup, we assume the token is valid if the IdP is trusted.
-        # Ideally: unverified_header = jwt.get_unverified_header(token)
-        # Verify signature using JWKS.
+        # Get Unverified Header to find 'kid'
+        try:
+            unverified_header = jwt.get_unverified_header(token)
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token header",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-        # PLEASE NOTE: Implementing full JWKS caching is complex.
-        # For this MVP, since we don't have the Realm set up yet,
-        # we will decode without signature verification strictly for development
-        # OR warn.
+        kid = unverified_header.get("kid")
 
-        # Real Implementation:
-        # 1. Fetch https://localhost:8080/realms/running-realm/protocol/openid-connect/certs
-        # 2. Find key matching kid
-        # 3. Verify.
-
-        # Placeholder for now until Keycloak is running and realm exists
+        # Development override: If verification is disabled
         verify_signature_env = os.getenv("JWT_VERIFY_SIGNATURE", "true").lower()
         verify_signature = verify_signature_env in ("1", "true", "yes")
-        if not verify_signature:
-            logger.warning(
-                "JWT signature verification is DISABLED via JWT_VERIFY_SIGNATURE=%s. "
-                "This should only be used in development environments.",
-                verify_signature_env,
-            )
+
+        secret = None
+
+        if verify_signature:
+            if not kid:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token header missing 'kid' field",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            # Fetch public key dynamically
+            try:
+                public_key_obj = await jwks_manager.get_key(kid)
+                secret = public_key_obj.to_pem().decode("utf-8")
+            except Exception as e:
+                logger.error(f"JWKS Error: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Could not retrieve public key for token verification",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        else:
+            logger.warning("JWT Signature verification disabled.")
 
         options = {
             "verify_signature": verify_signature,
@@ -108,39 +183,22 @@ async def verify_jwt_middleware(request: Request):
             "exp": True,
         }
 
-        # Load public key: Try file path first (Prod/Best Practice), then raw Env var, then default
-        secret = None
-        key_path = os.getenv("JWT_PUBLIC_KEY_PATH")
-
-        if key_path and os.path.exists(key_path):
-            try:
-                with open(key_path, "r") as f:
-                    secret = f.read()
-            except Exception as e:
-                logger.error(f"Failed to read public key from {key_path}: {e}")
-
-        if not secret:
-            secret = os.getenv("JWT_PUBLIC_KEY", "secret")
-
-        # Check if we are using the placeholder 'secret' with RS256
-        if secret == "secret" and "RS256" in ALGORITHMS and verify_signature:
-            # This will fail because "secret" is not a valid PEM key for RS256
-            # Fallback to HS256 for local dev if user hasn't provided a key but wants verification
-            # OR disable verification automatically to prevent crash
-            logger.warning(
-                "JWT_PUBLIC_KEY is set to default 'secret' but algorithm is RS256. Disabling signature verification to prevent crash."
-            )
-            options["verify_signature"] = False
-
-        payload = jwt.decode(token, secret, algorithms=ALGORITHMS, options=options)
+        # If verification is disabled, secret is ignored by python-jose usually,
+        # but we pass empty string or similar to satisfy signature
+        if not verify_signature:
+            # When skipping signature, we just decode
+            payload = jwt.decode(token, "", algorithms=ALGORITHMS, options=options)
+        else:
+            payload = jwt.decode(token, secret, algorithms=ALGORITHMS, options=options)
 
         # Store user info in request state
         request.state.user = payload
         return payload
 
     except JWTError as e:
+        logger.warning(f"JWT Validation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Could not validate credentials: {str(e)}",
+            detail=f"Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )

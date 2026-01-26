@@ -7,8 +7,6 @@ services:
     volumes:
       # Persist the data directory (database, logs, etc.)
       - ./backend/data:/app/data
-      # Mount certs directory
-      - ./backend/certs:/app/certs:ro
       # Mount local source for development
       - ./backend/app:/app/app:ro
       - ./backend/scripts:/app/scripts:ro
@@ -21,7 +19,8 @@ services:
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-running_db}
       - SQLITE_DB_PATH=data/database.db
       - JWT_VERIFY_SIGNATURE=true
-      - JWT_PUBLIC_KEY_PATH=/app/certs/public_key.pem
+      # IDP_URL should point to keycloak service inside docker network for backend
+      - IDP_URL=http://keycloak:8080
     # Run migrations before starting the app
     command: /bin/sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:

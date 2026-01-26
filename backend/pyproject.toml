@@ -17,6 +17,7 @@ dependencies = [
     "sqlmodel>=0.0.31",
     "textual>=7.1.0",
     "uvicorn>=0.40.0",
+    "httpx>=0.28.1",
 ]
 
 [tool.pytest.ini_options]
@@ -25,6 +26,5 @@ testpaths = ["tests"]
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
     "pytest>=9.0.2",
 ]
