@@ -3,7 +3,11 @@ import type { Week, ContextData, Activity } from '../types/schema';
 import { userManager } from './auth';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    (window.location.hostname === '3h2os.com'
+      ? 'https://3h2os.com'
+      : 'http://localhost:8000'),
   headers: {
     'Content-Type': 'application/json',
   },
