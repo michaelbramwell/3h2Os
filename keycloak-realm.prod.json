@@ -1,0 +1,24 @@
+{
+    "realm": "running-realm",
+    "enabled": true,
+    "sslRequired": "external",
+    "registrationAllowed": true,
+    "users": [],
+    "clients": [
+      {
+        "clientId": "running-app",
+        "enabled": true,
+        "publicClient": true,
+        "directAccessGrantsEnabled": true,
+        "redirectUris": [
+          "https://3h2os.com/*",
+          "https://auth.3h2os.com/*"
+        ],
+        "webOrigins": [
+          "https://3h2os.com",
+          "https://auth.3h2os.com"
+        ],
+        "protocol": "openid-connect"
+      }
+    ]
+}
