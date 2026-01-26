@@ -84,7 +84,7 @@ services:
       KC_HTTP_ENABLED: true
     command: start --import-realm
     volumes:
-      - ./keycloak-realm.json:/opt/keycloak/data/import/realm.json:ro
+      - ./keycloak-realm.prod.json:/opt/keycloak/data/import/realm.json:ro
     depends_on:
       db:
         condition: service_healthy
