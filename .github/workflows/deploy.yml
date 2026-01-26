@@ -55,9 +55,9 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
           build-args: |
-            VITE_API_URL=https://3h2os.com
-            VITE_AUTH_AUTHORITY=https://auth.3h2os.com/realms/running-realm
-            VITE_AUTH_CLIENT_ID=running-app
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+            VITE_AUTH_AUTHORITY=${{ vars.VITE_AUTH_AUTHORITY }}
+            VITE_AUTH_CLIENT_ID=${{ vars.VITE_AUTH_CLIENT_ID }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
