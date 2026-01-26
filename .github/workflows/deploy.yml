@@ -12,6 +12,8 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Define environment to access Secrets/Vars during build
+    environment: prod
     permissions:
       contents: read
       packages: write
