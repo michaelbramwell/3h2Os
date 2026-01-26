@@ -35,12 +35,12 @@ services:
     restart: unless-stopped
     volumes:
       - backend_data:/app/data
-      - ./backend/certs:/app/certs:ro
+      - ./public_key.pem:/app/certs/public_key.pem:ro
     env_file:
       - .env
     environment:
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      - JWT_VERIFY_SIGNATURE=true
+      - JWT_VERIFY_SIGNATURE=false
       - JWT_PUBLIC_KEY_PATH=/app/certs/public_key.pem
     command: /bin/sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
