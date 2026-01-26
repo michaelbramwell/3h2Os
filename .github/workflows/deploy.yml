@@ -94,7 +94,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           # Copy generated .env along with config files
-          source: ".env,docker-compose.prod.yml,Caddyfile,backend/scripts/init_db.sql,keycloak-realm.prod.json,backend/certs/public_key.pem"
+          source: ".env,docker-compose.prod.yml,Caddyfile,backend/scripts/init_db.sql,keycloak-realm.prod.json"
           target: "~/app"
 
       - name: Deploy via SSH
