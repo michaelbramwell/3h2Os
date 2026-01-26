@@ -70,6 +70,13 @@ origins = [
     "http://127.0.0.1:5173",
 ]
 
+# Add production domains from environment variables if present
+if domain := os.environ.get("DOMAIN"):
+    origins.append(f"https://{domain}")
+    origins.append(f"https://auth.{domain}")
+    # Allow www as well just in case
+    origins.append(f"https://www.{domain}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
