@@ -15,6 +15,7 @@
           "https://auth.3h2os.com/*"
         ],
         "webOrigins": [
+          "+",
           "https://3h2os.com",
           "https://auth.3h2os.com"
         ],
