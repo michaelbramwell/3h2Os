@@ -86,6 +86,9 @@ app.add_middleware(
 )
 
 app.include_router(api.router, prefix="/api")
+app.include_router(
+    api.router
+)  # Mount at root as well to handle proxy stripping behavior
 app.include_router(pages.router)
 
 # serve root files as fallback if needed or specific static dir
