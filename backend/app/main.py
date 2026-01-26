@@ -85,8 +85,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(pages.router)
 app.include_router(api.router, prefix="/api")
+app.include_router(pages.router)
 
 # serve root files as fallback if needed or specific static dir
 if os.path.exists("app/static"):
