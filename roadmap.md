@@ -1,6 +1,6 @@
 # Project Roadmap: 3h2Os
 
-## Current Version: v0.0.6 (Training Block Kickoff)
+## Current Version: v0.0.8 (SaaS Deployment)
 
 ## Phase 1: Foundation (Complete)
 - [x] Structured 14-week training plan in Markdown.
@@ -30,30 +30,36 @@
 - [x] **Full Data Migration:** Completely retire `plan.json` and `context.json` in favor of the SQLite database.
 - [x] **Frontend Update:** Wire the dashboard to consume the new `/api/plans` and `/api/context` endpoints instead of static JSON.
 
-## Phase 3: Performance Analytics (Weeks 5-10)
+## Phase 3: SaaS Transformation (Currently Active)
+- [x] **Cloud Database:** Migrated from SQLite to PostgreSQL 15 via Alembic.
+- [x] **Identity & Access Management (IAM):**
+  - [x] Deployed **Keycloak** 26 (Quay.io) as the Identity Provider (IdP).
+  - [x] Configured OIDC (OpenID Connect) flow for Frontend (React) via `react-oidc-context`.
+  - [x] Secured Backend (FastAPI) with Bearer Token validation.
+  - [x] **Dynamic JWKS:** Enabled zero-downtime key rotation by fetching signing keys directly from Keycloak.
+  - [x] Disabled public registration for production security.
+- [x] **Infrastructure & Deployment:**
+  - [x] Containerized entire stack (Frontend, Backend, Postgres, Keycloak, Caddy).
+  - [x] Configured **Caddy** as reverse proxy (Automatic HTTPS via Let's Encrypt).
+  - [x] Setup **GitHub Actions** CI/CD pipeline for automated build and deploy to Hetzner VM.
+  - [x] Implemented production-grade routing (`/api` vs `/`) to handle proxy path stripping.
+- [x] **Branding & UI:**
+  - [x] Created custom "3h2Os" Wave branding (SVG).
+  - [x] Updated application title and favicon.
+  - [x] Integrated branding into Sidebar UI.
+- [ ] **Data Persistence:** Migrate PostgreSQL data storage from VM local disk to attached Block Storage volume for durability across instance rebuilds.
+
+## Phase 4: Performance Analytics (Weeks 5-10)
 - [ ] **Efficiency Tracking:** Monitor Pace/HR decoupling for Wednesday Steady runs.
 - [ ] **Cramp Correlation:** Log muscle fatigue levels and correlate with hydration/fueling data.
 - [ ] **Shoe Tracker:** Monitor mileage on race-day shoes to ensure they are "broken in but not broken".
+- [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week.
 
-## Phase 4: Race Readiness (Weeks 11-14)
+## Phase 5: Race Readiness (Weeks 11-14)
 - [ ] **Taper Fatigue Monitor:** Track recovery metrics (RHR/Sleep) during the volume drop.
 - [ ] **Bunbury Pacing Strategy:** Generate a 5km split-chart for a 3:45 - 3:55 finish.
 - [ ] **Final Gear Checklist:** Digital verification for the Salomon vest and race-day kit.
 
-## Phase 5: Post-Race Analysis
+## Phase 6: Post-Race Analysis
 - [ ] **Race Report:** Automated summary of splits and fueling effectiveness.
 - [ ] **Recovery Plan:** 4-week reverse-taper for injury prevention.
-
-## Phase 6: SaaS Transformation (In Progress)
-- [ ] **Multi-User Architecture:** Decouple from personal repo to a scalable multi-tenant SaaS.
-- [x] **Database Layer:** Migrated to SQLModel (SQLite).
-- [x] **API Service:** Developed FastAPI service.
-- [x] **Modern Frontend:** Refactoring to React (Vite + TanStack).
-  - [x] Project Setup (Vite, Tailwind, TanStack Router/Query).
-  - [x] Read-Only Dashboard (Plans, Actuals, Context).
-  - [x] **Workout Editor:** Ability to edit and delete planned activities via a modal UI.
-  - [x] **Enhanced UX:** Added toast notifications (Sonner) and confirmation dialogs for critical actions.
-- [x] **Test Coverage:** Established backend (Pytest) and frontend (Vitest) test suites for key features.
-- [ ] **Date/Time Handling:** Store all timestamps as UTC in DB and cast to user's preferred timezone on display.
-- [ ] **Cloud-Native Auth:** Implement secure login via GitHub OAuth or Clerk.
-- [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week, with a simple "Accept/Decline" UX for the user.
