@@ -26,3 +26,5 @@ data/database.db
 # /actuals.json
 backend/certs/
 certs/
+.opencode/
+debug_routes.py
