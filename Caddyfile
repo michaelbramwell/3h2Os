@@ -12,7 +12,7 @@ auth.{$DOMAIN} {
     reverse_proxy frontend:80
 
     # Backend API (adjust path if needed, assuming /api prefix or similar)
-    handle_path /api* {
+    handle /api* {
         reverse_proxy backend:8000
     }
 }

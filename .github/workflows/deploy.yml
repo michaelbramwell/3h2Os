@@ -54,6 +54,10 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+          build-args: |
+            VITE_API_URL=https://3h2os.com
+            VITE_AUTH_AUTHORITY=https://auth.3h2os.com/realms/running-realm
+            VITE_AUTH_CLIENT_ID=running-app
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

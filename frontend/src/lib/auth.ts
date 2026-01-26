@@ -1,8 +1,8 @@
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts';
 
 export const userManager = new UserManager({
-  authority: 'http://localhost:8080/realms/running-realm',
-  client_id: 'running-app',
+  authority: import.meta.env.VITE_AUTH_AUTHORITY || 'http://localhost:8080/realms/running-realm',
+  client_id: import.meta.env.VITE_AUTH_CLIENT_ID || 'running-app',
   redirect_uri: window.location.origin,
   response_type: 'code',
   scope: 'openid profile email',
