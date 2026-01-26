@@ -144,6 +144,10 @@ function GarminStatusCard() {
 export function Sidebar({ context, markdown }: SidebarProps) {
     return (
         <div className="space-y-6">
+            <div className="flex items-center gap-2 px-1 opacity-60">
+                <img src="/3h2os-waves.svg" alt="3h2Os Logo" className="w-6 h-6" />
+                <span className="text-sm font-bold text-slate-500 tracking-tight">3h2Os</span>
+            </div>
             <GoalCard project={context.project} />
             <PhaseCard status={context.status} />
             <WeightCard weight={context.runner.weight_kg} />
