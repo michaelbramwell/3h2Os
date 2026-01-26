@@ -17,6 +17,7 @@
           "https://auth.3h2os.com/*"
         ],
         "webOrigins": [
+          "+",
           "http://localhost:5173",
           "http://localhost:8000",
           "https://3h2os.com",
