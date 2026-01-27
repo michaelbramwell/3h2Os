@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 MOUNT_POINT="/mnt/HC_Volume_104483418"
-PROJECT_NAME="3h2os"
+PROJECT_NAME="app"
 
 echo "Stopping containers..."
 docker compose -f docker-compose.prod.yml down
