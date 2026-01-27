@@ -92,9 +92,29 @@ services:
 
 volumes:
   caddy_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/HC_Volume_104483418/caddy_data
   caddy_config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/HC_Volume_104483418/caddy_config
   postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/HC_Volume_104483418/postgres_data
   backend_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/HC_Volume_104483418/backend_data
 
 networks:
   default:
