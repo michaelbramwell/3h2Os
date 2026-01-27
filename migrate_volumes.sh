@@ -2,7 +2,8 @@
 set -e
 
 # Configuration
-MOUNT_POINT="/mnt/HC_Volume_104483418"
+VOLUME_NAME="HC_Volume_104483418"
+MOUNT_POINT="/mnt/$VOLUME_NAME"
 PROJECT_NAME="app"
 
 echo "Stopping containers..."
