@@ -86,6 +86,7 @@ jobs:
           echo "KEYCLOAK_ADMIN_PASSWORD=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}" >> .env
           echo "DOMAIN=${{ vars.DOMAIN }}" >> .env
           echo "ACME_EMAIL=${{ vars.ACME_EMAIL }}" >> .env
+          echo "VOLUME_PATH=${{ vars.VOLUME_PATH }}" >> .env
 
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
