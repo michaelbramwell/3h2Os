@@ -163,8 +163,8 @@ def sync_workout_name_to_distance(workout: Any) -> None:
 
 def is_running_activity(activity_type: str) -> bool:
     """
-    Determines if an activity type string corresponds to a running activity.
-    Centralized logic for filtering out cross-training (cycling, swimming, etc).
+    Determines if an activity type string corresponds to a running OR swimming activity.
+    Centralized logic for filtering out non-distance based cross-training (cycling, yoga, etc).
     """
     if not activity_type:
         return False
@@ -174,10 +174,10 @@ def is_running_activity(activity_type: str) -> bool:
     # 1. Explicit Exclusions (Cross-Training)
     excluded_keywords = [
         "cycling",
-        "swimming",
+        # "swimming",  <-- REMOVED to allow swimming plans to calculate volume
         "bike",
-        "swim",
-        "pool",
+        # "swim",      <-- REMOVED
+        # "pool",      <-- REMOVED
         "cross",
         "strength",
         "yoga",
@@ -187,7 +187,7 @@ def is_running_activity(activity_type: str) -> bool:
     if any(ex in w_type for ex in excluded_keywords):
         return False
 
-    # 2. Known Running Types
+    # 2. Known Running & Swimming Types
     RUNNING_TYPES = [
         "run",
         "running",
@@ -206,6 +206,10 @@ def is_running_activity(activity_type: str) -> bool:
         "steady",
         "warmup",
         "cooldown",
+        # Add Swimming types so they are counted
+        "swimming",
+        "swim",
+        "pool",
     ]
 
     # If it matches a known running type
@@ -220,7 +224,7 @@ def is_running_activity(activity_type: str) -> bool:
 
 
 def get_week_volume(week: Union[WeekSchema, DomainWeek]) -> float:
-    """Calculates total distance for a WeekSchema or DomainWeek, strictly counting ONLY running activities."""
+    """Calculates total distance for a WeekSchema or DomainWeek, strictly counting ONLY running/swimming activities."""
     total = 0.0
 
     for day in week.days.values():

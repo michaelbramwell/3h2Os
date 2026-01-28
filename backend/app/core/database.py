@@ -52,6 +52,7 @@ class PlanWeek(SQLModel, table=True):
 class RunnerPlan(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
+    type: str = Field(default="running")  # Maps to PlanType enum
     is_active: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -87,6 +88,7 @@ class RunnerProfile(SQLModel, table=True):
 
     # JSON strings for complex nested data
     training_zones_json: Optional[str] = Field(default=None)
+    swim_zones_json: Optional[str] = Field(default=None)
     fueling_json: Optional[str] = Field(default=None)
 
     user: "User" = Relationship(back_populates="profile")

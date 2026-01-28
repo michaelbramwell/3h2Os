@@ -62,11 +62,19 @@ class PlanService:
 
         return [WeekSchema.model_validate(w) for w in plan_data]
 
+    def get_plans(self, user: User) -> List[RunnerPlan]:
+        """
+        Retrieves all plans for the user.
+        """
+        statement = select(RunnerPlan).where(RunnerPlan.user_id == user.id)
+        return self.session.exec(statement).all()
+
     def create_or_update_plan(
         self,
         plan_data: List[Dict[str, Any]],
         user: User = None,
         title: str = None,
+        plan_type: str = "running",
         activate: bool = False,
     ) -> RunnerPlan:
         """
@@ -87,12 +95,20 @@ class PlanService:
 
         if activate:
             self._deactivate_current_plans(user.id)
+        else:
+            # Auto-activate if it's the user's first plan
+            existing_plans = self.session.exec(
+                select(RunnerPlan).where(RunnerPlan.user_id == user.id)
+            ).all()
+            if not existing_plans:
+                activate = True
 
         if not title:
             title = f"Plan Update {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
         new_plan = RunnerPlan(
             title=title,
+            type=plan_type,
             is_active=activate,
             plan_json=json.dumps(plan_data),
             user_id=user.id,
@@ -366,8 +382,11 @@ class PlanService:
 
         total = 0.0
         for act in activities:
-            # Filter types
-            if act.type in ["running", "trail_running"]:
+            # Filter types - Include Swimming for volume calculation
+            # Note: We might want to separate Running Volume vs Swimming Volume in future,
+            # but for now, we just sum up the distance of the PRIMARY activity of the plan.
+            # Ideally we check the Plan Type, but here we just allow both.
+            if act.type in ["running", "trail_running", "swimming", "swim", "pool"]:
                 total += act.distance_m
         return total
 

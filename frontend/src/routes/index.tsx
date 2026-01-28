@@ -8,7 +8,9 @@ import { FridgeWeek } from '../components/FridgeWeek'
 import { ActivityModal } from '../components/ActivityModal'
 import { WeekCard } from '../components/WeekCard'
 import { GarminSettings } from '../components/GarminSettings'
-import { X } from 'lucide-react'
+import { CreatePlanDialog } from '../components/CreatePlanDialog'
+import { PlanSwitcher } from '../components/PlanSwitcher'
+import { X, Plus } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
 
 export const Route = createFileRoute('/')({
@@ -21,6 +23,7 @@ function Dashboard() {
   const auth = useAuth();
   const [fridgeWeekId, setFridgeWeekId] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [showCreatePlan, setShowCreatePlan] = useState(false);
 
   useEffect(() => {
     // Optional: Log auth status
@@ -152,6 +155,16 @@ function Dashboard() {
       <div className="absolute top-4 right-4 z-50 flex gap-2 print:hidden">
          {auth.isAuthenticated ? (
              <div className="flex items-center gap-2 bg-white/50 backdrop-blur px-3 py-1.5 rounded-full border border-slate-200">
+                 <button
+                    onClick={() => setShowCreatePlan(true)}
+                    className="p-1 hover:bg-slate-200 rounded-full text-blue-600 transition"
+                    title="Create New Plan"
+                 >
+                    <Plus size={18} />
+                 </button>
+                 <div className="h-4 w-px bg-slate-300 mx-1"></div>
+                 <PlanSwitcher />
+                 <div className="h-4 w-px bg-slate-300 mx-1"></div>
                  <GarminSettings />
                  <span className="text-xs text-slate-500 font-medium border-l border-slate-300 pl-2">
                     {auth.user?.profile.preferred_username || "User"}
@@ -233,6 +246,10 @@ function Dashboard() {
             activity={selectedActivity} 
             onClose={() => setSelectedActivity(null)} 
         />
+      )}
+
+      {showCreatePlan && (
+        <CreatePlanDialog onClose={() => setShowCreatePlan(false)} />
       )}
     </div>
   )

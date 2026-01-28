@@ -102,6 +102,16 @@ class ContextService:
             try:
                 # Load JSON to dict
                 zones_dict = json.loads(user.profile.training_zones_json)
+
+                # Merge swim zones if available
+                if user.profile.swim_zones_json:
+                    try:
+                        swim_zones_list = json.loads(user.profile.swim_zones_json)
+                        if isinstance(swim_zones_list, list):
+                            zones_dict["swimPace"] = swim_zones_list
+                    except Exception as e:
+                        print(f"Error parsing swim zones: {e}")
+
                 # Ensure it's valid schema
                 zones = TrainingZones.model_validate(zones_dict)
             except Exception as e:

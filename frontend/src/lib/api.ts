@@ -43,6 +43,29 @@ export const getContextMarkdown = async (): Promise<string> => {
     return response.data.content;
 };
 
+export const createPlan = async (title: string, type: string, weeks: Week[] = []): Promise<any> => {
+  const response = await api.post('/api/plans', { title, type, weeks });
+  return response.data;
+};
+
+export interface PlanMeta {
+    id: number;
+    title: string;
+    type: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+export const getPlans = async (): Promise<PlanMeta[]> => {
+    const response = await api.get<PlanMeta[]>('/api/plans');
+    return response.data;
+};
+
+export const activatePlan = async (id: number): Promise<any> => {
+    const response = await api.put(`/api/plans/${id}/activate`);
+    return response.data;
+};
+
 export const updateWorkout = async (id: number, data: { name?: string; description?: string; type?: string; distance_m?: number; timeOfDay?: string }, force: boolean = false): Promise<any> => {
     const response = await api.put(`/api/workouts/${id}?force=${force}`, data);
     return response.data;

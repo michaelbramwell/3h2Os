@@ -3,6 +3,12 @@ from typing import List, Optional, Dict
 from enum import Enum
 import json
 
+
+class PlanType(str, Enum):
+    RUNNING = "running"
+    SWIMMING = "swimming"
+
+
 class ActivityType(str, Enum):
     RUN = "Run"
     EASY = "Easy"
@@ -23,12 +29,14 @@ class ActivityType(str, Enum):
     CYCLING = "Cycling"
     SWIMMING = "Swimming"
 
+
 class GarminActivityType(str, Enum):
     RUNNING = "running"
     TRAIL_RUNNING = "trail_running"
     CYCLING = "cycling"
     SWIMMING = "swimming"
     OTHER = "other"
+
 
 @dataclass
 class Workout:
@@ -43,8 +51,9 @@ class Workout:
             name=data.get("name", ""),
             type=data.get("type", "rest"),
             distance_m=float(data.get("distance_m", 0)),
-            timeOfDay=data.get("timeOfDay", "AM")
+            timeOfDay=data.get("timeOfDay", "AM"),
         )
+
 
 @dataclass
 class Day:
@@ -55,14 +64,15 @@ class Day:
     def from_dict(data: dict):
         return Day(
             date=data.get("date", ""),
-            workouts=[Workout.from_dict(w) for w in data.get("workouts", [])]
+            workouts=[Workout.from_dict(w) for w in data.get("workouts", [])],
         )
+
 
 @dataclass
 class Week:
     weekStarting: str
     days: Dict[str, Day] = field(default_factory=dict)
-    status: str = "normal" # normal, rest, taper, recovery
+    status: str = "normal"  # normal, rest, taper, recovery
 
     @staticmethod
     def from_dict(data: dict):
@@ -72,14 +82,15 @@ class Week:
         return Week(
             weekStarting=data.get("weekStarting", ""),
             days=days_map,
-            status=data.get("status", "normal")
+            status=data.get("status", "normal"),
         )
-        
+
+
 @dataclass
 class ActualActivity:
     date: str
     name: str
-    type: str # running, cycling, etc.
+    type: str  # running, cycling, etc.
     distance_m: float
     duration_s: float
     average_pace_m_s: float
@@ -95,7 +106,7 @@ class ActualActivity:
     power_zones: List[Dict] = field(default_factory=list)
     pace_zones: List[Dict] = field(default_factory=list)
     splits: List[Dict] = field(default_factory=list)
-    
+
     @staticmethod
     def from_dict(data: dict):
         # Handle optional fields with defaults
@@ -117,13 +128,15 @@ class ActualActivity:
             hr_zones=data.get("hr_zones", []),
             power_zones=data.get("power_zones", []),
             pace_zones=data.get("pace_zones", []),
-            splits=data.get("splits", [])
+            splits=data.get("splits", []),
         )
+
 
 @dataclass
 class WeightEntry:
     date: str
     weight: float
+
 
 @dataclass
 class RunnerContext:
@@ -131,7 +144,9 @@ class RunnerContext:
     target_weight: float
     weight_history: List[WeightEntry] = field(default_factory=list)
 
+
 # --- Loaders ---
+
 
 def load_plan(path: str = "data/plan.json") -> List[Week]:
     try:
@@ -140,6 +155,7 @@ def load_plan(path: str = "data/plan.json") -> List[Week]:
             return [Week.from_dict(w) for w in data]
     except FileNotFoundError:
         return []
+
 
 def load_actuals(path: str = "data/actuals.json") -> List[ActualActivity]:
     try:

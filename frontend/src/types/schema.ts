@@ -99,6 +99,7 @@ export interface RunnerContext {
   trainingZones?: {
       pace: TrainingZone[];
       heartRate: TrainingZone[];
+      swimPace?: TrainingZone[];
   };
 }
 
@@ -155,3 +156,8 @@ export interface Activity {
     power_zones?: HrZone[];
     splits?: Record<string, any>[];
 }
+
+export interface ActualActivity extends Activity {
+    // Alias for clearer naming if needed, effectively the same structure
+}
+

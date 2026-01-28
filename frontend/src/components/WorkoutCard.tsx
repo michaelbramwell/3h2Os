@@ -17,6 +17,7 @@ interface WorkoutCardProps {
 export function WorkoutCard({ workout, isToday, isMarathonDay, isPast }: WorkoutCardProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const isRaceWorkout = workout.type === ActivityType.RACE;
+    const isSwim = workout.type === ActivityType.SWIMMING;
     const isPM = workout.timeOfDay === 'PM';
     const TimeIcon = isPM ? Moon : Sun;
     
@@ -29,6 +30,9 @@ export function WorkoutCard({ workout, isToday, isMarathonDay, isPast }: Workout
     } else if (isRaceWorkout) {
         workoutCardStyle = 'bg-amber-100/50 p-2 rounded border border-amber-300 shadow-sm relative overflow-hidden group';
         borderBarColor = 'bg-amber-500';
+    } else if (isSwim) {
+         borderBarColor = 'bg-cyan-500';
+         workoutCardStyle = `bg-cyan-50/30 p-2 rounded border border-slate-100 shadow-sm relative overflow-hidden group hover:border-cyan-300 transition-colors cursor-default`;
     }
 
     return (
