@@ -19,6 +19,7 @@ services:
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-running_db}
       - SQLITE_DB_PATH=data/database.db
       - JWT_VERIFY_SIGNATURE=true
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:8000
       # IDP_URL should point to keycloak service inside docker network for backend
       - IDP_URL=http://keycloak:8080
     # Run migrations before starting the app
@@ -88,6 +89,9 @@ services:
       - /app/node_modules # Prevent host node_modules from overwriting container's
     environment:
       - CHOKIDAR_USEPOLLING=true # Better file watching for Docker on some systems
+      - VITE_AUTH_AUTHORITY=http://localhost:8080/realms/running-realm
+      - VITE_AUTH_CLIENT_ID=running-app
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - web
     networks:

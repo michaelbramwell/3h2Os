@@ -5,6 +5,7 @@ import os
 from typing import List
 
 from app.core.database import get_session, User
+from app.core.auth import verify_jwt_middleware
 from app.services.plans import PlanService
 from app.services.context import ContextService
 from app.services.activities import ActivityService

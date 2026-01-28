@@ -71,6 +71,9 @@ origins = [
 ]
 
 # Add production domains from environment variables if present
+if cors_env := os.environ.get("CORS_ORIGINS"):
+    origins.extend([o.strip() for o in cors_env.split(",")])
+
 if domain := os.environ.get("DOMAIN"):
     origins.append(f"https://{domain}")
     origins.append(f"https://auth.{domain}")
