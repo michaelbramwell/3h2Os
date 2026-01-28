@@ -69,7 +69,7 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
                     .sort((a,b) => new Date(a[1].date).getTime() - new Date(b[1].date).getTime())
                     .map(([dayName, day]: [string, Day]) => {
                     
-                    const dayActuals = actuals.filter((a: Activity) => a.date === day.date);
+                    const dayActuals = actuals?.filter((a: Activity) => a.date === day.date) || [];
 
                     return (
                         <div key={dayName} className="h-full">

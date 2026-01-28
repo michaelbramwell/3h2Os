@@ -203,7 +203,28 @@ async def set_active_plan(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/plan.json", response_model=PlanUpdateResponse)
+@router.delete("/plans/{plan_id}")
+async def delete_plan(
+    plan_id: int,
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Delete a specific plan.
+    """
+    try:
+        service.delete_plan(plan_id, user)
+        return {"status": "success", "message": f"Plan {plan_id} deleted"}
+    except ValueError as e:
+        # If the service raises a ValueError, check if it's "not found" vs "permission denied"
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error deleting plan: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 async def update_plan(
     plan_data: List[WeekSchema],
     service: PlanService = Depends(get_plan_service),
@@ -252,12 +273,38 @@ async def get_context(
 @router.get("/actuals.json", response_model=List[ActivitySchema])
 async def get_actuals(
     service: ActivityService = Depends(get_activity_service),
+    plan_service: PlanService = Depends(get_plan_service),
     user: User = Depends(get_current_user),
 ):
     """
-    Get the actual activities from the database.
+    Get the actual activities from the database, filtered by the active plan type.
     """
-    return service.get_activities(user=user)
+    # 1. Determine active plan type
+    # We need to import RunnerPlan since we're using it in a select statement
+    from app.core.database import RunnerPlan
+
+    # Let's get the Active Plan Type
+    stmt = (
+        select(RunnerPlan)
+        .where(RunnerPlan.user_id == user.id)
+        .where(RunnerPlan.is_active == True)
+    )
+    active_plan = service.session.exec(stmt).first()
+
+    filter_types = None
+    if active_plan:
+        if active_plan.type == "swimming":
+            filter_types = [
+                "swimming",
+                "swim",
+                "pool",
+                "lap_swimming",
+                "open_water_swimming",
+            ]
+        elif active_plan.type == "running":
+            filter_types = ["running", "run", "trail_running", "treadmill_running"]
+
+    return service.get_activities(user=user, filter_types=filter_types)
 
 
 @router.post("/integrations/garmin/sync")

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPlans, activatePlan } from '../lib/api';
-import { ChevronDown, Check, Loader2, Calendar } from 'lucide-react';
+import { getPlans, activatePlan, deletePlan } from '../lib/api';
+import { ChevronDown, Check, Loader2, Calendar, Trash2 } from 'lucide-react';
 
 export function PlanSwitcher() {
     const [isOpen, setIsOpen] = useState(false);
@@ -18,7 +18,15 @@ export function PlanSwitcher() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['plan'] }); // Active plan content
             queryClient.invalidateQueries({ queryKey: ['plans'] }); // Plan list (active status)
+            queryClient.invalidateQueries({ queryKey: ['actuals'] }); // Refetch actuals based on new plan type
             setIsOpen(false);
+        },
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: deletePlan,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['plans'] });
         },
     });
 
@@ -34,6 +42,13 @@ export function PlanSwitcher() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    const handleDelete = (e: React.MouseEvent, planId: number, planTitle: string) => {
+        e.stopPropagation();
+        if (window.confirm(`Are you sure you want to delete "${planTitle}"? This cannot be undone.`)) {
+            deleteMutation.mutate(planId);
+        }
+    };
 
     const activePlan = plans?.find(p => p.is_active);
 
@@ -52,7 +67,7 @@ export function PlanSwitcher() {
             </button>
 
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100">
                     <div className="max-h-[300px] overflow-y-auto py-1">
                         {!plans || plans.length === 0 ? (
                             <div className="px-4 py-3 text-sm text-slate-500 text-center italic">
@@ -60,31 +75,50 @@ export function PlanSwitcher() {
                             </div>
                         ) : (
                             plans.map((plan) => (
-                                <button
-                                key={plan.id}
-                                onClick={() => activateMutation.mutate(plan.id)}
-                                disabled={plan.is_active || activateMutation.isPending}
-                                className="w-full text-left px-4 py-3 hover:bg-slate-50 transition flex items-center justify-between group"
-                            >
-                                <div className="min-w-0">
-                                    <div className={`font-medium text-sm truncate ${plan.is_active ? 'text-blue-600' : 'text-slate-700'}`}>
-                                        {plan.title}
-                                    </div>
-                                    <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                                        <span className={`capitalize ${plan.type === 'swimming' ? 'text-cyan-600' : ''}`}>{plan.type}</span>
-                                        <span>•</span>
-                                        <Calendar size={10} />
-                                        <span>{new Date(plan.created_at).toLocaleDateString()}</span>
-                                    </div>
+                                <div 
+                                    key={plan.id}
+                                    className="relative group/item hover:bg-slate-50 transition"
+                                >
+                                    <button
+                                        onClick={() => activateMutation.mutate(plan.id)}
+                                        disabled={plan.is_active || activateMutation.isPending}
+                                        className="w-full text-left px-4 py-3 flex items-center justify-between"
+                                    >
+                                        <div className="min-w-0 pr-6">
+                                            <div className={`font-medium text-sm truncate ${plan.is_active ? 'text-blue-600' : 'text-slate-700'}`}>
+                                                {plan.title}
+                                            </div>
+                                            <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                                <span className={`capitalize ${plan.type === 'swimming' ? 'text-cyan-600' : ''}`}>{plan.type}</span>
+                                                <span>•</span>
+                                                <Calendar size={10} />
+                                                <span>{new Date(plan.created_at).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                        {plan.is_active && (
+                                            <Check size={16} className="text-blue-500 shrink-0 ml-2" />
+                                        )}
+                                        {activateMutation.isPending && activateMutation.variables === plan.id && (
+                                            <Loader2 size={16} className="animate-spin text-blue-500 shrink-0 ml-2" />
+                                        )}
+                                    </button>
+                                    
+                                    {!plan.is_active && (
+                                        <button
+                                            onClick={(e) => handleDelete(e, plan.id, plan.title)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all opacity-0 group-hover/item:opacity-100"
+                                            title="Delete Plan"
+                                            disabled={deleteMutation.isPending}
+                                        >
+                                            {deleteMutation.isPending && deleteMutation.variables === plan.id ? (
+                                                <Loader2 size={14} className="animate-spin" />
+                                            ) : (
+                                                <Trash2 size={14} />
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
-                                {plan.is_active && (
-                                    <Check size={16} className="text-blue-500 shrink-0 ml-2" />
-                                )}
-                                {activateMutation.isPending && activateMutation.variables === plan.id && (
-                                    <Loader2 size={16} className="animate-spin text-blue-500 shrink-0 ml-2" />
-                                )}
-                            </button>
-                        )))}
+                            )))}
                     </div>
                 </div>
             )}

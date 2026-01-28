@@ -47,6 +47,9 @@
   - [x] Created custom "3h2Os" Wave branding (SVG).
   - [x] Updated application title and favicon.
   - [x] Integrated branding into Sidebar UI.
+  - [x] **Multi-Plan Support:** Implemented UI to switch between different training plans (e.g., Running vs. Swimming) with filtering logic for plan-specific activities.
+  - [x] **Plan Management:** Added ability to delete plans via the UI.
+  - [x] **Responsive Dashboard:** Implemented sticky sidebar/header and collapsible sidebar logic for better UX on long training plans.
 - [ ] **Data Persistence:** Migrate PostgreSQL data storage from VM local disk to attached Block Storage volume for durability across instance rebuilds.
 
 ## Phase 4: Performance Analytics (Weeks 5-10)

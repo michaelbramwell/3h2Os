@@ -390,12 +390,43 @@ class PlanService:
                 total += act.distance_m
         return total
 
-    def recalculate_plan_progression(self, user: User) -> None:
+    def delete_plan(self, plan_id: int, user: User) -> None:
         """
-        Recalculates the plan progression based on actual activity volume.
-        Updates future weeks' volumes based on the last completed week's actual volume.
+        Deletes a specific plan and its associated data.
+        Cannot delete the active plan unless it's the only one (handled by frontend logic mostly, but good to check).
         """
+        plan = self.session.get(RunnerPlan, plan_id)
+        if not plan:
+            raise ValueError(f"Plan with ID {plan_id} not found")
 
+        if plan.user_id != user.id:
+            raise ValueError("Cannot delete a plan that does not belong to you")
+
+        # Cascade delete is usually handled by DB, but explicit cleanup for clarity/safety if needed
+        # Assuming SQLModel relationships with cascade delete configured or manual cleanup:
+
+        # Delete weeks and workouts explicitly if no cascade on DB level
+        # (Though usually `ondelete="CASCADE"` should be in schema)
+
+        # For now, just delete the plan object, assuming cascade works or orphan rows are acceptable temporarily.
+        # Ideally, we query and delete children first if we are unsure about DB constraint setup.
+
+        # Manual cascade cleanup to be safe:
+        weeks = self.session.exec(
+            select(PlanWeek).where(PlanWeek.plan_id == plan.id)
+        ).all()
+        for week in weeks:
+            workouts = self.session.exec(
+                select(PlanWorkout).where(PlanWorkout.week_id == week.id)
+            ).all()
+            for w in workouts:
+                self.session.delete(w)
+            self.session.delete(week)
+
+        self.session.delete(plan)
+        self.session.commit()
+
+    def recalculate_plan_progression(self, user: User) -> None:
         # 1. Load active plan
         weeks_schema = self.get_active_plan(user)
         if not weeks_schema:

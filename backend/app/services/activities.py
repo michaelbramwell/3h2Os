@@ -84,7 +84,9 @@ class ActivityService:
         self.session.commit()
         return count
 
-    def get_activities(self, user: User = None) -> List[ActivitySchema]:
+    def get_activities(
+        self, user: User = None, filter_types: List[str] = None
+    ) -> List[ActivitySchema]:
         if not user:
             username = os.environ.get("DEFAULT_USERNAME", "runner")
             user = self.session.exec(
@@ -94,11 +96,13 @@ class ActivityService:
         if not user:
             return []
 
-        activities = self.session.exec(
-            select(ActualActivity)
-            .where(ActualActivity.user_id == user.id)
-            .order_by(ActualActivity.date)
-        ).all()
+        query = select(ActualActivity).where(ActualActivity.user_id == user.id)
+
+        if filter_types:
+            # SQLAlchemy/SQLModel IN clause
+            query = query.where(ActualActivity.type.in_(filter_types))
+
+        activities = self.session.exec(query.order_by(ActualActivity.date)).all()
 
         result = []
         for a in activities:

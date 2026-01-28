@@ -10,7 +10,7 @@ import { WeekCard } from '../components/WeekCard'
 import { GarminSettings } from '../components/GarminSettings'
 import { CreatePlanDialog } from '../components/CreatePlanDialog'
 import { PlanSwitcher } from '../components/PlanSwitcher'
-import { X, Plus } from 'lucide-react'
+import { PanelLeft, X, Plus } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
 
 export const Route = createFileRoute('/')({
@@ -24,6 +24,7 @@ function Dashboard() {
   const [fridgeWeekId, setFridgeWeekId] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   useEffect(() => {
     // Optional: Log auth status
@@ -60,7 +61,7 @@ function Dashboard() {
 
   // Start with a safe default for actuals to avoid breaking if file missing/empty
   const { data: actuals, isLoading: actualsLoading } = useQuery({ 
-    queryKey: ['actuals'], 
+    queryKey: ['actuals'], // Simple key, rely on queryClient.invalidateQueries from PlanSwitcher
     queryFn: getActuals,
     enabled: auth.isAuthenticated
   })
@@ -152,9 +153,25 @@ function Dashboard() {
 
   return (
     <div className={`min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans ${fridgeWeekId ? 'bg-white print:p-0' : ''}`}>
-      <div className="absolute top-4 right-4 z-50 flex gap-2 print:hidden">
+      {/* Branding / Title */}
+      <div className="fixed top-5 left-6 z-50 print:hidden pointer-events-none flex items-center gap-3 opacity-80">
+         <img src="/3h2os-waves.svg" alt="3h2Os Logo" className="w-10 h-10" />
+         <span className={`text-2xl font-bold text-slate-700 tracking-tight ${!isSidebarVisible ? 'hidden' : ''}`}>
+            3h2os
+         </span>
+      </div>
+
+      <div className="fixed top-4 right-4 z-50 flex gap-2 print:hidden">
          {auth.isAuthenticated ? (
-             <div className="flex items-center gap-2 bg-white/50 backdrop-blur px-3 py-1.5 rounded-full border border-slate-200">
+             <div className="flex items-center gap-2 bg-white/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                 <button
+                    onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                    className={`p-1 hover:bg-slate-200 rounded-full transition ${isSidebarVisible ? 'text-blue-600' : 'text-slate-400'}`}
+                    title={isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+                 >
+                    <PanelLeft size={18} />
+                 </button>
+                 <div className="h-4 w-px bg-slate-300 mx-1"></div>
                  <button
                     onClick={() => setShowCreatePlan(true)}
                     className="p-1 hover:bg-slate-200 rounded-full text-blue-600 transition"
@@ -202,16 +219,18 @@ function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 xl:gap-8">
             
             {/* Sidebar Column - Hide in Fridge Mode */}
-            {!fridgeWeekId && (
-                <div className="lg:col-span-1 space-y-6">
-                    <Sidebar context={context as ContextData} markdown={markdown} />
-                    {/* RecentActivities moved to be a child of Sidebar or separate is fine, but user complained about "under" */}
-                    <RecentActivities activities={actuals as Activity[]} />
+            {!fridgeWeekId && isSidebarVisible && (
+                <div className="lg:col-span-1">
+                    <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-4 pr-2">
+                        <Sidebar context={context as ContextData} markdown={markdown} />
+                        {/* RecentActivities moved to be a child of Sidebar or separate is fine, but user complained about "under" */}
+                        <RecentActivities activities={(actuals || []) as Activity[]} />
+                    </div>
                 </div>
             )}
 
             {/* Main Content Column */}
-            <div className={`${fridgeWeekId ? 'col-span-1 lg:col-span-4 max-w-[210mm] mx-auto w-full' : 'lg:col-span-3'} space-y-6`}>
+            <div className={`transition-all duration-300 ease-in-out ${fridgeWeekId || !isSidebarVisible ? 'col-span-1 lg:col-span-4' : 'lg:col-span-3'} ${fridgeWeekId ? 'max-w-[210mm] mx-auto w-full' : ''} space-y-6`}>
                 {visibleWeeks.map((week: Week) => {
                     // Match original index in plan
                     const originalIndex = plan.findIndex((w: Week) => w.weekStarting === week.weekStarting);
@@ -228,7 +247,7 @@ function Dashboard() {
                         <div key={week.weekStarting} id={`week-${week.weekStarting}`} className="scroll-mt-4">
                              <WeekCard
                                 week={week}
-                                actuals={actuals as Activity[]}
+                                actuals={(actuals || []) as Activity[]}
                                 todayStr={todayStr}
                                 isFridgeMode={!!fridgeWeekId}
                                 onFridgeClick={setFridgeWeekId}

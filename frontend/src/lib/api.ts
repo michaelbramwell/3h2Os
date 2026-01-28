@@ -66,6 +66,11 @@ export const activatePlan = async (id: number): Promise<any> => {
     return response.data;
 };
 
+export const deletePlan = async (id: number): Promise<any> => {
+    const response = await api.delete(`/api/plans/${id}`);
+    return response.data;
+};
+
 export const updateWorkout = async (id: number, data: { name?: string; description?: string; type?: string; distance_m?: number; timeOfDay?: string }, force: boolean = false): Promise<any> => {
     const response = await api.put(`/api/workouts/${id}?force=${force}`, data);
     return response.data;
