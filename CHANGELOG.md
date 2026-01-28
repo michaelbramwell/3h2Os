@@ -1,5 +1,31 @@
 # Release Notes
 
+## [v0.7.0] - 2026-01-27
+
+### Authentication & Security
+- **Dynamic JWKS**: Refactored backend to fetch keys dynamically from Keycloak's JWKS endpoint, removing the need for static `public_key.pem` and improving security.
+- **JWKS Caching**: Implemented internal caching for JWKS keys to optimize performance.
+- **Identity Provider**: Hardened Keycloak configuration by disabling user registration in production.
+
+### Infrastructure & CI/CD
+- **Managed Storage**: Migrated production volumes to Hetzner managed volumes and parameterized volume paths for better infrastructure portability.
+- **Test Automation**: Integrated automated backend and frontend test suites into the CI/CD pipeline.
+- **Deployment Optimization**: Standardized container image naming for GHCR and streamlined builds by targeting AMD64 to resolve QEMU stability issues.
+- **Legacy Cleanup**: Removed obsolete GitHub Pages workflows as the project moved to a containerized deployment.
+
+### Backend & API
+- **Router Robustness**: Reordered API routers and implemented dual-mount logic (root and `/api`) to ensure consistent routing behind reverse proxies.
+- **CORS Management**: Externalized CORS configurations to environment variables for environment-specific security policies.
+- **Reverse Proxy Support**: Optimized Keycloak and API configurations for HTTPS proxying, including proper redirect URI handling and HTTP listener settings.
+
+### UI & UX
+- **Branding Refresh**: Updated application iconography with the new 3h2Os wave logo and enhanced sidebar branding for better visibility.
+- **Stability**: Fixed various TypeScript compilation errors, import issues, and mock configurations to ensure a stable frontend build.
+
+### Documentation & AI
+- **Roadmap**: Updated project roadmap to reflect the completion of core Authentication, Branding, and Deployment milestones.
+- **AI Context**: Centralized AI context rules and updated `.gitignore` to maintain a clean development environment.
+
 ## [v0.6.0] - 2026-01-25
 
 ### Infrastructure & Deployment
