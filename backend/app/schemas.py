@@ -66,9 +66,15 @@ class DaySchema(BaseModel):
 
 
 class WeekSchema(BaseModel):
+    id: Optional[int] = None
     weekStarting: str
     status: str = "normal"
     days: Dict[str, DaySchema] = Field(default_factory=dict)
+
+
+class WeekUpdate(BaseModel):
+    status: Optional[str] = None
+    weekStarting: Optional[str] = None
 
 
 class PlanCreate(BaseModel):
