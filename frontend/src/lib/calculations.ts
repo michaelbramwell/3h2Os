@@ -48,35 +48,28 @@ export function calculateRemainingWeekVolume(week: Week, todayStr: string): numb
 
 /**
  * Calculates the actual distance run/swum in a given week.
- * Filters based on the dominant activity type of the plan (inferred).
+ * Filters based on the dominant activity type of the plan.
  */
-export function calculateWeekActuals(actuals: Activity[], week: Week): number {
+export function calculateWeekActuals(actuals: Activity[], week: Week, planType?: string): number {
     if (!actuals || !week) return 0;
     
     const weekDatesSet = new Set(Object.values(week.days).map((d: Day) => d.date));
-    
-    // Heuristic to detect plan type from workouts
-    // If > 50% of workouts are "Swim", we count Swim actuals.
-    // Otherwise we count Run.
-    let swimCount = 0;
-    let runCount = 0;
-    Object.values(week.days).forEach(d => {
-        d.workouts?.forEach(w => {
-            if (w.type?.toLowerCase() === 'swimming') swimCount++;
-            else runCount++;
-        });
-    });
-    
-    const isSwimWeek = swimCount > runCount;
+
+    // Determine plan type from explicit `planType` parameter instead of inferring from workouts.
+    const normalizedPlanType = planType?.toLowerCase();
+    const isSwimWeek =
+        normalizedPlanType === 'swim' ||
+        normalizedPlanType === 'swimming' ||
+        (normalizedPlanType !== undefined && normalizedPlanType.includes('swim'));
 
     return actuals.reduce((acc, act) => {
         if (weekDatesSet.has(act.date)) {
              const type = act.type?.toLowerCase();
              if (isSwimWeek) {
-                 if (type === 'swimming') return acc + (act.distance_m || 0);
+                 if (type === 'swimming' || type === 'pool' || type === 'lap_swimming') return acc + (act.distance_m || 0);
              } else {
                  // Default to Running logic
-                 if (type === 'running' || type === 'trail_running') {
+                 if (type === 'running' || type === 'trail_running' || type === 'run') {
                      return acc + (act.distance_m || 0);
                  }
              }

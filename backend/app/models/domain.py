@@ -30,6 +30,24 @@ class ActivityType(str, Enum):
     SWIMMING = "Swimming"
 
 
+# Centralized filter lists to avoid duplication across the codebase
+SWIM_ACTIVITY_TYPES = {
+    "swimming",
+    "swim",
+    "pool",
+    "lap_swimming",
+    "open_water_swimming",
+}
+
+RUN_ACTIVITY_TYPES = {
+    "running",
+    "run",
+    "trail_running",
+    "treadmill_running",
+    "trail",
+}
+
+
 class GarminActivityType(str, Enum):
     RUNNING = "running"
     TRAIL_RUNNING = "trail_running"

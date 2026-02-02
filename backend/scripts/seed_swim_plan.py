@@ -276,6 +276,11 @@ def create_swimming_plan():
                 potential_weeks = [s for s in schedule if s["start_date"] < week_cursor]
                 if potential_weeks:
                     base_week = potential_weeks[-1]
+                    # We currently replicate the workouts from the previous key week as a template.
+                    # This assumes the plan follows a repeating block structure where intermediate
+                    # weeks share the same structure as the block leader.
+                    # TODO: Implement more sophisticated interpolation (e.g. volume progression)
+                    # if the schedule becomes more granular.
                     week_data = {
                         "phase": base_week["phase"],
                         "notes": base_week["notes"],

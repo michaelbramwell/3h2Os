@@ -26,7 +26,8 @@ export function EditWeekDialog({ week, isOpen, onOpenChange, onSave }: EditWeekD
             console.error("Cannot edit week without ID", week);
             return;
         }
-        onSave(week.id, { status, weekStarting })
+        // Only send status, as weekStarting is read-only logic
+        onSave(week.id, { status })
         onOpenChange(false)
     }
 

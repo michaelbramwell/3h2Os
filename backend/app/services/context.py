@@ -110,7 +110,10 @@ class ContextService:
                         if isinstance(swim_zones_list, list):
                             zones_dict["swimPace"] = swim_zones_list
                     except Exception as e:
-                        print(f"Error parsing swim zones: {e}")
+                        print(
+                            f"Error parsing swim zones (type={type(e).__name__}) "
+                            f"for swim_zones_json={user.profile.swim_zones_json!r}: {e}"
+                        )
 
                 # Ensure it's valid schema
                 zones = TrainingZones.model_validate(zones_dict)

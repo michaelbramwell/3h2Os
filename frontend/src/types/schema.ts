@@ -156,9 +156,16 @@ export interface Activity {
     pace_zones?: HrZone[];
     power_zones?: HrZone[];
     splits?: Record<string, any>[];
+    
+    /**
+     * Marker field indicating that this activity represents an actual,
+     * completed workout (as opposed to a planned or template activity).
+     *
+     * This is optional so that any existing `Activity` objects remain
+     * assignable to `ActualActivity` without requiring additional fields.
+     */
+    actual?: true;
 }
 
-export interface ActualActivity extends Activity {
-    // Alias for clearer naming if needed, effectively the same structure
-}
+export type ActualActivity = Activity;
 

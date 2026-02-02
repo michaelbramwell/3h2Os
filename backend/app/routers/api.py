@@ -284,6 +284,7 @@ async def get_actuals(
     # 1. Determine active plan type
     # We need to import RunnerPlan since we're using it in a select statement
     from app.core.database import RunnerPlan
+    from app.models.domain import SWIM_ACTIVITY_TYPES, RUN_ACTIVITY_TYPES
 
     # Let's get the Active Plan Type
     stmt = (
@@ -296,15 +297,9 @@ async def get_actuals(
     filter_types = None
     if active_plan:
         if active_plan.type == "swimming":
-            filter_types = [
-                "swimming",
-                "swim",
-                "pool",
-                "lap_swimming",
-                "open_water_swimming",
-            ]
+            filter_types = list(SWIM_ACTIVITY_TYPES)
         elif active_plan.type == "running":
-            filter_types = ["running", "run", "trail_running", "treadmill_running"]
+            filter_types = list(RUN_ACTIVITY_TYPES)
 
     return service.get_activities(user=user, filter_types=filter_types)
 

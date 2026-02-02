@@ -421,16 +421,14 @@ class PlanService:
         if plan.user_id != user.id:
             raise ValueError("Cannot delete a plan that does not belong to you")
 
-        # Cascade delete is usually handled by DB, but explicit cleanup for clarity/safety if needed
-        # Assuming SQLModel relationships with cascade delete configured or manual cleanup:
+        # Perform explicit manual cascade cleanup of related weeks and workouts.
+        # This method does not rely on DB-level cascade delete configuration and instead
+        # always deletes child records before deleting the plan to avoid leaving orphans.
 
-        # Delete weeks and workouts explicitly if no cascade on DB level
-        # (Though usually `ondelete="CASCADE"` should be in schema)
+        # Delete weeks and workouts explicitly
+        # (even if `ondelete="CASCADE"` exists at the DB level, this keeps behavior explicit here).
 
-        # For now, just delete the plan object, assuming cascade works or orphan rows are acceptable temporarily.
-        # Ideally, we query and delete children first if we are unsure about DB constraint setup.
-
-        # Manual cascade cleanup to be safe:
+        # Manual cascade cleanup:
         weeks = self.session.exec(
             select(PlanWeek).where(PlanWeek.plan_id == plan.id)
         ).all()
