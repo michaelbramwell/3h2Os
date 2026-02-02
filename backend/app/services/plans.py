@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 from app.core import plan_logic
 from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout, ActualActivity
 from app.core.mappers import plan_to_relational, relational_to_plan
-from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate
+from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate, WeekUpdate
 from app.core.validation import ValidationEngine, ValidationWarningError
 from app.models.domain import (
     Week as DomainWeek,
@@ -195,6 +195,25 @@ class PlanService:
         )
         if issues:
             raise ValidationWarningError(issues)
+
+    def update_week(self, week_id: int, update_data: WeekUpdate) -> PlanWeek:
+        """
+        Updates a specific plan week (e.g. status).
+        """
+        week = self.session.get(PlanWeek, week_id)
+        if not week:
+            raise ValueError(f"Week with ID {week_id} not found")
+
+        if update_data.status:
+            week.status = update_data.status
+
+        # We don't generally allow changing weekStarting as it breaks chronology easily,
+        # but could be added if needed with heavy validation.
+
+        self.session.add(week)
+        self.session.commit()
+        self.session.refresh(week)
+        return week
 
     def update_workout(
         self, workout_id: int, update_data: WorkoutUpdate, force: bool = False

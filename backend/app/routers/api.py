@@ -14,6 +14,7 @@ from app.core.validation import ValidationWarningError
 from dataclasses import asdict
 from app.schemas import (
     WeekSchema,
+    WeekUpdate,
     PlanUpdateResponse,
     ContextSchema,
     ActivitySchema,
@@ -225,6 +226,7 @@ async def delete_plan(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/plan.json", response_model=PlanUpdateResponse)
 async def update_plan(
     plan_data: List[WeekSchema],
     service: PlanService = Depends(get_plan_service),
@@ -381,6 +383,25 @@ async def get_context_markdown():
 # TODO: Add authentication/authorization checks for all mutation endpoints
 # (create/update/delete workouts, plans, etc.) to prevent unauthorized access.
 # Currently relies on default username from environment.
+
+
+@router.put("/weeks/{week_id}")
+async def update_week_endpoint(
+    week_id: int,
+    update_data: WeekUpdate,
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Update a specific week (e.g., status).
+    """
+    try:
+        updated = service.update_week(week_id, update_data)
+        return {"status": "success", "message": "Week updated", "id": updated.id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/workouts")

@@ -220,7 +220,7 @@ def is_running_activity(activity_type: str) -> bool:
     if "activitytype.run" in w_type:
         return True
 
-    return True  # Default to True for unknown types (safe fallback for volume)
+    return False  # Default to False for unknown types to prevent volume inflation
 
 
 def get_week_volume(week: Union[WeekSchema, DomainWeek]) -> float:
