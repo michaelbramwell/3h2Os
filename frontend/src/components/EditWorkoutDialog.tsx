@@ -173,11 +173,12 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
                         >
                             <option value={ActivityType.RUN}>Running</option>
                             <option value={ActivityType.TRAIL}>Trail Running</option>
+                            <option value={ActivityType.RACE}>Race</option>
                             <option value={ActivityType.CYCLING}>Cycling</option>
                             <option value={ActivityType.SWIMMING}>Swimming</option>
                             
                             {/* Preserve current value if not in standard list to avoid data loss */}
-                            {!( [ActivityType.RUN, ActivityType.TRAIL, ActivityType.CYCLING, ActivityType.SWIMMING] as ActivityType[] ).includes(type as ActivityType) && (
+                            {!( [ActivityType.RUN, ActivityType.TRAIL, ActivityType.RACE, ActivityType.CYCLING, ActivityType.SWIMMING] as ActivityType[] ).includes(type as ActivityType) && (
                                 <option value={type}>{type} (Legacy)</option>
                             )}
                         </select>

@@ -54,6 +54,7 @@ export interface Day {
 }
 
 export interface Week {
+  id?: number;
   weekStarting: string;
   status: string;
   days: Record<string, Day>;

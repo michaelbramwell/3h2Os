@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import type { Week, Activity, Day } from '../types/schema'
 import { WeekStats } from './WeekStats'
 import { DayCard } from './DayCard'
 import { calculateWeekVolume, calculateWeekActuals, calculateRemainingWeekVolume } from '../lib/calculations'
+import { EditWeekDialog } from './EditWeekDialog'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { updateWeek } from '../lib/api'
+import { toast } from 'sonner'
 
 interface WeekCardProps {
     week: Week
@@ -13,6 +18,27 @@ interface WeekCardProps {
 }
 
 export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick, onActivityClick }: WeekCardProps) {
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: async ({ id, data }: { id: number, data: { status: string } }) => {
+            return updateWeek(id, data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['plan'] });
+            toast.success('Week updated successfully');
+        },
+        onError: (error: any) => {
+            console.error(error);
+            toast.error("Failed to update week. " + (error.response?.data?.detail || error.message));
+        }
+    });
+
+    const handleWeekSave = (id: number, data: { status: string }) => {
+        mutation.mutate({ id, data });
+    };
+
     // Check if current week by seeing if today is in this week's days
     const weekDatesSet = new Set(Object.values(week.days).map((d: Day) => d.date));
     const isCurrentWeek = weekDatesSet.has(todayStr);
@@ -61,6 +87,7 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
                 diffKm={diffKm}
                 isCompleted={isCompleted}
                 onFridgeClick={isFridgeMode ? undefined : () => onFridgeClick(week.weekStarting)}
+                onEditClick={isFridgeMode ? undefined : () => setIsEditOpen(true)}
             />
             
             {/* Days Grid */}
@@ -85,6 +112,13 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
                     )
                 })}
             </div>
+
+            <EditWeekDialog 
+                week={week}
+                isOpen={isEditOpen}
+                onOpenChange={setIsEditOpen}
+                onSave={handleWeekSave}
+            />
         </div>
     )
 }
