@@ -212,6 +212,10 @@ def is_running_activity(activity_type: str) -> bool:
         "pool",
     ]
 
+    # Explicitly check for Cycling to ensure it returns False even if some fuzzy logic might catch it
+    if "cycling" in w_type or "bike" in w_type or "ride" in w_type:
+        return False
+
     # If it matches a known running type
     if any(rt in w_type for rt in RUNNING_TYPES):
         return True
