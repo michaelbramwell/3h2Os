@@ -1,5 +1,23 @@
 # Release Notes
 
+## [v0.8.0] - 2026-02-03
+
+### Features & Enhancements
+- **Multi-Plan Support**: Backend and UI refactored to support multiple training plans (e.g., Run, Swim) concurrently.
+- **Swim Plan Integration**: Added specific support for swimming activities, formats, and pace zones.
+- **Plan Management**: Added UI capability to delete plans and improved the plan creation flow.
+- **Responsive Dashboard**: Implemented a sticky header and collapsible sidebar to improve usability on long plans and smaller screens.
+
+### Backend & Architecture
+- **Weight Tracking Removal**: Removed weight tracking features (tables and columns) as they are no longer in scope for this project.
+- **Migration Fixes**: Resolved circular dependencies in Alembic migrations and cleaned up redundant logic.
+- **Mapping Consistency**: Updated activity type mapping to align legacy "threshold" activities with the new "Threshold" workout format.
+- **Testing**: Expanded test coverage for plan editing, specifically for week status updates.
+
+### Frontend
+- **Safety**: Added null checks in `WeekCard` to prevent runtime errors during plan editing.
+- **State Management**: Improved query invalidation in `PlanSwitcher` to ensure UI consistency after plan deletion.
+
 ## [v0.7.0] - 2026-01-27
 
 ### Authentication & Security
