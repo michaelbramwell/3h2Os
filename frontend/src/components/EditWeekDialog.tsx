@@ -7,7 +7,7 @@ interface EditWeekDialogProps {
     week?: Week
     isOpen: boolean
     onOpenChange: (open: boolean) => void
-    onSave: (id: number, data: { status: string; weekStarting?: string }) => void
+    onSave: (id: number, data: { status: string }) => void
 }
 
 export function EditWeekDialog({ week, isOpen, onOpenChange, onSave }: EditWeekDialogProps) {

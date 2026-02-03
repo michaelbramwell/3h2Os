@@ -446,13 +446,12 @@ class PlanService:
             raise ValueError("Cannot delete a plan that does not belong to you")
 
         # Perform explicit manual cascade cleanup of related weeks and workouts.
-        # This method does not rely on DB-level cascade delete configuration and instead
-        # always deletes child records before deleting the plan to avoid leaving orphans.
+        # This implementation intentionally performs deletions in application code
+        # rather than relying on database-level ON DELETE CASCADE constraints.
+        # This approach ensures consistent behavior regardless of the database
+        # engine's cascade configuration and allows for potential future application
+        # logic during deletion (e.g., logging, auditing, or validation).
 
-        # Delete weeks and workouts explicitly
-        # (even if `ondelete="CASCADE"` exists at the DB level, this keeps behavior explicit here).
-
-        # Manual cascade cleanup:
         # 1. Fetch all week IDs for this plan
         week_ids = self.session.exec(
             select(PlanWeek.id).where(PlanWeek.plan_id == plan.id)
