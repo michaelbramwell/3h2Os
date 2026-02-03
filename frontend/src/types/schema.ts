@@ -168,5 +168,3 @@ export interface Activity {
      */
     actual?: true;
 }
-
-export type ActualActivity = Activity;

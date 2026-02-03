@@ -5,13 +5,18 @@ import { formatPace } from './formatters';
  * Calculates the total planned distance for a week, excluding non-running activities if needed.
  * Currently sums all workouts.
  */
-export function calculateWeekVolume(week: Week): number {
+export function calculateWeekVolume(week: Week, planType?: string): number {
     if (!week || !week.days) return 0;
     
-    // Determine context (Run vs Swim) based on workouts? 
-    // Or just sum everything? 
-    // Ideally we pass context or inspect the workouts.
-    // For now, let's just sum all meters.
+    // Use the explicit planType if available
+    const normalizedPlanType = planType?.toLowerCase();
+    
+    // We assume default is running unless 'swimming' or 'swim' is detected in planType
+    const isSwimWeek =
+        normalizedPlanType === 'swim' ||
+        normalizedPlanType === 'swimming' ||
+        (normalizedPlanType !== undefined && normalizedPlanType.includes('swim'));
+
     return Object.values(week.days).reduce((acc, day) => {
         return acc + calculateDayVolume(day);
     }, 0);

@@ -41,7 +41,8 @@ export function formatSwimPace(speedMs: number | undefined | null): string {
     if (!speedMs || isNaN(speedMs) || speedMs === Infinity || speedMs === 0) return '--:--';
     
     // speed (m/s) -> pace (sec/100m)
-    // 1 m/s = 100 seconds per 100m = 1:40/100m
+    // 1 m/s = 100 meters per 100 seconds = 100 seconds / 1 = 100 seconds per 100m.
+    // So 1 m/s => 1:40/100m.
     const secPer100m = 100 / speedMs;
     
     // Re-calc to be safe or just standard logic

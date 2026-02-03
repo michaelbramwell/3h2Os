@@ -1,10 +1,10 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple, Optional
 from datetime import datetime, timedelta
 from sqlmodel import Session, select, delete
 from app.core.database import RunnerPlan, PlanWeek, PlanWorkout
 
 
-def _map_legacy_type_to_new(legacy_type: str) -> tuple[str, str | None]:
+def _map_legacy_type_to_new(legacy_type: str) -> Tuple[str, Optional[str]]:
     """
     Maps legacy ActivityType string to (new_activity_type, new_workout_format).
     Returns a tuple of (ActivityType value, WorkoutFormat value or None).

@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, delete
 from datetime import datetime, date, timedelta
 import json
 import os
@@ -61,6 +61,30 @@ class PlanService:
                 plan_data = json.loads(plan.plan_json)
 
         return [WeekSchema.model_validate(w) for w in plan_data]
+
+    def get_active_plan_activity_types(self, user: User) -> List[str] | None:
+        """
+        Returns the list of activity types relevant to the user's active plan.
+        Used for filtering actuals.
+        """
+        from app.models.domain import SWIM_ACTIVITY_TYPES, RUN_ACTIVITY_TYPES
+
+        statement = (
+            select(RunnerPlan)
+            .where(RunnerPlan.user_id == user.id)
+            .where(RunnerPlan.is_active == True)
+        )
+        active_plan = self.session.exec(statement).first()
+
+        if not active_plan:
+            return None
+
+        if active_plan.type == "swimming":
+            return list(SWIM_ACTIVITY_TYPES)
+        elif active_plan.type == "running":
+            return list(RUN_ACTIVITY_TYPES)
+
+        return None
 
     def get_plans(self, user: User) -> List[RunnerPlan]:
         """
@@ -429,16 +453,19 @@ class PlanService:
         # (even if `ondelete="CASCADE"` exists at the DB level, this keeps behavior explicit here).
 
         # Manual cascade cleanup:
-        weeks = self.session.exec(
-            select(PlanWeek).where(PlanWeek.plan_id == plan.id)
+        # 1. Fetch all week IDs for this plan
+        week_ids = self.session.exec(
+            select(PlanWeek.id).where(PlanWeek.plan_id == plan.id)
         ).all()
-        for week in weeks:
-            workouts = self.session.exec(
-                select(PlanWorkout).where(PlanWorkout.week_id == week.id)
-            ).all()
-            for w in workouts:
-                self.session.delete(w)
-            self.session.delete(week)
+
+        if week_ids:
+            # 2. Bulk delete all workouts for these weeks
+            self.session.exec(
+                delete(PlanWorkout).where(PlanWorkout.week_id.in_(week_ids))
+            )
+
+            # 3. Bulk delete all weeks for this plan
+            self.session.exec(delete(PlanWeek).where(PlanWeek.plan_id == plan.id))
 
         self.session.delete(plan)
         self.session.commit()

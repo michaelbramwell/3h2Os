@@ -117,7 +117,8 @@ def test_get_plan_uses_relational_data(client):
                     "workouts": [
                         {
                             "name": "Relational Check",
-                            "type": "Easy",
+                            "type": "Run",
+                            "format": "Easy",
                             "distance_m": 8000,
                             "timeOfDay": "AM",
                         }
@@ -126,11 +127,16 @@ def test_get_plan_uses_relational_data(client):
             },
         }
     ]
-    client.post("/api/plan.json", json=plan_data)
+    # Ensure POST is successful
+    response = client.post("/api/plan.json", json=plan_data)
+    if response.status_code != 200:
+        print(response.json())
+    assert response.status_code == 200
 
     # 2. Verify normal fetch works first
     response = client.get("/api/plan.json")
     assert response.status_code == 200
+    assert len(response.json()) > 0
     assert response.json()[0]["weekStarting"] == "2026-02-01"
 
     # 3. Sabotage the JSON blob in the DB to prove we read from Relational tables
@@ -154,6 +160,7 @@ def test_get_plan_uses_relational_data(client):
     data = response.json()
     assert len(data) == 1
     assert data[0]["weekStarting"] == "2026-02-01"
+    # Note: Keys are case sensitive, "Mon" vs "Mon"
     assert data[0]["days"]["Mon"]["workouts"][0]["name"] == "Relational Check"
     assert data[0]["days"]["Mon"]["workouts"][0]["distance_m"] == 8000
 

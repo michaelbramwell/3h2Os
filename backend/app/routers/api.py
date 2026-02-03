@@ -258,26 +258,8 @@ async def get_actuals(
     """
     Get the actual activities from the database, filtered by the active plan type.
     """
-    # 1. Determine active plan type
-    # We need to import RunnerPlan since we're using it in a select statement
-    from app.core.database import RunnerPlan
-    from app.models.domain import SWIM_ACTIVITY_TYPES, RUN_ACTIVITY_TYPES
-
-    # Let's get the Active Plan Type
-    stmt = (
-        select(RunnerPlan)
-        .where(RunnerPlan.user_id == user.id)
-        .where(RunnerPlan.is_active == True)
-    )
-    active_plan = service.session.exec(stmt).first()
-
-    filter_types = None
-    if active_plan:
-        if active_plan.type == "swimming":
-            filter_types = list(SWIM_ACTIVITY_TYPES)
-        elif active_plan.type == "running":
-            filter_types = list(RUN_ACTIVITY_TYPES)
-
+    # Use service method to determine filter types based on active plan
+    filter_types = plan_service.get_active_plan_activity_types(user)
     return service.get_activities(user=user, filter_types=filter_types)
 
 

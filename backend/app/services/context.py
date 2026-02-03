@@ -2,6 +2,8 @@ from sqlmodel import Session, select
 import json
 import os
 
+import logging
+
 from app.core.database import User
 from app.schemas import (
     ContextSchema,
@@ -10,6 +12,8 @@ from app.schemas import (
     TrainingZones,
 )
 from datetime import date
+
+logger = logging.getLogger(__name__)
 
 
 class ContextService:
@@ -58,7 +62,7 @@ class ContextService:
                         if isinstance(swim_zones_list, list):
                             zones_dict["swimPace"] = swim_zones_list
                     except Exception as e:
-                        print(
+                        logger.error(
                             f"Error parsing swim zones (type={type(e).__name__}) "
                             f"for swim_zones_json={user.profile.swim_zones_json!r}: {e}"
                         )
@@ -66,7 +70,7 @@ class ContextService:
                 # Ensure it's valid schema
                 zones = TrainingZones.model_validate(zones_dict)
             except Exception as e:
-                print(f"Error parsing zones: {e}")
+                logger.error(f"Error parsing zones: {e}")
 
         runner_ctx = RunnerContext(
             age=user.profile.age,

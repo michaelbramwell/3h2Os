@@ -22,7 +22,7 @@ export function EditWeekDialog({ week, isOpen, onOpenChange, onSave }: EditWeekD
     }, [week])
 
     const handleSave = () => {
-        if (!week?.id) {
+        if (!week || typeof week.id === 'undefined') {
             console.error("Cannot edit week without ID", week);
             return;
         }

@@ -85,6 +85,13 @@ class PlanCreate(BaseModel):
     type: str = "running"
     weeks: List[WeekSchema]
 
+    @field_validator("weeks")
+    @classmethod
+    def validate_weeks_not_empty(cls, v: List[WeekSchema]) -> List[WeekSchema]:
+        if not v:
+            raise ValueError("Plan must contain at least one week")
+        return v
+
 
 # Response schema for update operation
 class PlanUpdateResponse(BaseModel):
