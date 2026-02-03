@@ -34,6 +34,26 @@ export function formatPace(value: number | undefined | null): string {
 }
 
 /**
+ * Formats a swim pace (sec/100m) into "MM:SS/100m".
+ * @param speedMs - Speed in meters/second
+ */
+export function formatSwimPace(speedMs: number | undefined | null): string {
+    if (!speedMs || isNaN(speedMs) || speedMs === Infinity || speedMs === 0) return '--:--';
+    
+    // speed (m/s) -> pace (sec/100m)
+    // 1 m/s = 100 meters per 100 seconds = 100 seconds / 1 = 100 seconds per 100m.
+    // So 1 m/s => 1:40/100m.
+    const secPer100m = 100 / speedMs;
+    
+    // Re-calc to be safe or just standard logic
+    const totalSeconds = Math.round(secPer100m);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+/**
  * Formats distance in meters to kilometers with specified decimal places.
  * @param meters - Distance in meters.
  * @param decimals - Number of decimal places (default 1).

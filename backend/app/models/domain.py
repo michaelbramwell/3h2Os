@@ -3,25 +3,57 @@ from typing import List, Optional, Dict
 from enum import Enum
 import json
 
+
+class PlanType(str, Enum):
+    RUNNING = "running"
+    SWIMMING = "swimming"
+
+
 class ActivityType(str, Enum):
     RUN = "Run"
+    TRAIL = "Trail"
+    CYCLING = "Cycling"
+    SWIMMING = "Swimming"
+    CROSS = "Cross"
+    REST = "Rest"
+    OTHER = "Other"
+
+
+class WorkoutFormat(str, Enum):
     EASY = "Easy"
     LONG = "Long"
-    WORKOUT = "Workout"
+    TEMPO = "Tempo"
+    THRESHOLD = "Threshold"
+    INTERVALS = "Intervals"
     RACE = "Race"
-    REST = "Rest"
-    CROSS = "Cross"
+    RECOVERY = "Recovery"
+    TECHNIQUE = "Technique"
+    HILLS = "Hills"
+    FARTLEK = "Fartlek"
+    PROGRESSION = "Progression"
     STEADY = "Steady"
     WARMUP = "WarmUp"
     COOLDOWN = "CoolDown"
-    INTERVALS = "Intervals"
-    TRAIL = "Trail"
-    TEMPO = "Tempo"
-    PLR = "PLR"
-    HILLS = "Hills"
-    THRESHOLD = "Threshold"
-    CYCLING = "Cycling"
-    SWIMMING = "Swimming"
+    TIME_TRIAL = "TimeTrial"
+
+
+# Centralized filter lists to avoid duplication across the codebase
+SWIM_ACTIVITY_TYPES = {
+    "swimming",
+    "swim",
+    "pool",
+    "lap_swimming",
+    "open_water_swimming",
+}
+
+RUN_ACTIVITY_TYPES = {
+    "running",
+    "run",
+    "trail_running",
+    "treadmill_running",
+    "trail",
+}
+
 
 class GarminActivityType(str, Enum):
     RUNNING = "running"
@@ -30,12 +62,14 @@ class GarminActivityType(str, Enum):
     SWIMMING = "swimming"
     OTHER = "other"
 
+
 @dataclass
 class Workout:
     name: str
     type: str
     distance_m: float
     timeOfDay: str = "AM"
+    format: Optional[str] = None
 
     @staticmethod
     def from_dict(data: dict):
@@ -43,8 +77,10 @@ class Workout:
             name=data.get("name", ""),
             type=data.get("type", "rest"),
             distance_m=float(data.get("distance_m", 0)),
-            timeOfDay=data.get("timeOfDay", "AM")
+            timeOfDay=data.get("timeOfDay", "AM"),
+            format=data.get("format"),
         )
+
 
 @dataclass
 class Day:
@@ -55,14 +91,16 @@ class Day:
     def from_dict(data: dict):
         return Day(
             date=data.get("date", ""),
-            workouts=[Workout.from_dict(w) for w in data.get("workouts", [])]
+            workouts=[Workout.from_dict(w) for w in data.get("workouts", [])],
         )
+
 
 @dataclass
 class Week:
     weekStarting: str
     days: Dict[str, Day] = field(default_factory=dict)
-    status: str = "normal" # normal, rest, taper, recovery
+    status: str = "normal"  # normal, rest, taper, recovery
+    id: Optional[int] = None
 
     @staticmethod
     def from_dict(data: dict):
@@ -72,14 +110,16 @@ class Week:
         return Week(
             weekStarting=data.get("weekStarting", ""),
             days=days_map,
-            status=data.get("status", "normal")
+            status=data.get("status", "normal"),
+            id=data.get("id"),
         )
-        
+
+
 @dataclass
 class ActualActivity:
     date: str
     name: str
-    type: str # running, cycling, etc.
+    type: str  # running, cycling, etc.
     distance_m: float
     duration_s: float
     average_pace_m_s: float
@@ -95,7 +135,7 @@ class ActualActivity:
     power_zones: List[Dict] = field(default_factory=list)
     pace_zones: List[Dict] = field(default_factory=list)
     splits: List[Dict] = field(default_factory=list)
-    
+
     @staticmethod
     def from_dict(data: dict):
         # Handle optional fields with defaults
@@ -117,21 +157,18 @@ class ActualActivity:
             hr_zones=data.get("hr_zones", []),
             power_zones=data.get("power_zones", []),
             pace_zones=data.get("pace_zones", []),
-            splits=data.get("splits", [])
+            splits=data.get("splits", []),
         )
 
-@dataclass
-class WeightEntry:
-    date: str
-    weight: float
 
 @dataclass
 class RunnerContext:
-    current_weight: float
-    target_weight: float
-    weight_history: List[WeightEntry] = field(default_factory=list)
+    pass
+    # Removed weight related fields
+
 
 # --- Loaders ---
+
 
 def load_plan(path: str = "data/plan.json") -> List[Week]:
     try:
@@ -140,6 +177,7 @@ def load_plan(path: str = "data/plan.json") -> List[Week]:
             return [Week.from_dict(w) for w in data]
     except FileNotFoundError:
         return []
+
 
 def load_actuals(path: str = "data/actuals.json") -> List[ActualActivity]:
     try:

@@ -71,6 +71,20 @@ origins = [
 ]
 
 # Add production domains from environment variables if present
+if cors_env := os.environ.get("CORS_ORIGINS"):
+    for o in cors_env.split(","):
+        o = o.strip()
+        if o.startswith("http://") or o.startswith("https://"):
+            origins.append(o)
+        else:
+            # Basic validation/warning but allow it if needed or prepend https://?
+            # For security, strict validation is better.
+            # We will just skip invalid ones and log (print for now).
+            # print(
+            #     f"Skipping invalid CORS origin: {o}. Must start with http:// or https://"
+            # )
+            pass
+
 if domain := os.environ.get("DOMAIN"):
     origins.append(f"https://{domain}")
     origins.append(f"https://auth.{domain}")

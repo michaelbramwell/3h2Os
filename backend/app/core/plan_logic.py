@@ -11,7 +11,11 @@ from app.schemas import WeekSchema
 
 
 def construct_domain_workout(
-    name: str, activity_type: str, distance_m: float, time_of_day: str
+    name: str,
+    activity_type: str,
+    distance_m: float,
+    time_of_day: str,
+    workout_format: str = None,
 ) -> DomainWorkout:
     """Creates a DomainWorkout object."""
     return DomainWorkout(
@@ -19,6 +23,7 @@ def construct_domain_workout(
         type=activity_type,
         distance_m=distance_m,
         timeOfDay=time_of_day,
+        format=workout_format,
     )
 
 
@@ -38,11 +43,12 @@ def create_domain_week(
         # Handle attribute differences (DB vs Dict vs Object)
         w_name = getattr(w, "name", None)
         w_type = getattr(w, "activity_type", getattr(w, "type", None))
+        w_format = getattr(w, "workout_format", getattr(w, "format", None))
         w_dist = getattr(w, "distance_m", 0.0)
         w_tod = getattr(w, "time_of_day", getattr(w, "timeOfDay", "AM"))
         w_date = getattr(w, "date", None)
 
-        d_work = construct_domain_workout(w_name, w_type, w_dist, w_tod)
+        d_work = construct_domain_workout(w_name, w_type, w_dist, w_tod, w_format)
 
         # Find which day index
         if not w_date:
@@ -103,12 +109,17 @@ def prepare_validation_data(
     f_type = getattr(
         focused_workout, "activity_type", getattr(focused_workout, "type", None)
     )
+    f_format = getattr(
+        focused_workout, "workout_format", getattr(focused_workout, "format", None)
+    )
     f_dist = getattr(focused_workout, "distance_m", 0.0)
     f_tod = getattr(
         focused_workout, "time_of_day", getattr(focused_workout, "timeOfDay", "AM")
     )
 
-    domain_focused_workout = construct_domain_workout(f_name, f_type, f_dist, f_tod)
+    domain_focused_workout = construct_domain_workout(
+        f_name, f_type, f_dist, f_tod, f_format
+    )
 
     return domain_prev, domain_curr, domain_focused_workout
 
@@ -125,6 +136,14 @@ def apply_workout_updates(workout: Any, update_data: Dict[str, Any]) -> None:
             workout.activity_type = val
         elif hasattr(workout, "type"):
             workout.type = val
+
+    if "format" in update_data:
+        # Map 'format' from schema to 'workout_format' in DB if exists
+        val = update_data.pop("format")
+        if hasattr(workout, "workout_format"):
+            workout.workout_format = val
+        elif hasattr(workout, "format"):
+            workout.format = val
 
     if "timeOfDay" in update_data:
         # Map 'timeOfDay' from schema to 'time_of_day' in DB if exists
@@ -163,64 +182,64 @@ def sync_workout_name_to_distance(workout: Any) -> None:
 
 def is_running_activity(activity_type: str) -> bool:
     """
-    Determines if an activity type string corresponds to a running activity.
-    Centralized logic for filtering out cross-training (cycling, swimming, etc).
+    Determines if an activity type string corresponds to a running OR swimming activity.
+    Centralized logic for filtering out non-distance based cross-training (cycling, yoga, etc).
     """
     if not activity_type:
         return False
 
     w_type = str(activity_type).lower().strip()
 
+    # If the ActivityType is the literal string "ActivityType.RUN", handle it.
+    # Also handle standard enum values from new refactor
+    if w_type in [
+        "run",
+        "running",
+        "trail",
+        "swimming",
+        "swim",
+        "activitytype.run",
+        "activitytype.swimming",
+        "activitytype.trail",
+    ]:
+        return True
+
+    # Legacy support (should be less needed now with migration logic)
     # 1. Explicit Exclusions (Cross-Training)
     excluded_keywords = [
         "cycling",
-        "swimming",
+        # "swimming",  <-- REMOVED to allow swimming plans to calculate volume
         "bike",
-        "swim",
-        "pool",
+        # "swim",      <-- REMOVED
+        # "pool",      <-- REMOVED
         "cross",
         "strength",
         "yoga",
         "ride",
         "other",
+        "rest",
     ]
     if any(ex in w_type for ex in excluded_keywords):
         return False
 
-    # 2. Known Running Types
-    RUNNING_TYPES = [
-        "run",
-        "running",
-        "trail",
-        "trail_running",
-        "long",
-        "easy",
-        "tempo",
-        "intervals",
-        "workout",
-        "race",
-        "fartlek",
-        "hill",
-        "hills",
-        "threshold",
-        "steady",
-        "warmup",
-        "cooldown",
-    ]
+    return True  # Default to True for now if not excluded, but safer to be restrictive?
+    # Actually, with the new strict Enums, we should trust the Enum values.
 
-    # If it matches a known running type
-    if any(rt in w_type for rt in RUNNING_TYPES):
+    # Re-evaluating logic based on new Enums:
+    # ActivityType.RUN, TRAIL, SWIMMING -> True
+    # ActivityType.CYCLING, CROSS, REST, OTHER -> False
+
+    positive_types = ["run", "trail", "swimming"]
+    negative_types = ["cycling", "cross", "rest", "other"]
+
+    if any(pt in w_type for pt in positive_types):
         return True
 
-    # If the ActivityType is the literal string "ActivityType.RUN", handle it.
-    if "activitytype.run" in w_type:
-        return True
-
-    return True  # Default to True for unknown types (safe fallback for volume)
+    return False
 
 
 def get_week_volume(week: Union[WeekSchema, DomainWeek]) -> float:
-    """Calculates total distance for a WeekSchema or DomainWeek, strictly counting ONLY running activities."""
+    """Calculates total distance for a WeekSchema or DomainWeek, strictly counting ONLY running/swimming activities."""
     total = 0.0
 
     for day in week.days.values():
@@ -250,7 +269,7 @@ def scale_week_volume(week: WeekSchema, target_vol: float) -> None:
 
             new_dist = w.distance_m * scale
 
-            if "race" in w.type.lower():
+            if "race" in w.type.lower() or (w.format and "race" in w.format.lower()):
                 w.distance_m = new_dist
             else:
                 # Round to nearest 1000m
@@ -280,7 +299,9 @@ def calculate_future_progression(
         has_race = False
         for d in week.days.values():
             for w in d.workouts:
-                if "race" in w.type.lower():
+                if "race" in w.type.lower() or (
+                    w.format and "race" in w.format.lower()
+                ):
                     has_race = True
 
         target_vol = 0

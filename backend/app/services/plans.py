@@ -1,4 +1,4 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, select, delete
 from datetime import datetime, date, timedelta
 import json
 import os
@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 from app.core import plan_logic
 from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout, ActualActivity
 from app.core.mappers import plan_to_relational, relational_to_plan
-from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate
+from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate, WeekUpdate
 from app.core.validation import ValidationEngine, ValidationWarningError
 from app.models.domain import (
     Week as DomainWeek,
@@ -62,11 +62,43 @@ class PlanService:
 
         return [WeekSchema.model_validate(w) for w in plan_data]
 
+    def get_active_plan_activity_types(self, user: User) -> List[str] | None:
+        """
+        Returns the list of activity types relevant to the user's active plan.
+        Used for filtering actuals.
+        """
+        from app.models.domain import SWIM_ACTIVITY_TYPES, RUN_ACTIVITY_TYPES
+
+        statement = (
+            select(RunnerPlan)
+            .where(RunnerPlan.user_id == user.id)
+            .where(RunnerPlan.is_active == True)
+        )
+        active_plan = self.session.exec(statement).first()
+
+        if not active_plan:
+            return None
+
+        if active_plan.type == "swimming":
+            return list(SWIM_ACTIVITY_TYPES)
+        elif active_plan.type == "running":
+            return list(RUN_ACTIVITY_TYPES)
+
+        return None
+
+    def get_plans(self, user: User) -> List[RunnerPlan]:
+        """
+        Retrieves all plans for the user.
+        """
+        statement = select(RunnerPlan).where(RunnerPlan.user_id == user.id)
+        return self.session.exec(statement).all()
+
     def create_or_update_plan(
         self,
         plan_data: List[Dict[str, Any]],
         user: User = None,
         title: str = None,
+        plan_type: str = "running",
         activate: bool = False,
     ) -> RunnerPlan:
         """
@@ -85,6 +117,15 @@ class PlanService:
                 self.session.commit()
                 self.session.refresh(user)
 
+        # Determine if this is the user's first plan
+        existing_plans = self.session.exec(
+            select(RunnerPlan).where(RunnerPlan.user_id == user.id)
+        ).all()
+
+        if not existing_plans and not activate:
+            # Auto-activate if it's the user's first plan
+            activate = True
+
         if activate:
             self._deactivate_current_plans(user.id)
 
@@ -93,6 +134,7 @@ class PlanService:
 
         new_plan = RunnerPlan(
             title=title,
+            type=plan_type,
             is_active=activate,
             plan_json=json.dumps(plan_data),
             user_id=user.id,
@@ -179,6 +221,25 @@ class PlanService:
         )
         if issues:
             raise ValidationWarningError(issues)
+
+    def update_week(self, week_id: int, update_data: WeekUpdate) -> PlanWeek:
+        """
+        Updates a specific plan week (e.g. status).
+        """
+        week = self.session.get(PlanWeek, week_id)
+        if not week:
+            raise ValueError(f"Week with ID {week_id} not found")
+
+        if update_data.status:
+            week.status = update_data.status
+
+        # We don't generally allow changing weekStarting as it breaks chronology easily,
+        # but could be added if needed with heavy validation.
+
+        self.session.add(week)
+        self.session.commit()
+        self.session.refresh(week)
+        return week
 
     def update_workout(
         self, workout_id: int, update_data: WorkoutUpdate, force: bool = False
@@ -366,17 +427,52 @@ class PlanService:
 
         total = 0.0
         for act in activities:
-            # Filter types
-            if act.type in ["running", "trail_running"]:
+            # Filter types - Include Swimming for volume calculation
+            # Note: We might want to separate Running Volume vs Swimming Volume in future,
+            # but for now, we just sum up the distance of the PRIMARY activity of the plan.
+            # Ideally we check the Plan Type, but here we just allow both.
+            # TODO(PLANS-123): Separate running vs swimming volume tracking so mixed plans are not misrepresented.
+            if act.type in ["running", "trail_running", "swimming", "swim", "pool"]:
                 total += act.distance_m
         return total
 
-    def recalculate_plan_progression(self, user: User) -> None:
+    def delete_plan(self, plan_id: int, user: User) -> None:
         """
-        Recalculates the plan progression based on actual activity volume.
-        Updates future weeks' volumes based on the last completed week's actual volume.
+        Deletes a specific plan and its associated data.
+        Cannot delete the active plan unless it's the only one (handled by frontend logic mostly, but good to check).
         """
+        plan = self.session.get(RunnerPlan, plan_id)
+        if not plan:
+            raise ValueError(f"Plan with ID {plan_id} not found")
 
+        if plan.user_id != user.id:
+            raise ValueError("Cannot delete a plan that does not belong to you")
+
+        # Perform explicit manual cascade cleanup of related weeks and workouts.
+        # This implementation intentionally performs deletions in application code
+        # rather than relying on database-level ON DELETE CASCADE constraints.
+        # This approach ensures consistent behavior regardless of the database
+        # engine's cascade configuration and allows for potential future application
+        # logic during deletion (e.g., logging, auditing, or validation).
+
+        # 1. Fetch all week IDs for this plan
+        week_ids = self.session.exec(
+            select(PlanWeek.id).where(PlanWeek.plan_id == plan.id)
+        ).all()
+
+        if week_ids:
+            # 2. Bulk delete all workouts for these weeks
+            self.session.exec(
+                delete(PlanWorkout).where(PlanWorkout.week_id.in_(week_ids))
+            )
+
+            # 3. Bulk delete all weeks for this plan
+            self.session.exec(delete(PlanWeek).where(PlanWeek.plan_id == plan.id))
+
+        self.session.delete(plan)
+        self.session.commit()
+
+    def recalculate_plan_progression(self, user: User) -> None:
         # 1. Load active plan
         weeks_schema = self.get_active_plan(user)
         if not weeks_schema:

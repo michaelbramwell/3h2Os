@@ -3,7 +3,7 @@ from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
 from sqlalchemy import BigInteger, Column, String
 from datetime import datetime, date
 import os
-from app.models.domain import ActivityType
+from app.models.domain import ActivityType, WorkoutFormat
 
 # --- Models ---
 
@@ -33,6 +33,7 @@ class PlanWorkout(SQLModel, table=True):
     name: str
     description: Optional[str] = None
     activity_type: ActivityType = Field(default=ActivityType.RUN, sa_type=String)
+    workout_format: Optional[WorkoutFormat] = Field(default=None, sa_type=String)
     distance_m: float = 0.0
     time_of_day: str = "AM"
 
@@ -52,6 +53,7 @@ class PlanWeek(SQLModel, table=True):
 class RunnerPlan(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
+    type: str = Field(default="running")  # Maps to PlanType enum
     is_active: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -82,25 +84,16 @@ class RunnerProfile(SQLModel, table=True):
     age: int
     gender: str
     height_cm: int
-    current_weight: float
-    target_weight: float
+    # Removed current_weight and target_weight
+    # Removed weight_history relationship
 
     # JSON strings for complex nested data
     training_zones_json: Optional[str] = Field(default=None)
+    swim_zones_json: Optional[str] = Field(default=None)
     fueling_json: Optional[str] = Field(default=None)
 
     user: "User" = Relationship(back_populates="profile")
-    weight_history: List["WeightEntry"] = Relationship(back_populates="profile")
-
-
-class WeightEntry(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    profile_id: int = Field(foreign_key="runnerprofile.id")
-
-    date_recorded: date
-    weight_kg: float
-
-    profile: "RunnerProfile" = Relationship(back_populates="weight_history")
+    # weight_history removed
 
 
 class ActualActivity(SQLModel, table=True):

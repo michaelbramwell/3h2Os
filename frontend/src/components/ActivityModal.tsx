@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import type { Activity, HrZone } from '../types/schema';
-import { formatPace, formatDistance } from '../lib/formatters';
+import { formatPace, formatSwimPace, formatDistance } from '../lib/formatters';
 
 interface ActivityModalProps {
     activity: Activity | null;
@@ -17,7 +17,7 @@ function getTEData(score: number): { label: string; color: string } {
     return { label: 'Over', color: 'text-red-600 bg-red-50 ring-red-200' };
 }
 
-function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'power' }) {
+function ZoneList({ zones, type, activityType }: { zones?: HrZone[], type: 'pace' | 'hr' | 'power', activityType?: string }) {
     if (!zones || zones.length === 0) return null;
 
     const active = zones.filter(z => (z.secsInZone || 0) > 10);
@@ -37,18 +37,23 @@ function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'po
                 let valStr = '';
                 
                 if (type === 'pace') {
+                     const isSwim = activityType?.toLowerCase() === 'swimming';
+                     
                      if (z.avgValue && z.avgValue > 0) {
-                        valStr = formatPace(1000 / z.avgValue);
+                        valStr = isSwim 
+                            ? formatSwimPace(z.avgValue)
+                            : formatPace(1000 / z.avgValue);
                      } else if (low > 0 || high > 0) {
-                        const lowPace = low > 0 ? formatPace(1000 / low) : ''; 
-                        const highPace = high > 0 ? formatPace(1000 / high) : '';
+                        const lowPace = low > 0 
+                            ? (isSwim ? formatSwimPace(low) : formatPace(1000 / low)) 
+                            : ''; 
+                        const highPace = high > 0 
+                            ? (isSwim ? formatSwimPace(high) : formatPace(1000 / high)) 
+                            : '';
 
                         // Fallback: Use zone boundaries
-                        // Note: Zone 1 is slowest. 
-                        // Z1 Low Boundary = 0.5 m/s. High Boundary = 2.6 m/s.
-                        // Pace: 1000/0.5 = 2000s/km (33:00/km) -> 1000/2.6 (6:24/km)
                         if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
-                        else if (highPace) valStr = `< ${highPace}`; // Faster than X
+                        else if (highPace) valStr = `< ${highPace}`; // Faster than X (or slower pace value depending on metric, but physically faster)
                         else if (lowPace) valStr = `> ${lowPace}`; // Slower than Y
                      }
                 } else if (z.avgValue && z.avgValue > 0) {
@@ -71,8 +76,10 @@ function ZoneList({ zones, type }: { zones?: HrZone[], type: 'pace' | 'hr' | 'po
     );
 }
 
-function SplitsList({ splits }: { splits?: any[] }) {
+function SplitsList({ splits, activityType }: { splits?: any[], activityType?: string }) {
     if (!splits || splits.length === 0) return null;
+
+    const isSwim = activityType?.toLowerCase() === 'swimming';
 
     return (
         <div className="space-y-0.5">
@@ -84,7 +91,9 @@ function SplitsList({ splits }: { splits?: any[] }) {
             </div>
             {splits.map((split, idx) => {
                 const dist = formatDistance(split.distance, 2);
-                const pace = split.averageSpeed ? formatPace(1000 / split.averageSpeed) : '--:--';
+                const pace = split.averageSpeed 
+                    ? (isSwim ? formatSwimPace(split.averageSpeed) : formatPace(1000 / split.averageSpeed)) 
+                    : '--:--';
                 const hr = split.averageHR ? Math.round(split.averageHR) : '-';
                 
                 return (
@@ -105,9 +114,19 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
 
     const dateStr = new Date(activity.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
     const distKm = formatDistance(activity.distance_m, 2);
-    const paceMinKm = activity.average_pace_m_s && activity.average_pace_m_s > 0 
-        ? formatPace(1000 / activity.average_pace_m_s) 
-        : '--:--';
+    const isSwim = activity.type.toLowerCase() === 'swimming';
+    
+    let paceLabel = '/k';
+    let paceValue = '--:--';
+
+    if (activity.average_pace_m_s && activity.average_pace_m_s > 0) {
+        if (isSwim) {
+            paceValue = formatSwimPace(activity.average_pace_m_s);
+            paceLabel = '/100m';
+        } else {
+            paceValue = formatPace(1000 / activity.average_pace_m_s);
+        }
+    }
     
     // Training Effect
     const aeScore = activity.aerobic_te || 0;
@@ -149,7 +168,7 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
                         </div>
                         <div className="bg-slate-50 p-3 rounded-lg">
                             <div className="text-[10px] font-bold text-slate-400 uppercase">Avg Pace</div>
-                            <div className="text-lg font-black text-slate-900">{paceMinKm}/k</div>
+                            <div className="text-lg font-black text-slate-900">{paceValue}<span className="text-xs text-slate-400 font-normal ml-0.5">{paceLabel}</span></div>
                         </div>
                         <div className="bg-slate-50 p-3 rounded-lg">
                             <div className="text-[10px] font-bold text-slate-400 uppercase">Avg HR</div>
@@ -196,7 +215,7 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
                                     <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Pace Zones</h4>
                                     <span className="text-[9px] text-slate-300 font-bold uppercase">Zone / Avg / Time</span>
                                 </div>
-                                <ZoneList zones={activity.pace_zones} type="pace" />
+                                <ZoneList zones={activity.pace_zones} type="pace" activityType={activity.type} />
                             </div>
                         )}
 
@@ -225,7 +244,7 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
                                 <div className="flex justify-between items-end border-b-2 border-slate-100 pb-1 mb-2">
                                     <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Splits</h4>
                                 </div>
-                                <SplitsList splits={activity.splits} />
+                                <SplitsList splits={activity.splits} activityType={activity.type} />
                             </div>
                         )}
                     </div>

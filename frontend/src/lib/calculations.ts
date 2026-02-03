@@ -5,9 +5,18 @@ import { formatPace } from './formatters';
  * Calculates the total planned distance for a week, excluding non-running activities if needed.
  * Currently sums all workouts.
  */
-export function calculateWeekVolume(week: Week): number {
+export function calculateWeekVolume(week: Week, planType?: string): number {
     if (!week || !week.days) return 0;
     
+    // Use the explicit planType if available
+    const normalizedPlanType = planType?.toLowerCase();
+    
+    // We assume default is running unless 'swimming' or 'swim' is detected in planType
+    const isSwimWeek =
+        normalizedPlanType === 'swim' ||
+        normalizedPlanType === 'swimming' ||
+        (normalizedPlanType !== undefined && normalizedPlanType.includes('swim'));
+
     return Object.values(week.days).reduce((acc, day) => {
         return acc + calculateDayVolume(day);
     }, 0);
@@ -20,9 +29,9 @@ export function calculateDayVolume(day: Day): number {
     if (!day.workouts) return 0;
     
     return day.workouts.reduce((wAcc, w) => {
-        // Optional: Filter out swimming/cycling if they shouldn't count towards volume
-        const type = w.type?.toLowerCase() || '';
-        if (type === 'swimming' || type === 'cycling') return wAcc;
+        // We accept all types now since the backend separates plans by type.
+        // If a Swim plan has a "Run" workout, maybe we still count it in meters?
+        // Or should we filter? For now, count all meters.
         return wAcc + (w.distance_m || 0);
     }, 0);
 }
@@ -43,18 +52,31 @@ export function calculateRemainingWeekVolume(week: Week, todayStr: string): numb
 }
 
 /**
- * Calculates the actual distance run in a given week.
+ * Calculates the actual distance run/swum in a given week.
+ * Filters based on the dominant activity type of the plan.
  */
-export function calculateWeekActuals(actuals: Activity[], week: Week): number {
+export function calculateWeekActuals(actuals: Activity[], week: Week, planType?: string): number {
     if (!actuals || !week) return 0;
     
     const weekDatesSet = new Set(Object.values(week.days).map((d: Day) => d.date));
-    
+
+    // Determine plan type from explicit `planType` parameter instead of inferring from workouts.
+    const normalizedPlanType = planType?.toLowerCase();
+    const isSwimWeek =
+        normalizedPlanType === 'swim' ||
+        normalizedPlanType === 'swimming' ||
+        (normalizedPlanType !== undefined && normalizedPlanType.includes('swim'));
+
     return actuals.reduce((acc, act) => {
         if (weekDatesSet.has(act.date)) {
-             // Strict Filter: Only running and trail running
-             if (act.type === 'running' || act.type === 'trail_running') {
-                 return acc + (act.distance_m || 0);
+             const type = act.type?.toLowerCase();
+             if (isSwimWeek) {
+                 if (type === 'swimming' || type === 'pool' || type === 'lap_swimming') return acc + (act.distance_m || 0);
+             } else {
+                 // Default to Running logic
+                 if (type === 'running' || type === 'trail_running' || type === 'run') {
+                     return acc + (act.distance_m || 0);
+                 }
              }
         }
         return acc;

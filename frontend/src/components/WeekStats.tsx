@@ -1,4 +1,4 @@
-import { Printer, RefreshCw, Loader2 } from 'lucide-react'
+import { Printer, RefreshCw, Loader2, Edit2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { syncActivities } from '../lib/api'
 import { useGarminToken } from '../hooks/useGarminToken'
@@ -15,6 +15,7 @@ interface WeekStatsProps {
     diffKm: number
     isCompleted: boolean
     onFridgeClick?: () => void
+    onEditClick?: () => void
 }
 
 export function WeekStats({
@@ -26,7 +27,8 @@ export function WeekStats({
     projectedM,
     diffKm,
     isCompleted,
-    onFridgeClick
+    onFridgeClick,
+    onEditClick
 }: WeekStatsProps) {
     const queryClient = useQueryClient();
     const { hasToken: hasGarminToken } = useGarminToken();
@@ -89,15 +91,26 @@ export function WeekStats({
                     {status === 'normal' ? (isCompleted ? 'Completed' : (isCurrentWeek ? 'Current' : 'Upcoming')) : status}
                  </span>
                  
-                 {onFridgeClick && (
-                     <button 
-                        onClick={onFridgeClick}
-                        className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors"
-                     >
-                        <Printer size={12} /> Fridge
-                     </button>
-                 )}
+                    {onFridgeClick && (
+                         <button 
+                            onClick={onFridgeClick}
+                            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors"
+                         >
+                            <Printer size={12} /> Fridge
+                         </button>
+                     )}
+                     
+                     {onEditClick && (
+                         <button 
+                            onClick={onEditClick}
+                            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition-colors"
+                            title="Edit Week Settings"
+                         >
+                            <Edit2 size={12} /> Edit
+                         </button>
+                     )}
+                </div>
             </div>
-        </div>
-    )
+        )
 }
+

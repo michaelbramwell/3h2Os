@@ -33,13 +33,6 @@ Pushes structured workouts from the JSON plan to the Garmin Connect Calendar for
 - **Script**: [`../../../backend/scripts/sync_to_garmin.py`](../../../backend/scripts/sync_to_garmin.py)
 - **Status**: Disabled.
 
-### Update Weight
-Updates the runner's current weight in the context profile, used for mechanics and fueling calculations.
-- **Script**: [`../../../backend/scripts/update_weight.py`](../../../backend/scripts/update_weight.py)
-- **Command**: `cd backend && uv run scripts/update_weight.py [KG]`
-- **Inputs**: Weight in KG (float)
-- **Outputs**: Updates `database.db`
-
 ---
 
 ## Deployment

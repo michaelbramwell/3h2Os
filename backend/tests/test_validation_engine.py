@@ -59,9 +59,11 @@ def test_cycling_does_not_inflate_running_volume():
     # Calculate volume
     vol = get_week_volume(mixed_week)
 
-    # Expected: 10,000 (Run) + 5,000 (Easy Run) = 15,000m
-    # The 50,000m Bike and 2,000m Swim should be ignored.
-    assert vol == 15000, f"Volume should be 15000 (15km), but got {vol}"
+    # Expected: 10,000 (Run) + 5,000 (Easy Run) + 2,000 (Swim) = 17,000m
+    # The 50,000m Bike should be excluded from the calculation.
+    # Note: We now count Swimming in volume as it's a primary supported sport,
+    # whereas Cycling is treated as cross-training.
+    assert vol == 17000, f"Volume should be 17000 (15km Run + 2km Swim), but got {vol}"
 
 
 def test_validate_progression_ignores_cross_training():

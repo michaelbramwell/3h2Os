@@ -1,16 +1,13 @@
 {
-  "name": "static",
+  "name": "static-assets",
   "version": "1.0.0",
+  "description": "Static assets for the running app",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "watch": "tsc -w"
+    "build": "tsc"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
     "typescript": "^5.9.3"
   }

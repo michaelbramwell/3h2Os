@@ -5,6 +5,7 @@ import os
 from typing import List
 
 from app.core.database import get_session, User
+from app.core.auth import verify_jwt_middleware
 from app.services.plans import PlanService
 from app.services.context import ContextService
 from app.services.activities import ActivityService
@@ -13,6 +14,7 @@ from app.core.validation import ValidationWarningError
 from dataclasses import asdict
 from app.schemas import (
     WeekSchema,
+    WeekUpdate,
     PlanUpdateResponse,
     ContextSchema,
     ActivitySchema,
@@ -64,44 +66,28 @@ async def get_current_user(
             "preferred_username", user_payload.get("sub", "runner")
         )
         email = user_payload.get("email", f"{username}@example.com")
+        logger.info(f"User resolved from JWT: {username}")
     else:
         # Fallback to Env if set (for local dev without auth header)
         if os.environ.get("DEFAULT_USERNAME"):
             username = os.environ.get("DEFAULT_USERNAME")
+            logger.info(f"User resolved from DEFAULT_USERNAME env: {username}")
+        else:
+            logger.info(f"User defaulted to hardcoded fallback: {username}")
 
     # 2. Find or Create User in DB
     user = session.exec(select(User).where(User.username == username)).first()
     if not user:
+        logger.info(f"User {username} not found in DB. Auto-provisioning new user.")
         # Auto-provision (JIT)
         user = User(username=username, email=email)
         session.add(user)
         session.commit()
         session.refresh(user)
+    else:
+        logger.info(f"User {username} found in DB with ID: {user.id}")
 
     return user
-
-
-class WeightUpdate(BaseModel):
-    weight: float
-
-
-# --- Routes ---
-
-
-@router.post("/context/weight")
-async def update_weight(
-    update: WeightUpdate,
-    service: ContextService = Depends(get_context_service),
-    user: User = Depends(get_current_user),
-):
-    """
-    Update the runner's weight (Current & History).
-    """
-    try:
-        new_weight = service.update_weight(update.weight, user=user)
-        return {"status": "success", "current_weight": new_weight}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/actuals")
@@ -132,15 +118,46 @@ async def create_plan(
     try:
         plan_dicts = [w.model_dump() for w in plan_create.weeks]
         new_plan = service.create_or_update_plan(
-            plan_dicts, user=user, title=plan_create.title, activate=False
+            plan_dicts,
+            user=user,
+            title=plan_create.title,
+            plan_type=plan_create.type,
+            activate=False,
         )
         return {
             "status": "success",
             "message": "Plan created",
             "id": new_plan.id,
             "title": new_plan.title,
+            "type": new_plan.type,
         }
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class PlanMeta(BaseModel):
+    id: int
+    title: str
+    type: str
+    is_active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/plans", response_model=List[PlanMeta])
+async def get_plans(
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Get all plans for the current user.
+    """
+    try:
+        plans = service.get_plans(user)
+        return plans
+    except Exception as e:
+        logger.error(f"Error getting plans: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -164,6 +181,28 @@ async def set_active_plan(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete("/plans/{plan_id}")
+async def delete_plan(
+    plan_id: int,
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Delete a specific plan.
+    """
+    try:
+        service.delete_plan(plan_id, user)
+        return {"status": "success", "message": f"Plan {plan_id} deleted"}
+    except ValueError as e:
+        # If the service raises a ValueError, check if it's "not found" vs "permission denied"
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error deleting plan: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/plan.json", response_model=PlanUpdateResponse)
 async def update_plan(
     plan_data: List[WeekSchema],
@@ -182,6 +221,7 @@ async def update_plan(
             "message": "Plan updated",
             "id": new_plan.id,
             "title": new_plan.title,
+            "type": new_plan.type,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -212,12 +252,15 @@ async def get_context(
 @router.get("/actuals.json", response_model=List[ActivitySchema])
 async def get_actuals(
     service: ActivityService = Depends(get_activity_service),
+    plan_service: PlanService = Depends(get_plan_service),
     user: User = Depends(get_current_user),
 ):
     """
-    Get the actual activities from the database.
+    Get the actual activities from the database, filtered by the active plan type.
     """
-    return service.get_activities(user=user)
+    # Use service method to determine filter types based on active plan
+    filter_types = plan_service.get_active_plan_activity_types(user)
+    return service.get_activities(user=user, filter_types=filter_types)
 
 
 @router.post("/integrations/garmin/sync")
@@ -294,6 +337,25 @@ async def get_context_markdown():
 # TODO: Add authentication/authorization checks for all mutation endpoints
 # (create/update/delete workouts, plans, etc.) to prevent unauthorized access.
 # Currently relies on default username from environment.
+
+
+@router.put("/weeks/{week_id}")
+async def update_week_endpoint(
+    week_id: int,
+    update_data: WeekUpdate,
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Update a specific week (e.g., status).
+    """
+    try:
+        updated = service.update_week(week_id, update_data)
+        return {"status": "success", "message": "Week updated", "id": updated.id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/workouts")

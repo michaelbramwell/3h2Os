@@ -1,6 +1,6 @@
 # Project Roadmap: 3h2Os
 
-## Current Version: v0.0.8 (SaaS Deployment)
+## Current Version: v0.8.0 (SaaS Deployment)
 
 ## Phase 1: Foundation (Complete)
 - [x] Structured 14-week training plan in Markdown.
@@ -12,7 +12,6 @@
 
 ## Phase 2: Data Integration & Intelligence (Weeks 1-4)
 - [x] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard (UI Driven).
-- [x] **Weight Integration:** Mechanism to update current weight and track history via `update_weight.py`.
 - [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` (Deprecated in favor of UI sync).
 - [x] **Fridge Mode:** Print-friendly weekly sheets available via dashboard and CLI.
 - [x] **Zone Alignment:** Aligned pace zones with Strava ranges (Z1-Z6) and enriched documentation.
@@ -47,13 +46,16 @@
   - [x] Created custom "3h2Os" Wave branding (SVG).
   - [x] Updated application title and favicon.
   - [x] Integrated branding into Sidebar UI.
+  - [x] **Multi-Plan Support:** Implemented UI to switch between different training plans (e.g., Running vs. Swimming) with filtering logic for plan-specific activities.
+  - [x] **Plan Management:** Added ability to delete plans via the UI.
+  - [x] **Responsive Dashboard:** Implemented sticky sidebar/header and collapsible sidebar logic for better UX on long training plans.
 - [ ] **Data Persistence:** Migrate PostgreSQL data storage from VM local disk to attached Block Storage volume for durability across instance rebuilds.
 
 ## Phase 4: Performance Analytics (Weeks 5-10)
 - [ ] **Efficiency Tracking:** Monitor Pace/HR decoupling for Wednesday Steady runs.
 - [ ] **Cramp Correlation:** Log muscle fatigue levels and correlate with hydration/fueling data.
 - [ ] **Shoe Tracker:** Monitor mileage on race-day shoes to ensure they are "broken in but not broken".
-- [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week.
+- [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals and fueling to suggest plan adjustments for the following week.
 
 ## Phase 5: Race Readiness (Weeks 11-14)
 - [ ] **Taper Fatigue Monitor:** Track recovery metrics (RHR/Sleep) during the volume drop.

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
-import { type Workout, ActivityType } from '../types/schema'
+import { type Workout, ActivityType, WorkoutFormat } from '../types/schema'
 import { updateWorkout, createWorkout, deleteWorkout } from '../lib/api'
 import { X, Trash2 } from 'lucide-react'
 import { useWorkoutForm } from '../hooks/useWorkoutForm'
@@ -40,15 +40,17 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
         name, setName,
         description, setDescription,
         type, setType,
+        format, setFormat,
         timeOfDay, setTimeOfDay,
         distance, setDistance
     } = useWorkoutForm(workout, isOpen);
 
     const mutation = useMutation({
-        mutationFn: async (data: { name: string; description: string; type: string; distance_m: number; timeOfDay: string; force?: boolean }) => {
+        mutationFn: async (data: { name: string; description: string; type: string; format?: string; distance_m: number; timeOfDay: string; force?: boolean }) => {
             const force = data.force || false;
             const apiData = { ...data };
             if ('force' in apiData) delete (apiData as any).force;
+            if (!apiData.format) delete (apiData as any).format;
 
             if (isEditing) {
                 // If editing, try to use ID, but fallback to creating new if ID is missing (which shouldn't happen for existing workouts)
@@ -86,6 +88,7 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
                              name,
                              description,
                              type,
+                             format: format,
                              distance_m: distanceM,
                              timeOfDay,
                              force: true
@@ -106,6 +109,7 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
             name,
             description,
             type,
+            format: format,
             distance_m: distanceM,
             timeOfDay
         })
@@ -165,21 +169,29 @@ export function EditWorkoutDialog({ workout, date, isOpen, onOpenChange }: EditW
                 
                 <div className="p-4 space-y-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Type</label>
+                        <label className="text-sm font-medium text-slate-700">Sport</label>
                         <select 
                             value={type} 
                             onChange={(e) => setType(e.target.value as ActivityType)}
                             className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value={ActivityType.RUN}>Running</option>
-                            <option value={ActivityType.TRAIL}>Trail Running</option>
-                            <option value={ActivityType.CYCLING}>Cycling</option>
-                            <option value={ActivityType.SWIMMING}>Swimming</option>
-                            
-                            {/* Preserve current value if not in standard list to avoid data loss */}
-                            {!( [ActivityType.RUN, ActivityType.TRAIL, ActivityType.CYCLING, ActivityType.SWIMMING] as ActivityType[] ).includes(type as ActivityType) && (
-                                <option value={type}>{type} (Legacy)</option>
-                            )}
+                            {Object.values(ActivityType).map((t) => (
+                                <option key={t} value={t}>{t}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Format</label>
+                        <select 
+                            value={format || ''} 
+                            onChange={(e) => setFormat(e.target.value ? e.target.value as WorkoutFormat : undefined)}
+                            className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">-- Select Format --</option>
+                            {Object.values(WorkoutFormat).map((f) => (
+                                <option key={f} value={f}>{f}</option>
+                            ))}
                         </select>
                     </div>
 
