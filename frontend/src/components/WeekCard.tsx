@@ -36,6 +36,11 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
     });
 
     const handleWeekSave = (id: number, data: { status: string }) => {
+        if (!id) {
+            console.error("Cannot save week without ID");
+            toast.error("Cannot save week: Missing Week ID");
+            return;
+        }
         mutation.mutate({ id, data });
     };
 

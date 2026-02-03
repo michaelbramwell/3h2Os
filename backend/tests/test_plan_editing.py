@@ -177,3 +177,36 @@ def test_allow_update_today_workout_if_not_completed(MockValidationEngine, sessi
 
     updated = service.update_workout(workout.id, update)
     assert updated.name == "Changing Plans Before Run"
+
+
+def test_update_week_status(session):
+    user, plan = create_test_data(session)
+    # Create a future week
+    start_date = date.today() + timedelta(days=7)
+    week = PlanWeek(plan_id=plan.id, start_date=start_date, status="normal")
+    session.add(week)
+    session.commit()
+    session.refresh(week)
+
+    service = PlanService(session)
+    from app.schemas import WeekUpdate
+
+    # Update to 'recovery'
+    update = WeekUpdate(status="recovery")
+    updated_week = service.update_week(week.id, update)
+    assert updated_week.status == "recovery"
+    assert updated_week.id == week.id
+
+    # Verify persistence
+    session.refresh(week)
+    assert week.status == "recovery"
+
+
+def test_update_week_not_found(session):
+    service = PlanService(session)
+    from app.schemas import WeekUpdate
+
+    update = WeekUpdate(status="taper")
+    # Assuming ID 999999 doesn't exist
+    with pytest.raises(ValueError, match="not found"):
+        service.update_week(999999, update)

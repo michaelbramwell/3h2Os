@@ -27,6 +27,7 @@ export function PlanSwitcher() {
         mutationFn: deletePlan,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['plans'] });
+            queryClient.invalidateQueries({ queryKey: ['plan'] });
         },
     });
 

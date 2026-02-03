@@ -30,7 +30,7 @@ def _map_legacy_type_to_new(legacy_type: str) -> Tuple[str, Optional[str]]:
         "plr": ("Run", "Long"),  # Legacy PLR mapping for backward compatibility
         "threshold": (
             "Run",
-            "Tempo",
+            "Threshold",
         ),  # Legacy Threshold mapping for backward compatibility
     }
 

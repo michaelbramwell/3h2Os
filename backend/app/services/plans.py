@@ -117,9 +117,6 @@ class PlanService:
                 self.session.commit()
                 self.session.refresh(user)
 
-        if activate:
-            self._deactivate_current_plans(user.id)
-
         # Determine if this is the user's first plan
         existing_plans = self.session.exec(
             select(RunnerPlan).where(RunnerPlan.user_id == user.id)
@@ -129,7 +126,7 @@ class PlanService:
             # Auto-activate if it's the user's first plan
             activate = True
 
-        if activate and existing_plans:
+        if activate:
             self._deactivate_current_plans(user.id)
 
         if not title:

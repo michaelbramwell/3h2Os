@@ -33,9 +33,6 @@ def upgrade() -> None:
             )
         )
 
-    # Backfill existing rows so they have a consistent default type.
-    op.execute("UPDATE runnerplan SET type = 'running' WHERE type IS NULL")
-
     # ### end Alembic commands ###
 
 
