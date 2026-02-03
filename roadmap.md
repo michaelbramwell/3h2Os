@@ -12,7 +12,6 @@
 
 ## Phase 2: Data Integration & Intelligence (Weeks 1-4)
 - [x] **Planned vs. Actual:** Fetch Garmin activity data to show completion status on the dashboard (UI Driven).
-- [x] **Weight Integration:** Mechanism to update current weight and track history via `update_weight.py`.
 - [x] **GitHub Actions Automation:** Automated `fetch_actuals.py` (Deprecated in favor of UI sync).
 - [x] **Fridge Mode:** Print-friendly weekly sheets available via dashboard and CLI.
 - [x] **Zone Alignment:** Aligned pace zones with Strava ranges (Z1-Z6) and enriched documentation.
@@ -56,7 +55,7 @@
 - [ ] **Efficiency Tracking:** Monitor Pace/HR decoupling for Wednesday Steady runs.
 - [ ] **Cramp Correlation:** Log muscle fatigue levels and correlate with hydration/fueling data.
 - [ ] **Shoe Tracker:** Monitor mileage on race-day shoes to ensure they are "broken in but not broken".
-- [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals, weight, and fueling to suggest plan adjustments for the following week.
+- [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals and fueling to suggest plan adjustments for the following week.
 
 ## Phase 5: Race Readiness (Weeks 11-14)
 - [ ] **Taper Fatigue Monitor:** Track recovery metrics (RHR/Sleep) during the volume drop.

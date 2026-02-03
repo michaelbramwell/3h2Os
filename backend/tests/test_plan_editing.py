@@ -6,30 +6,32 @@ from sqlalchemy.pool import StaticPool
 from app.services.plans import PlanService
 from app.core.database import User, RunnerPlan, PlanWeek, PlanWorkout, ActualActivity
 from app.schemas import WorkoutUpdate
+from app.models.domain import ActivityType
+
 
 @pytest.fixture(name="session")
 def session_fixture():
     engine = create_engine(
-        "sqlite://", 
-        connect_args={"check_same_thread": False}, 
-        poolclass=StaticPool
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
+
 
 def create_test_data(session: Session):
     user = User(username="testrunner", email="test@example.com")
     session.add(user)
     session.commit()
     session.refresh(user)
-    
+
     plan = RunnerPlan(title="Test Plan", user_id=user.id, is_active=True)
     session.add(plan)
     session.commit()
     session.refresh(plan)
-    
+
     return user, plan
+
 
 @patch("app.services.plans.ValidationEngine")
 def test_update_future_workout(MockValidationEngine, session):
@@ -39,53 +41,61 @@ def test_update_future_workout(MockValidationEngine, session):
 
     user, plan = create_test_data(session)
     future_date = date.today() + timedelta(days=5)
-    
+
     week = PlanWeek(plan_id=plan.id, start_date=future_date, status="normal")
     session.add(week)
     session.commit()
     session.refresh(week)
-    
+
     workout = PlanWorkout(
-        week_id=week.id, date=future_date, 
-        name="Future Run", day_name="Mon", 
-        activity_type="Run", distance_m=5000, 
-        time_of_day="AM"
+        week_id=week.id,
+        date=future_date,
+        name="Future Run",
+        day_name="Mon",
+        activity_type=ActivityType.RUN,
+        distance_m=5000,
+        time_of_day="AM",
     )
     session.add(workout)
     session.commit()
     session.refresh(workout)
-    
+
     service = PlanService(session)
     update = WorkoutUpdate(name="Updated Run", timeOfDay="PM")
-    
+
     updated = service.update_workout(workout.id, update)
-    
+
     assert updated.name == "Updated Run"
     assert updated.time_of_day == "PM"
+
 
 def test_prevent_update_past_workout(session):
     user, plan = create_test_data(session)
     past_date = date.today() - timedelta(days=5)
-    
+
     week = PlanWeek(plan_id=plan.id, start_date=past_date, status="normal")
     session.add(week)
     session.commit()
     session.refresh(week)
-    
+
     workout = PlanWorkout(
-        week_id=week.id, date=past_date, 
-        name="Past Run", day_name="Mon", 
-        activity_type="Run", distance_m=5000
+        week_id=week.id,
+        date=past_date,
+        name="Past Run",
+        day_name="Mon",
+        activity_type=ActivityType.RUN,
+        distance_m=5000,
     )
     session.add(workout)
     session.commit()
     session.refresh(workout)
-    
+
     service = PlanService(session)
     update = WorkoutUpdate(name="Cheating Past")
-    
+
     with pytest.raises(ValueError, match="already occurred"):
         service.update_workout(workout.id, update)
+
 
 @patch("app.services.plans.ValidationEngine")
 def test_prevent_update_today_workout_if_completed(MockValidationEngine, session):
@@ -95,21 +105,24 @@ def test_prevent_update_today_workout_if_completed(MockValidationEngine, session
 
     user, plan = create_test_data(session)
     today = date.today()
-    
+
     week = PlanWeek(plan_id=plan.id, start_date=today, status="normal")
     session.add(week)
     session.commit()
     session.refresh(week)
-    
+
     workout = PlanWorkout(
-        week_id=week.id, date=today, 
-        name="Today Run", day_name="Mon", 
-        activity_type="Run", distance_m=5000
+        week_id=week.id,
+        date=today,
+        name="Today Run",
+        day_name="Mon",
+        activity_type=ActivityType.RUN,
+        distance_m=5000,
     )
     session.add(workout)
     session.commit()
     session.refresh(workout)
-    
+
     # Add an actual activity for today
     actual = ActualActivity(
         activity_id=12345,
@@ -118,17 +131,18 @@ def test_prevent_update_today_workout_if_completed(MockValidationEngine, session
         name="Morning Run",
         type="running",
         distance_m=5000,
-        duration_s=1800
+        duration_s=1800,
     )
     session.add(actual)
     session.commit()
-    session.refresh(actual) # Ensure ID and relationships
-    
+    session.refresh(actual)  # Ensure ID and relationships
+
     service = PlanService(session)
     update = WorkoutUpdate(name="Trying to change after done")
-    
+
     with pytest.raises(ValueError, match="Activity logged"):
         service.update_workout(workout.id, update)
+
 
 @patch("app.services.plans.ValidationEngine")
 def test_allow_update_today_workout_if_not_completed(MockValidationEngine, session):
@@ -138,25 +152,28 @@ def test_allow_update_today_workout_if_not_completed(MockValidationEngine, sessi
 
     user, plan = create_test_data(session)
     today = date.today()
-    
+
     week = PlanWeek(plan_id=plan.id, start_date=today, status="normal")
     session.add(week)
     session.commit()
     session.refresh(week)
-    
+
     workout = PlanWorkout(
-        week_id=week.id, date=today, 
-        name="Today Pending Run", day_name="Mon", 
-        activity_type="Run", distance_m=5000
+        week_id=week.id,
+        date=today,
+        name="Today Pending Run",
+        day_name="Mon",
+        activity_type=ActivityType.RUN,
+        distance_m=5000,
     )
     session.add(workout)
     session.commit()
     session.refresh(workout)
-    
+
     # NO actual activity
-    
+
     service = PlanService(session)
     update = WorkoutUpdate(name="Changing Plans Before Run")
-    
+
     updated = service.update_workout(workout.id, update)
     assert updated.name == "Changing Plans Before Run"

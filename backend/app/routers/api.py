@@ -90,29 +90,6 @@ async def get_current_user(
     return user
 
 
-class WeightUpdate(BaseModel):
-    weight: float
-
-
-# --- Routes ---
-
-
-@router.post("/context/weight")
-async def update_weight(
-    update: WeightUpdate,
-    service: ContextService = Depends(get_context_service),
-    user: User = Depends(get_current_user),
-):
-    """
-    Update the runner's weight (Current & History).
-    """
-    try:
-        new_weight = service.update_weight(update.weight, user=user)
-        return {"status": "success", "current_weight": new_weight}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.post("/actuals")
 async def save_actuals(
     activities: List[ActivitySchema],

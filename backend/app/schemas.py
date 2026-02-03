@@ -1,13 +1,14 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import List, Dict, Any, Optional
 from datetime import date
-from app.models.domain import ActivityType
+from app.models.domain import ActivityType, WorkoutFormat
 
 
 class WorkoutCreate(BaseModel):
     date: date
     name: str = "New Workout"
     type: ActivityType = ActivityType.RUN
+    format: Optional[WorkoutFormat] = None
     distance_m: float = 0.0
     timeOfDay: str = "AM"
     description: Optional[str] = None
@@ -31,6 +32,7 @@ class WorkoutSchema(BaseModel):
     id: Optional[int] = None
     name: str = ""
     type: ActivityType = ActivityType.REST
+    format: Optional[WorkoutFormat] = None
     distance_m: float = 0.0
     timeOfDay: str = "AM"
     description: Optional[str] = None
@@ -41,6 +43,7 @@ class WorkoutSchema(BaseModel):
 class WorkoutUpdate(BaseModel):
     name: Optional[str] = None
     type: Optional[ActivityType] = None
+    format: Optional[WorkoutFormat] = None
     distance_m: Optional[float] = None
     description: Optional[str] = None
     timeOfDay: Optional[str] = None
@@ -109,21 +112,6 @@ class ProjectContext(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
-class WeightRecord(BaseModel):
-    date: str = Field(serialization_alias="date")
-    weight: float = Field(serialization_alias="weight")
-
-    # Allow mapping from DB fields 'date_recorded' and 'weight_kg'
-    # We can use a property or just explicit mapping.
-    # Explicit mapping is often clearer for simple transformations.
-
-
-class WeightContext(BaseModel):
-    current: float
-    target: float
-    history: List[WeightRecord] = Field(default_factory=list)
-
-
 class FuelingStrategy(BaseModel):
     carbsPerHr: Optional[int] = 0
     sodiumPerHr: Optional[int] = 0
@@ -146,7 +134,6 @@ class RunnerContext(BaseModel):
     age: int
     gender: str
     height_cm: int
-    weight_kg: WeightContext
     fueling: Optional[FuelingStrategy] = None
     trainingZones: Optional[TrainingZones] = None
     personalBests: Optional[Dict[str, str]] = None

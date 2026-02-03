@@ -1,5 +1,4 @@
 import type { ContextData, RunnerContext, FuelingStrategy } from '../types/schema';
-import { WeightChart } from './WeightChart';
 import { ContextSection } from './ContextSection';
 import { getZoneLabel } from '../lib/calculations';
 
@@ -26,26 +25,6 @@ function PhaseCard({ status }: { status: ContextData['status'] }) {
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Current Phase</h2>
             <p className="text-lg font-bold text-slate-900">{status.phase}</p>
             <p className="text-sm text-slate-500 mt-1">{status.nextAction || 'Ongoing'}</p>
-        </div>
-    );
-}
-
-function WeightCard({ weight }: { weight: RunnerContext['weight_kg'] }) {
-    if (!weight) return null;
-    
-    // Display recent weight history chart
-    
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Weight Tracker</h2>
-            <div className="flex items-end gap-2">
-                <p className="text-2xl font-bold text-slate-900">{weight.current}kg</p>
-                <p className="text-sm text-slate-500 mb-1">/ {weight.target}kg target</p>
-            </div>
-            
-            <div className="mt-4 h-32">
-                <WeightChart data={weight} />
-            </div>
         </div>
     );
 }
@@ -146,7 +125,6 @@ export function Sidebar({ context, markdown }: SidebarProps) {
         <div className="space-y-6">
             <GoalCard project={context.project} />
             <PhaseCard status={context.status} />
-            <WeightCard weight={context.runner.weight_kg} />
             <FuelingCard fueling={context.runner.fueling} />
             <ZonesCard zones={context.runner.trainingZones} />
             <GarminStatusCard />

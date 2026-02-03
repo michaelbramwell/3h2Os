@@ -4,6 +4,58 @@ from sqlmodel import Session, select, delete
 from app.core.database import RunnerPlan, PlanWeek, PlanWorkout
 
 
+def _map_legacy_type_to_new(legacy_type: str) -> tuple[str, str | None]:
+    """
+    Maps legacy ActivityType string to (new_activity_type, new_workout_format).
+    Returns a tuple of (ActivityType value, WorkoutFormat value or None).
+    """
+    legacy_type_lower = legacy_type.lower()
+
+    # Direct mappings for formats (assuming Run is the default sport)
+    format_map = {
+        "easy": ("Run", "Easy"),
+        "long": ("Run", "Long"),
+        "tempo": ("Run", "Tempo"),
+        "intervals": ("Run", "Intervals"),
+        "race": ("Run", "Race"),
+        "recovery": ("Run", "Recovery"),
+        "hills": ("Run", "Hills"),
+        "steady": ("Run", "Steady"),
+        "warmup": ("Run", "WarmUp"),
+        "cooldown": ("Run", "CoolDown"),
+        "fartlek": ("Run", "Fartlek"),
+        "progression": ("Run", "Progression"),
+        "time_trial": ("Run", "TimeTrial"),
+        "track": ("Run", "Intervals"),
+        "plr": ("Run", "Long"),  # Fix for PLR legacy data
+        "threshold": ("Run", "Tempo"),  # Fix for Threshold legacy data
+    }
+
+    if legacy_type_lower in format_map:
+        return format_map[legacy_type_lower]
+
+    # Sport mappings
+    sport_map = {
+        "run": ("Run", None),
+        "running": ("Run", None),
+        "trail": ("Trail", None),
+        "trail_running": ("Trail", None),
+        "cycling": ("Cycling", None),
+        "bike": ("Cycling", None),
+        "swimming": ("Swimming", None),
+        "swim": ("Swimming", None),
+        "pool": ("Swimming", None),
+        "cross": ("Cross", None),
+        "rest": ("Rest", None),
+    }
+
+    if legacy_type_lower in sport_map:
+        return sport_map[legacy_type_lower]
+
+    # Default fallback
+    return ("Run", None)
+
+
 def plan_to_relational(
     session: Session, plan: RunnerPlan, plan_data_list: List[Dict[str, Any]]
 ):
@@ -53,13 +105,26 @@ def plan_to_relational(
 
             workouts_list = day_data.get("workouts", [])
             for w_data in workouts_list:
+                legacy_type = w_data.get("type", "Run")
+                # Check if format is explicitly provided (new structure)
+                format_val = w_data.get("format")
+
+                if format_val:
+                    # New structure: type is likely correct sport, use format directly
+                    activity_type = legacy_type
+                    workout_format = format_val
+                else:
+                    # Old structure: map legacy type to new sport + format
+                    activity_type, workout_format = _map_legacy_type_to_new(legacy_type)
+
                 workout = PlanWorkout(
                     week_id=week.id,
                     date=day_date,
                     day_name=day_name,
                     name=w_data.get("name", "Unknown"),
                     description=w_data.get("description"),
-                    activity_type=w_data.get("type", "Run"),
+                    activity_type=activity_type,
+                    workout_format=workout_format,
                     distance_m=float(w_data.get("distance_m", 0)),
                     time_of_day=w_data.get("timeOfDay", "AM"),
                 )
@@ -114,6 +179,7 @@ def relational_to_plan(session: Session, plan_id: int) -> List[Dict[str, Any]]:
                 "id": wk.id,
                 "name": wk.name,
                 "type": wk.activity_type,
+                "format": wk.workout_format,
                 "distance_m": wk.distance_m,
                 "timeOfDay": wk.time_of_day,
             }

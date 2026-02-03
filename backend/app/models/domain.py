@@ -11,23 +11,30 @@ class PlanType(str, Enum):
 
 class ActivityType(str, Enum):
     RUN = "Run"
+    TRAIL = "Trail"
+    CYCLING = "Cycling"
+    SWIMMING = "Swimming"
+    CROSS = "Cross"
+    REST = "Rest"
+    OTHER = "Other"
+
+
+class WorkoutFormat(str, Enum):
     EASY = "Easy"
     LONG = "Long"
-    WORKOUT = "Workout"
+    TEMPO = "Tempo"
+    THRESHOLD = "Threshold"
+    INTERVALS = "Intervals"
     RACE = "Race"
-    REST = "Rest"
-    CROSS = "Cross"
+    RECOVERY = "Recovery"
+    TECHNIQUE = "Technique"
+    HILLS = "Hills"
+    FARTLEK = "Fartlek"
+    PROGRESSION = "Progression"
     STEADY = "Steady"
     WARMUP = "WarmUp"
     COOLDOWN = "CoolDown"
-    INTERVALS = "Intervals"
-    TRAIL = "Trail"
-    TEMPO = "Tempo"
-    PLR = "PLR"
-    HILLS = "Hills"
-    THRESHOLD = "Threshold"
-    CYCLING = "Cycling"
-    SWIMMING = "Swimming"
+    TIME_TRIAL = "TimeTrial"
 
 
 # Centralized filter lists to avoid duplication across the codebase
@@ -62,6 +69,7 @@ class Workout:
     type: str
     distance_m: float
     timeOfDay: str = "AM"
+    format: Optional[str] = None
 
     @staticmethod
     def from_dict(data: dict):
@@ -70,6 +78,7 @@ class Workout:
             type=data.get("type", "rest"),
             distance_m=float(data.get("distance_m", 0)),
             timeOfDay=data.get("timeOfDay", "AM"),
+            format=data.get("format"),
         )
 
 
@@ -153,16 +162,9 @@ class ActualActivity:
 
 
 @dataclass
-class WeightEntry:
-    date: str
-    weight: float
-
-
-@dataclass
 class RunnerContext:
-    current_weight: float
-    target_weight: float
-    weight_history: List[WeightEntry] = field(default_factory=list)
+    pass
+    # Removed weight related fields
 
 
 # --- Loaders ---

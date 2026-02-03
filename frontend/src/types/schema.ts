@@ -1,48 +1,62 @@
 export type ActivityType =
   | "Run"
-  | "Easy"
-  | "Long"
-  | "Workout"
-  | "Race"
-  | "Rest"
-  | "Cross"
-  | "Steady"
-  | "WarmUp"
-  | "CoolDown"
-  | "Intervals"
   | "Trail"
-  | "Tempo"
-  | "PLR"
-  | "Hills"
-  | "Threshold"
   | "Cycling"
-  | "Swimming";
+  | "Swimming"
+  | "Cross"
+  | "Rest"
+  | "Other";
 
 export const ActivityType = {
   RUN: "Run",
+  TRAIL: "Trail",
+  CYCLING: "Cycling",
+  SWIMMING: "Swimming",
+  CROSS: "Cross",
+  REST: "Rest",
+  OTHER: "Other",
+} as const;
+
+export type WorkoutFormat =
+  | "Easy"
+  | "Long"
+  | "Tempo"
+  | "Threshold"
+  | "Intervals"
+  | "Race"
+  | "Recovery"
+  | "Technique"
+  | "Hills"
+  | "Fartlek"
+  | "Progression"
+  | "Steady"
+  | "WarmUp"
+  | "CoolDown"
+  | "TimeTrial";
+
+export const WorkoutFormat = {
   EASY: "Easy",
   LONG: "Long",
-  WORKOUT: "Workout",
+  TEMPO: "Tempo",
+  THRESHOLD: "Threshold",
+  INTERVALS: "Intervals",
   RACE: "Race",
-  REST: "Rest",
-  CROSS: "Cross",
+  RECOVERY: "Recovery",
+  TECHNIQUE: "Technique",
+  HILLS: "Hills",
+  FARTLEK: "Fartlek",
+  PROGRESSION: "Progression",
   STEADY: "Steady",
   WARMUP: "WarmUp",
   COOLDOWN: "CoolDown",
-  INTERVALS: "Intervals",
-  TRAIL: "Trail",
-  TEMPO: "Tempo",
-  PLR: "PLR",
-  HILLS: "Hills",
-  THRESHOLD: "Threshold",
-  CYCLING: "Cycling",
-  SWIMMING: "Swimming",
+  TIME_TRIAL: "TimeTrial",
 } as const;
 
 export interface Workout {
   id?: number;
   name: string;
   type: ActivityType;
+  format?: WorkoutFormat;
   distance_m: number;
   timeOfDay: string;
   description?: string;
@@ -67,17 +81,6 @@ export interface ProjectContext {
   eventDate: string;
 }
 
-export interface WeightRecord {
-  date: string;
-  weight: number;
-}
-
-export interface WeightContext {
-  current: number;
-  target: number;
-  history: WeightRecord[];
-}
-
 export interface TrainingZone {
   zone: number;
   lowBoundary_m_s?: number;
@@ -94,7 +97,6 @@ export interface RunnerContext {
   age: number;
   gender: string;
   height_cm: number;
-  weight_kg: WeightContext;
   personalBests?: Record<string, string>;
   fueling?: FuelingStrategy;
   trainingZones?: {
@@ -168,4 +170,3 @@ export interface Activity {
 }
 
 export type ActualActivity = Activity;
-

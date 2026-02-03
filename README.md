@@ -147,13 +147,7 @@ This updates `actuals.json` and the dashboard.
 
 **Automation:** This project includes a GitHub Action that runs nightly to fetch your latest Garmin activities and update the dashboard automatically. To enable this, add `GARMIN_EMAIL` and `GARMIN_PASSWORD` to your repository secrets.
 
-### 6. Weight Management
-To update your current weight and track progress:
-```bash
-uv run python update_weight.py 96.5
-```
-
-### 7. Running Tests
+### 6. Running Tests
 To ensure the system is working correctly:
 ```bash
 uv run pytest
