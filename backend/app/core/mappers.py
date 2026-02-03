@@ -27,8 +27,11 @@ def _map_legacy_type_to_new(legacy_type: str) -> Tuple[str, Optional[str]]:
         "progression": ("Run", "Progression"),
         "time_trial": ("Run", "TimeTrial"),
         "track": ("Run", "Intervals"),
-        "plr": ("Run", "Long"),  # Fix for PLR legacy data
-        "threshold": ("Run", "Tempo"),  # Fix for Threshold legacy data
+        "plr": ("Run", "Long"),  # Legacy PLR mapping for backward compatibility
+        "threshold": (
+            "Run",
+            "Tempo",
+        ),  # Legacy Threshold mapping for backward compatibility
     }
 
     if legacy_type_lower in format_map:

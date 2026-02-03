@@ -119,13 +119,18 @@ class PlanService:
 
         if activate:
             self._deactivate_current_plans(user.id)
-        else:
+
+        # Determine if this is the user's first plan
+        existing_plans = self.session.exec(
+            select(RunnerPlan).where(RunnerPlan.user_id == user.id)
+        ).all()
+
+        if not existing_plans and not activate:
             # Auto-activate if it's the user's first plan
-            existing_plans = self.session.exec(
-                select(RunnerPlan).where(RunnerPlan.user_id == user.id)
-            ).all()
-            if not existing_plans:
-                activate = True
+            activate = True
+
+        if activate and existing_plans:
+            self._deactivate_current_plans(user.id)
 
         if not title:
             title = f"Plan Update {datetime.now().strftime('%Y-%m-%d %H:%M')}"
@@ -429,6 +434,7 @@ class PlanService:
             # Note: We might want to separate Running Volume vs Swimming Volume in future,
             # but for now, we just sum up the distance of the PRIMARY activity of the plan.
             # Ideally we check the Plan Type, but here we just allow both.
+            # TODO(PLANS-123): Separate running vs swimming volume tracking so mixed plans are not misrepresented.
             if act.type in ["running", "trail_running", "swimming", "swim", "pool"]:
                 total += act.distance_m
         return total

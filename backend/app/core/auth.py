@@ -128,7 +128,10 @@ async def verify_jwt_middleware(request: Request):
     if not token:
         if is_public:
             return None  # Anonymous
-        elif os.getenv("DEFAULT_USERNAME"):
+        elif (
+            os.getenv("DEFAULT_USERNAME")
+            and os.getenv("ENVIRONMENT", "production") == "development"
+        ):
             # Dev Mode: Allow request to proceed without token.
             # Downstream dependencies (get_current_user) will handle the fallback.
             return None

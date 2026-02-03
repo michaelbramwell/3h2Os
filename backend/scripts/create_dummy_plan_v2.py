@@ -37,9 +37,7 @@ def create_dummy_plan():
         session.refresh(plan)
 
         # Add a week
-        week = PlanWeek(
-            plan_id=plan.id, start_date=date.today(), week_number=1, status="normal"
-        )
+        week = PlanWeek(plan_id=plan.id, start_date=date.today(), status="normal")
         session.add(week)
         session.commit()
         session.refresh(week)
@@ -52,7 +50,7 @@ def create_dummy_plan():
             name="Easy Run",
             description="Just a test run",
             distance_m=5000,
-            # activity_type="run", # Using string literal if enum import fails, or ActivityType.RUN
+            activity_type="run",
             time_of_day="AM",
         )
         session.add(workout)

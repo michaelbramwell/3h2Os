@@ -160,7 +160,7 @@ def test_get_plan_uses_relational_data(client):
     data = response.json()
     assert len(data) == 1
     assert data[0]["weekStarting"] == "2026-02-01"
-    # Note: Keys are case sensitive, "Mon" vs "Mon"
+    # Note: Keys are case sensitive
     assert data[0]["days"]["Mon"]["workouts"][0]["name"] == "Relational Check"
     assert data[0]["days"]["Mon"]["workouts"][0]["distance_m"] == 8000
 

@@ -27,7 +27,6 @@ def create_dummy_plan():
         week = PlanWeek(
             plan_id=plan.id,
             start_date=date.today(),
-            week_number=1,  # Note: field might be missing in DB model but let's check schema
             status="normal",
         )
         session.add(week)

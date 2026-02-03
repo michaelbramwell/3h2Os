@@ -235,10 +235,6 @@ def is_running_activity(activity_type: str) -> bool:
     if any(pt in w_type for pt in positive_types):
         return True
 
-    # If it falls through the specific positive/negative checks above,
-    # we now default to False instead of True to be stricter and safer.
-    # However, if we encounter unknown types in the future, we might
-    # want to log a warning here.
     return False
 
 
