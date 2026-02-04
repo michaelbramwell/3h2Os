@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine, select, delete
 from sqlalchemy.pool import StaticPool
 import pytest
 from app.main import app
@@ -163,6 +163,46 @@ def test_get_plan_uses_relational_data(client):
     # Note: Keys are case sensitive
     assert data[0]["days"]["Mon"]["workouts"][0]["name"] == "Relational Check"
     assert data[0]["days"]["Mon"]["workouts"][0]["distance_m"] == 8000
+
+
+def test_get_plan_fails_without_relational_data(client):
+    # This test verifies that we NO LONGER fall back to the blob if relational data is missing.
+    # 1. Post a valid plan (populates both relational + blob)
+    plan_data = [
+        {
+            "weekStarting": "2026-02-01",
+            "status": "normal",
+            "days": {},
+        }
+    ]
+    response = client.post("/api/plan.json", json=plan_data)
+    assert response.status_code == 200
+
+    # 2. Manually DELETE relational data but KEEP blob
+    from app.core.database import PlanWeek, PlanWorkout
+
+    with Session(app.state.test_engine) as session:
+        user = session.exec(select(User).where(User.username == "test_runner")).first()
+        plan = session.exec(
+            select(RunnerPlan)
+            .where(RunnerPlan.user_id == user.id)
+            .where(RunnerPlan.is_active == True)
+        ).first()
+
+        # Delete weeks (cascades or manual delete depending on DB, but here manual for test safety)
+        weeks = session.exec(select(PlanWeek).where(PlanWeek.plan_id == plan.id)).all()
+        for w in weeks:
+            session.exec(delete(PlanWorkout).where(PlanWorkout.week_id == w.id))
+            session.delete(w)
+        session.commit()
+
+        # Ensure blob is still there (it is by default from POST)
+        assert plan.plan_json is not None and len(plan.plan_json) > 5
+
+    # 3. Fetch - Expect EMPTY list because we disabled fallback
+    response = client.get("/api/plan.json")
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 def test_create_plan_v2_endpoint(client):

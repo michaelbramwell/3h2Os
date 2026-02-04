@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from typing import List, Dict, Any, Optional
 from datetime import date
 from app.models.domain import ActivityType, WorkoutFormat
@@ -38,6 +38,76 @@ class WorkoutSchema(BaseModel):
     description: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def map_legacy_type(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            # Map legacy lowercase values to Enum values
+            legacy_map = {
+                "running": "Run",
+                "run": "Run",
+                "trail": "Trail",
+                "trail_running": "Trail",
+                "cycling": "Cycling",
+                "bike": "Cycling",
+                "swimming": "Swimming",
+                "swim": "Swimming",
+                "pool": "Swimming",
+                "cross": "Cross",
+                "rest": "Rest",
+                # Format-types that imply Run
+                "easy": "Run",
+                "long": "Run",
+                "tempo": "Run",
+                "intervals": "Run",
+                "race": "Run",
+                "recovery": "Run",
+                "hills": "Run",
+                "steady": "Run",
+                "warmup": "Run",
+                "cooldown": "Run",
+                "fartlek": "Run",
+                "progression": "Run",
+                "time_trial": "Run",
+                "track": "Run",
+                "plr": "Run",
+                "threshold": "Run",
+            }
+            return legacy_map.get(v.lower(), v)
+        return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_format_from_legacy_type(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            raw_type = data.get("type")
+            current_format = data.get("format")
+
+            if raw_type and isinstance(raw_type, str) and not current_format:
+                raw_lower = raw_type.lower()
+                # Map legacy types that are actually formats
+                format_map = {
+                    "easy": "Easy",
+                    "long": "Long",
+                    "tempo": "Tempo",
+                    "intervals": "Intervals",
+                    "race": "Race",
+                    "recovery": "Recovery",
+                    "hills": "Hills",
+                    "steady": "Steady",
+                    "warmup": "WarmUp",
+                    "cooldown": "CoolDown",
+                    "fartlek": "Fartlek",
+                    "progression": "Progression",
+                    "time_trial": "TimeTrial",
+                    "track": "Intervals",
+                    "plr": "Long",
+                    "threshold": "Threshold",
+                }
+                if raw_lower in format_map:
+                    data["format"] = format_map[raw_lower]
+        return data
 
 
 class WorkoutUpdate(BaseModel):
