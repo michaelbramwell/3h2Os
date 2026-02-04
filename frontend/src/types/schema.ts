@@ -5,6 +5,7 @@ export type ActivityType =
   | "Swimming"
   | "Cross"
   | "Rest"
+  | "Race"
   | "Other";
 
 export const ActivityType = {
@@ -15,6 +16,7 @@ export const ActivityType = {
   CROSS: "Cross",
   REST: "Rest",
   OTHER: "Other",
+  RACE: "Race",
 } as const;
 
 export type WorkoutFormat =
