@@ -55,10 +55,11 @@ class PlanService:
                     plan_data = relational_to_plan(self.session, plan.id)
                 except Exception as e:
                     print(f"Error reading relational plan: {e}. Falling back to blob.")
-                    plan_data = json.loads(plan.plan_json)
+                    # Fallback logic removed as requested - strict relational only
+                    return []
             else:
-                # 2. Fallback to Blob
-                plan_data = json.loads(plan.plan_json)
+                # No relational data found
+                return []
 
         return [WeekSchema.model_validate(w) for w in plan_data]
 
