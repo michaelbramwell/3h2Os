@@ -1,7 +1,8 @@
 # Plan Builder Wizard -- Design Document
 
-**Status**: Planning
+**Status**: Phase 1 Complete (Template-Based Plans)
 **Date**: 2026-02-09
+**Implemented**: 2026-02-12 (PR #42)
 
 ---
 
@@ -232,19 +233,19 @@ The wizard does not need its own route. It can be a full-screen dialog/modal lau
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Template-Based Plans)
+### Phase 1: Foundation (Template-Based Plans) -- COMPLETE
 
-1. Database migration (new columns + `PlanTemplate` table)
-2. Template engine (`core/templates/`) with at least:
-   - Marathon: beginner, intermediate, advanced (14 week default, variable)
-   - Half marathon: beginner, intermediate (14 week default, variable)
-   - 5K: beginner, intermediate (14 week default, variable)
-   - 1 swimming template (14 week default, variable)
-3. `PlanBuilderService` that wires wizard inputs to template selection and parameterisation
-4. New API endpoints (preview + create-from-wizard + clone)
-5. Frontend wizard component (all 5 steps)
-6. Clone plan feature
-7. Tests for template generation and validation compliance
+1. [x] Database migration (new columns + `PlanTemplate` table)
+2. [x] Template engine (`core/templates/`) with:
+   - Running: 5K, 10K, Half Marathon, Marathon, Ultra (beginner, intermediate, advanced -- 15 templates)
+   - Swimming Pool: 400m, 800m, 1500m (beginner, intermediate, advanced -- 9 templates)
+   - Swimming Open Water: 1km, 2.5km, 5km, 10km (beginner, intermediate, advanced -- 12 templates, with distinct advanced templates)
+   - Total: 39 templates
+3. [x] `PlanBuilderService` that wires wizard inputs to template selection and parameterisation
+4. [x] New API endpoints (preview + create-from-wizard + clone)
+5. [x] Frontend wizard component (5 steps + progress indicator, dedicated `/plans/build` route)
+6. [x] Clone plan feature (`ClonePlanDialog` + `POST /api/plans/{id}/clone`)
+7. [x] Tests for template generation and validation compliance (35 new tests, 219 total passing)
 
 ### Phase 2: AI-Assisted Generation (Premium)
 
@@ -282,10 +283,7 @@ The wizard does not need its own route. It can be a full-screen dialog/modal lau
 
 ## Next Steps
 
-Once the above is agreed upon, the first PR should be:
-1. Alembic migration for new columns
-2. Template engine with one complete template (e.g. marathon intermediate 16-week)
-3. Preview endpoint
-4. Wizard UI shell (steps navigate, form state accumulates, calls preview)
-
-This gives an end-to-end vertical slice to validate the approach before building out remaining templates and features.
+Phase 1 is complete. Next priorities:
+1. Phase 2: AI-Assisted Generation (premium feature) -- see Phase 2 section above.
+2. Plan comparison view (diff two plans side by side).
+3. Adaptive re-planning (mid-plan adjustments based on actuals vs plan divergence).

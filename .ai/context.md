@@ -1,20 +1,31 @@
 # Training Assistant Instructions
 
-When working in this workspace, always refer to the following files to maintain context of the marathon training plan:
+When working in this workspace, always refer to the following context to understand the 3h2Os training plan platform.
 
-1.  **Architecture**: This is a **FastAPI** application using **SQLModel** (SQLite/ostgreSQL) for the backend API, and a **React** (Vite) frontend using **TanStack Router/Query**.
+1.  **Architecture**: This is a **FastAPI** application using **SQLModel** (PostgreSQL) for the backend API, and a **React 19** (Vite) frontend using **TanStack Router/Query**.
 2.  **Source of Truth**:
-    *   **Logic**: `app/` contains the API, `frontend/` contains the UI, `scripts/` contains automation.
-    *   **Data**: `database.db` (Local) or PostgreSQL (Docker) is the **single source of truth**. Legacy JSON files have been deprecated.
+    *   **Logic**: `backend/app/` contains the API, `frontend/src/` contains the UI, `backend/scripts/` contains automation.
+    *   **Data**: PostgreSQL is the **single source of truth**. Legacy JSON files have been deprecated.
 
 ### Project Structure Guidance
-- **Web App**: `backend/app/main.py` is the data API.
-- **Frontend**: `frontend/` directory contains the React app.
-- **Domain Services**: `backend/app/services/` contains business logic (`PlanService`, `ContextService`).
-- **Scripts**: Automation scripts (Garmin sync, etc.) reside in `backend/scripts/`. Always run them via `cd backend && uv run scripts/dataset_name.py`.
+- **Web App**: `backend/app/main.py` is the FastAPI entry point.
+- **Frontend**: `frontend/src/` directory contains the React app with TanStack file-based routing.
+- **Domain Services**: `backend/app/services/` contains business logic:
+  - `PlanService` -- CRUD for plans, weeks, workouts; validation; progression recalculation.
+  - `PlanBuilderService` -- wizard-to-plan generation, template resolution, zone calculation, clone.
+  - `ActivityService` -- save/retrieve actual activities with zone JSON handling.
+  - `ContextService` -- get user context (project, runner profile, training zones).
+  - `GarminService` -- OAuth token-based Garmin Connect integration, activity fetching, telemetry enrichment.
+- **Template Engine**: `backend/app/core/templates/` contains plan templates:
+  - `base.py` -- shared periodisation logic, volume curves, plan generation from templates.
+  - `running.py` -- 15 running plan templates (5K/10K/half/marathon/ultra x 3 levels).
+  - `swimming.py` -- 24 swimming plan templates (pool 400/800/1500 + OW 1K/2.5K/5K/10K x 3 levels).
+- **Zone Calculator**: `backend/app/core/zones.py` -- HR zones (Tanaka), pace zones, swim CSS zones.
+- **Scripts**: Automation scripts reside in `backend/scripts/`. Always run them via `cd backend && uv run scripts/<script_name>.py`.
 - **Models**:
-    - `backend/app/core/database.py`: SQLModel database tables (`User`, `RunnerPlan`).
-    - `backend/app/schemas.py`: Pydantic DTOs for API requests/responses.
+    - `backend/app/core/database.py`: SQLModel database tables (`User`, `RunnerPlan`, `PlanWeek`, `PlanWorkout`, `RunnerProject`, `RunnerProfile`, `ActualActivity`, `PlanTemplate`).
+    - `backend/app/models/domain.py`: Domain dataclasses and enums (`PlanType`, `ActivityType`, `WorkoutFormat`, `EventType`, `ExperienceLevel`, `PrimaryGoal`, `PainPoint`, `SwimmingEventType`).
+    - `backend/app/schemas.py`: Pydantic DTOs for API requests/responses (`WizardInput`, `PlanPreview`, `ClonePlanRequest`, `WorkoutCreate/Update/Schema`, `WeekSchema`, `ContextSchema`, etc.).
 
 ### Guidelines:
 - **Node Environment**: Always run `nvml` before executing any node/npm commands on the host machine.
@@ -25,14 +36,16 @@ When working in this workspace, always refer to the following files to maintain 
 - **Timezone**: All automated logic and date-logging MUST use AWST (Perth, UTC+8).
 - **Database**: Data structure changes must be done via SQLModel/Alembic. Do not edit legacy JSON files.
 - **API Documentation**: Maintain `backend/tests/api_requests.http` as a live reference for all available API endpoints. Update it whenever routes change.
-- **Testing**: Maintain the `backend/tests/` suite. Run with `cd backend && uv run pytest`.
+- **Testing**: Maintain the `backend/tests/` suite. Run with `cd backend && uv run pytest`. Currently 219 tests passing.
 - **Style Rule**: Strictly no emojis in any responses, code, or documentation.
 
 ### Standard Operations:
 - **Environment**: Run `nvml` before any node/npm command on the host to ensure correct Node version (LTS).
 - **Start Backend**: `cd backend && uv run uvicorn app.main:app --reload`
 - **Start Frontend**: `cd frontend && nvml && npm run dev`
-- **Garmin Sync**: `cd backend && uv run scripts/fetch_actuals.py` (Hourly via CI/CD)
+- **Garmin Sync**: Via UI (Sync Button) or `POST /api/integrations/garmin/sync` with `X-Garmin-Token` header.
+- **Run Tests**: `cd backend && uv run pytest`
+- **Docker Stack**: `docker compose up --build` (dev) or `docker compose -f docker-compose.prod.yml up -d` (prod).
 
 ### Lessons Learned & Best Practices:
 - **Git History First**: Before recreating "missing" files/configs, check `git log` or `git show` for prior existence in other branches.
@@ -60,3 +73,10 @@ When working in this workspace, always refer to the following files to maintain 
   - Validation runs on **Save/Update**.
   - Returns `ValidationWarningError` (used by UI to show warnings) or blocks saving if configured strictly.
   - Tests simulate these rules (and must mock them if testing simple CRUD).
+
+### Plan Builder Wizard
+- **Design Document**: `.ai/plan-builder-wizard.md` (Status: Implemented -- Phase 1 complete).
+- **Backend**: `PlanBuilderService` orchestrates wizard inputs -> template selection -> zone calculation -> plan generation -> DB persistence.
+- **Frontend**: 6-step wizard at `/plans/build` route with `useWizard` hook for step navigation and form state.
+- **Templates**: Periodised plans with 5 phases (base, build, peak, taper, race). Volume curves use peak volume with step-back ratios. Each template defines session types per day, volume percentages, and workout prescriptions.
+- **Zones**: Auto-calculated for beginners; optional custom override for intermediate/advanced. Stored on `RunnerProfile` as `training_zones_json` / `swim_zones_json`.
