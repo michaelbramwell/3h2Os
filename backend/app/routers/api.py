@@ -469,6 +469,7 @@ def get_garmin_token(creds: GarminLogin):
 @router.post("/plans/generate-preview", response_model=PlanPreview)
 async def wizard_preview(
     wizard_input: WizardInput,
+    user: User = Depends(get_current_user),
     service: PlanBuilderService = Depends(get_plan_builder_service),
 ):
     """

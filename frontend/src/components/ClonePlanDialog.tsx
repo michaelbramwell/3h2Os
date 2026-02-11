@@ -15,12 +15,12 @@ interface ClonePlanDialogProps {
 export function ClonePlanDialog({ isOpen, onClose, planId, planTitle }: ClonePlanDialogProps) {
     const queryClient = useQueryClient();
     const [newTitle, setNewTitle] = useState(`${planTitle} (copy)`);
-    const [dateOffsetDays, setDateOffsetDays] = useState(0);
+    const [dateOffsetWeeks, setDateOffsetWeeks] = useState(0);
 
     const mutation = useMutation({
         mutationFn: () => clonePlan(planId, {
             new_title: newTitle.trim(),
-            date_offset_days: dateOffsetDays,
+            date_offset_days: dateOffsetWeeks * 7,
         }),
         onSuccess: (result) => {
             toast.success(`Plan "${result.title}" cloned successfully.`);
@@ -79,25 +79,25 @@ export function ClonePlanDialog({ isOpen, onClose, planId, planTitle }: ClonePla
 
                     <div>
                         <label htmlFor="clone-offset" className="block text-sm font-medium text-slate-700 mb-1">
-                            Date Offset (days)
+                            Date Offset (weeks)
                         </label>
                         <p className="text-xs text-slate-500 mb-2">
-                            Shift all dates forward or backward. Use positive values to move into the future, negative for the past.
+                            Shift all dates forward or backward by whole weeks to keep Monday alignment.
                         </p>
                         <div className="flex items-center gap-3">
                             <input
                                 id="clone-offset"
                                 type="number"
-                                value={dateOffsetDays}
-                                onChange={(e) => setDateOffsetDays(parseInt(e.target.value) || 0)}
+                                value={dateOffsetWeeks}
+                                onChange={(e) => setDateOffsetWeeks(parseInt(e.target.value) || 0)}
                                 className="w-28 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
                             <span className="text-xs text-slate-400">
-                                {dateOffsetDays === 0
+                                {dateOffsetWeeks === 0
                                     ? 'Same dates'
-                                    : dateOffsetDays > 0
-                                    ? `${dateOffsetDays} day${dateOffsetDays !== 1 ? 's' : ''} later`
-                                    : `${Math.abs(dateOffsetDays)} day${Math.abs(dateOffsetDays) !== 1 ? 's' : ''} earlier`}
+                                    : dateOffsetWeeks > 0
+                                    ? `${dateOffsetWeeks} week${dateOffsetWeeks !== 1 ? 's' : ''} later`
+                                    : `${Math.abs(dateOffsetWeeks)} week${Math.abs(dateOffsetWeeks) !== 1 ? 's' : ''} earlier`}
                             </span>
                         </div>
                     </div>

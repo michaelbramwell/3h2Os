@@ -1,7 +1,14 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Literal, Optional
 from datetime import date
-from app.models.domain import ActivityType, WorkoutFormat, EventType, ExperienceLevel
+from app.models.domain import (
+    ActivityType,
+    WorkoutFormat,
+    EventType,
+    ExperienceLevel,
+    PrimaryGoal,
+    PainPoint,
+)
 
 
 # --- Wizard Schemas ---
@@ -9,6 +16,8 @@ from app.models.domain import ActivityType, WorkoutFormat, EventType, Experience
 _VALID_SPORTS = {"running", "swimming"}
 _VALID_EVENT_TYPES = {e.value for e in EventType}
 _VALID_EXPERIENCE_LEVELS = {e.value for e in ExperienceLevel}
+_VALID_PRIMARY_GOALS = {e.value for e in PrimaryGoal}
+_VALID_PAIN_POINTS = {e.value for e in PainPoint}
 
 
 class WizardSportEvent(BaseModel):
@@ -108,6 +117,25 @@ class WizardGoalsFocus(BaseModel):
     weekly_availability: int = 5  # Days per week (1-7)
     longest_recent_distance_m: int = 0  # Current longest session in metres
 
+    @field_validator("primary_goal")
+    @classmethod
+    def validate_primary_goal(cls, v: str) -> str:
+        if v not in _VALID_PRIMARY_GOALS:
+            raise ValueError(
+                f"primary_goal must be one of {sorted(_VALID_PRIMARY_GOALS)}, got '{v}'"
+            )
+        return v
+
+    @field_validator("pain_points")
+    @classmethod
+    def validate_pain_points(cls, v: List[str]) -> List[str]:
+        for pp in v:
+            if pp not in _VALID_PAIN_POINTS:
+                raise ValueError(
+                    f"Each pain_point must be one of {sorted(_VALID_PAIN_POINTS)}, got '{pp}'"
+                )
+        return v
+
     @field_validator("weekly_availability")
     @classmethod
     def validate_weekly_availability(cls, v: int) -> int:
@@ -121,7 +149,7 @@ class WizardPlanConfig(BaseModel):
 
     total_weeks: int = 14
     taper_weeks: Optional[int] = None  # 1-3, None = use template default
-    generation_method: str = "template"  # "template" | "ai" (Phase 2)
+    generation_method: Literal["template", "ai", "manual"] = "template"
 
     @field_validator("total_weeks")
     @classmethod
@@ -173,7 +201,16 @@ class ClonePlanRequest(BaseModel):
     """Request to clone an existing plan."""
 
     new_title: str
-    date_offset_days: int = 0  # Shift all dates by N days
+    date_offset_days: int = 0  # Shift all dates by N days (must be a multiple of 7)
+
+    @field_validator("date_offset_days")
+    @classmethod
+    def validate_date_offset_days(cls, v: int) -> int:
+        if v % 7 != 0:
+            raise ValueError(
+                "date_offset_days must be a multiple of 7 to preserve Monday alignment"
+            )
+        return v
 
 
 class WorkoutCreate(BaseModel):

@@ -8,10 +8,9 @@ Handles:
 - Plan skeleton generation from a template definition
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import List, Dict, Any, Optional, Tuple, Union
-import math
 
 from app.models.domain import EventType, EVENT_DISTANCES_M
 
@@ -351,7 +350,7 @@ def generate_plan_from_template(
     try:
         race_distance_m = EVENT_DISTANCES_M.get(EventType(et))
     except (ValueError, KeyError):
-        pass
+        pass  # Unknown event type -- leave race_distance_m as None
 
     # 1. Calculate phase structure
     phase_structure = calculate_phase_structure(
@@ -436,7 +435,6 @@ def generate_plan_from_template(
             # Clamp day_idx to valid range
             actual_day_idx = day_idx % 7
             day_name = day_names[actual_day_idx]
-            day_date = week_start + timedelta(days=actual_day_idx)
 
             # Calculate this session's distance
             normalised_share = session_tmpl.volume_share / total_share

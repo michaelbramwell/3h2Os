@@ -12,7 +12,7 @@ Responsibilities:
 
 import json
 from datetime import date, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 
 from sqlmodel import Session, select
 
@@ -21,8 +21,6 @@ from app.core.database import (
     RunnerPlan,
     RunnerProfile,
     RunnerProject,
-    PlanWeek,
-    PlanWorkout,
 )
 from app.core.templates import (
     RUNNING_TEMPLATES,
@@ -32,12 +30,6 @@ from app.core.templates import (
 )
 from app.core.templates.base import get_preview_volumes, _apply_taper_weeks_override
 from app.core.zones import calculate_zones
-from app.models.domain import (
-    RUNNING_EVENTS,
-    SWIMMING_EVENTS,
-    EventType,
-    EVENT_DISTANCES_M,
-)
 from app.schemas import WizardInput, PlanPreview, PhasePreview, ClonePlanRequest
 from app.services.plans import PlanService
 
@@ -141,15 +133,9 @@ class PlanBuilderService:
         """
         if event_date:
             start = event_date - timedelta(weeks=total_weeks)
-            # Align to Monday
-            days_until_monday = (7 - start.weekday()) % 7
-            if days_until_monday == 0 and start.weekday() != 0:
-                days_until_monday = 7
-            start = (
-                start + timedelta(days=days_until_monday)
-                if start.weekday() != 0
-                else start
-            )
+            # Align to Monday (snap backward so the plan doesn't overshoot the event)
+            if start.weekday() != 0:
+                start = start - timedelta(days=start.weekday())
             return start
 
         # No event date: start next Monday
@@ -342,6 +328,8 @@ class PlanBuilderService:
         # Pain points
         if wizard.goals_focus.pain_points:
             profile.pain_points_json = json.dumps(wizard.goals_focus.pain_points)
+        else:
+            profile.pain_points_json = "[]"
 
         # Zones
         if wizard.sport_event.sport == "swimming":

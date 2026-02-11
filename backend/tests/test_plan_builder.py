@@ -3,6 +3,7 @@ Tests for the plan builder wizard backend: zone calculator, template engine,
 and PlanBuilderService.
 """
 
+import json
 import pytest
 from datetime import date, timedelta
 
@@ -11,7 +12,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import (
     User,
-    RunnerPlan,
     RunnerProfile,
     RunnerProject,
     PlanWeek,
@@ -74,7 +74,7 @@ def _make_wizard_input(
     age: int = 35,
     total_weeks: int = 14,
     weekly_availability: int = 5,
-    primary_goal: str = "finish_strong",
+    primary_goal: str = "finish",
     target_time: str | None = None,
     event_date: date | None = None,
     taper_weeks: int | None = None,
@@ -2076,3 +2076,186 @@ class TestPreferredTrainingDaysRemapping:
                     f"Long run should be on Monday, not Sunday, "
                     f"in week {week['weekStarting']}"
                 )
+
+
+# ---------------------------------------------------------------------------
+# Tests for Bug Fixes (PR #42 review)
+# ---------------------------------------------------------------------------
+
+
+class TestStartDateSnapsBackward:
+    """Bug 1: _calculate_start_date should snap to the Monday on or before,
+    not forward past the event date."""
+
+    def test_wednesday_event_snaps_monday_backward(self, session):
+        service = PlanBuilderService(session)
+        # Wednesday 8 Jul 2026: 10 weeks back = Wed 29 Apr 2026
+        # Should snap backward to Mon 27 Apr 2026
+        event_date = date(2026, 7, 8)
+        start = service._calculate_start_date(event_date, 10)
+        assert start.weekday() == 0
+        assert start <= event_date - timedelta(weeks=10)
+
+    def test_saturday_event_snaps_monday_backward(self, session):
+        service = PlanBuilderService(session)
+        event_date = date(2026, 8, 1)  # Saturday
+        start = service._calculate_start_date(event_date, 12)
+        assert start.weekday() == 0
+        assert start <= event_date - timedelta(weeks=12)
+
+    def test_monday_event_stays_on_monday(self, session):
+        service = PlanBuilderService(session)
+        event_date = date(2026, 6, 15)  # Monday
+        start = service._calculate_start_date(event_date, 14)
+        assert start.weekday() == 0
+        # 14 weeks before a Monday is a Monday -- should not shift
+        assert start == event_date - timedelta(weeks=14)
+
+    def test_plan_does_not_overshoot_event(self, session):
+        service = PlanBuilderService(session)
+        event_date = date(2026, 9, 20)  # Sunday
+        total_weeks = 16
+        start = service._calculate_start_date(event_date, total_weeks)
+        plan_end = start + timedelta(weeks=total_weeks)
+        assert plan_end <= event_date, (
+            f"Plan end {plan_end} overshoots event date {event_date}"
+        )
+
+
+class TestCloneOffsetValidation:
+    """Bug 2: date_offset_days on ClonePlanRequest must be a multiple of 7."""
+
+    def test_zero_offset_accepted(self):
+        req = ClonePlanRequest(new_title="Clone", date_offset_days=0)
+        assert req.date_offset_days == 0
+
+    def test_positive_multiple_of_7_accepted(self):
+        req = ClonePlanRequest(new_title="Clone", date_offset_days=14)
+        assert req.date_offset_days == 14
+
+    def test_negative_multiple_of_7_accepted(self):
+        req = ClonePlanRequest(new_title="Clone", date_offset_days=-21)
+        assert req.date_offset_days == -21
+
+    def test_non_multiple_of_7_rejected(self):
+        with pytest.raises(Exception, match="multiple of 7"):
+            ClonePlanRequest(new_title="Clone", date_offset_days=3)
+
+    def test_one_day_rejected(self):
+        with pytest.raises(Exception, match="multiple of 7"):
+            ClonePlanRequest(new_title="Clone", date_offset_days=1)
+
+    def test_negative_non_multiple_rejected(self):
+        with pytest.raises(Exception, match="multiple of 7"):
+            ClonePlanRequest(new_title="Clone", date_offset_days=-10)
+
+
+class TestPainPointsClearing:
+    """Bug 4: pain_points_json should be '[]' when no pain points are submitted."""
+
+    def test_empty_pain_points_clears_profile(self, session, user):
+        service = PlanBuilderService(session)
+        # First generate with pain points
+        wizard_with = _make_wizard_input(total_weeks=8, event_type="5k")
+        wizard_with.goals_focus.pain_points = ["cramping", "pacing"]
+        service.generate_plan(wizard_with, user)
+
+        profile = session.exec(
+            select(RunnerProfile).where(RunnerProfile.user_id == user.id)
+        ).first()
+        assert profile is not None
+        assert json.loads(profile.pain_points_json) == ["cramping", "pacing"]
+
+        # Now generate with empty pain points
+        wizard_without = _make_wizard_input(total_weeks=8, event_type="10k")
+        wizard_without.goals_focus.pain_points = []
+        service.generate_plan(wizard_without, user)
+
+        session.refresh(profile)
+        assert profile.pain_points_json == "[]"
+
+
+class TestPrimaryGoalValidation:
+    """Bug 6: primary_goal must be a valid PrimaryGoal enum value."""
+
+    def test_valid_goal_finish_accepted(self):
+        goals = WizardGoalsFocus(primary_goal="finish", weekly_availability=5)
+        assert goals.primary_goal == "finish"
+
+    def test_valid_goal_pb_accepted(self):
+        goals = WizardGoalsFocus(primary_goal="pb", weekly_availability=5)
+        assert goals.primary_goal == "pb"
+
+    def test_valid_goal_target_time_accepted(self):
+        goals = WizardGoalsFocus(primary_goal="target_time", weekly_availability=5)
+        assert goals.primary_goal == "target_time"
+
+    def test_valid_goal_consistency_accepted(self):
+        goals = WizardGoalsFocus(primary_goal="consistency", weekly_availability=5)
+        assert goals.primary_goal == "consistency"
+
+    def test_valid_goal_enjoyment_accepted(self):
+        goals = WizardGoalsFocus(primary_goal="enjoyment", weekly_availability=5)
+        assert goals.primary_goal == "enjoyment"
+
+    def test_invalid_goal_rejected(self):
+        with pytest.raises(Exception, match="primary_goal"):
+            WizardGoalsFocus(primary_goal="finish_strong", weekly_availability=5)
+
+    def test_arbitrary_string_rejected(self):
+        with pytest.raises(Exception, match="primary_goal"):
+            WizardGoalsFocus(primary_goal="win_everything", weekly_availability=5)
+
+
+class TestPainPointEnumValidation:
+    """Bug 6: pain_points must be valid PainPoint enum values."""
+
+    def test_valid_pain_points_accepted(self):
+        goals = WizardGoalsFocus(
+            primary_goal="finish",
+            weekly_availability=5,
+            pain_points=["cramping", "pacing", "injury"],
+        )
+        assert goals.pain_points == ["cramping", "pacing", "injury"]
+
+    def test_empty_pain_points_accepted(self):
+        goals = WizardGoalsFocus(
+            primary_goal="finish", weekly_availability=5, pain_points=[]
+        )
+        assert goals.pain_points == []
+
+    def test_invalid_pain_point_rejected(self):
+        with pytest.raises(Exception, match="pain_point"):
+            WizardGoalsFocus(
+                primary_goal="finish",
+                weekly_availability=5,
+                pain_points=["not_a_real_issue"],
+            )
+
+    def test_mixed_valid_invalid_rejected(self):
+        with pytest.raises(Exception, match="pain_point"):
+            WizardGoalsFocus(
+                primary_goal="finish",
+                weekly_availability=5,
+                pain_points=["cramping", "fake_point"],
+            )
+
+
+class TestGenerationMethodValidation:
+    """Bug 6: generation_method must be 'template', 'ai', or 'manual'."""
+
+    def test_template_accepted(self):
+        config = WizardPlanConfig(generation_method="template")
+        assert config.generation_method == "template"
+
+    def test_ai_accepted(self):
+        config = WizardPlanConfig(generation_method="ai")
+        assert config.generation_method == "ai"
+
+    def test_manual_accepted(self):
+        config = WizardPlanConfig(generation_method="manual")
+        assert config.generation_method == "manual"
+
+    def test_invalid_method_rejected(self):
+        with pytest.raises(Exception):
+            WizardPlanConfig(generation_method="custom")

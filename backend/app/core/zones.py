@@ -109,7 +109,7 @@ def calculate_pace_zones(
                     # but varies by distance. Use a simple factor.
                     easy_pace = race_pace * 0.75
         except (ValueError, KeyError):
-            pass
+            pass  # Invalid target_time format -- fall back to age-based easy pace
 
     zones = [
         {

@@ -856,13 +856,31 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
 
     // Phase structure: race=1 week (last), taper=N weeks before that, rest split as base/build/peak
     const raceWeeksCount = 1;
-    const remainingWeeks = totalWeeks - raceWeeksCount - taperWeeks;
+    const remainingWeeks = Math.max(0, totalWeeks - raceWeeksCount - taperWeeks);
 
     // Split remaining into base/build/peak using approximate proportions
     // base ~25%, build ~50%, peak ~25% of remaining
-    const baseWeeks = Math.max(1, Math.round(remainingWeeks * 0.25));
-    const peakWeeks = Math.max(1, Math.round(remainingWeeks * 0.20));
-    const buildWeeks = Math.max(1, remainingWeeks - baseWeeks - peakWeeks);
+    let baseWeeks: number;
+    let buildWeeks: number;
+    let peakWeeks: number;
+
+    if (remainingWeeks <= 0) {
+        baseWeeks = 0;
+        buildWeeks = 0;
+        peakWeeks = 0;
+    } else if (remainingWeeks === 1) {
+        baseWeeks = 0;
+        buildWeeks = 1;
+        peakWeeks = 0;
+    } else if (remainingWeeks === 2) {
+        baseWeeks = 1;
+        buildWeeks = 1;
+        peakWeeks = 0;
+    } else {
+        baseWeeks = Math.max(1, Math.round(remainingWeeks * 0.25));
+        peakWeeks = Math.max(1, Math.round(remainingWeeks * 0.20));
+        buildWeeks = remainingWeeks - baseWeeks - peakWeeks;
+    }
 
     const allWeeks: Week[] = [];
 
