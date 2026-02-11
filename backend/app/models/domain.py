@@ -9,6 +9,98 @@ class PlanType(str, Enum):
     SWIMMING = "swimming"
 
 
+class ExperienceLevel(str, Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
+
+
+class EventType(str, Enum):
+    # Running
+    FIVE_K = "5k"
+    TEN_K = "10k"
+    HALF_MARATHON = "half_marathon"
+    MARATHON = "marathon"
+    ULTRA = "ultra"
+    # Swimming - Pool
+    POOL_400 = "pool_400m"
+    POOL_800 = "pool_800m"
+    POOL_1500 = "pool_1500m"
+    # Swimming - Open Water
+    OW_1K = "ow_1km"
+    OW_2_5K = "ow_2.5km"
+    OW_5K = "ow_5km"
+    OW_10K = "ow_10km"
+
+
+class SwimmingVenue(str, Enum):
+    POOL = "pool"
+    OPEN_WATER = "open_water"
+
+
+class PrimaryGoal(str, Enum):
+    FINISH = "finish"
+    PB = "pb"
+    TARGET_TIME = "target_time"
+    CONSISTENCY = "consistency"
+    ENJOYMENT = "enjoyment"
+
+
+class PainPoint(str, Enum):
+    CRAMPING = "cramping"
+    BONKING = "bonking"
+    PACING = "pacing"
+    INJURY = "injury"
+    MENTAL_FATIGUE = "mental_fatigue"
+    RECOVERY = "recovery"
+    SPEED_FINAL_THIRD = "speed_final_third"
+    BREATHING = "breathing"
+    OPEN_WATER_ANXIETY = "open_water_anxiety"
+    STROKE_EFFICIENCY = "stroke_efficiency"
+
+
+# Event type groupings for sport lookup
+RUNNING_EVENTS = {
+    EventType.FIVE_K,
+    EventType.TEN_K,
+    EventType.HALF_MARATHON,
+    EventType.MARATHON,
+    EventType.ULTRA,
+}
+
+SWIMMING_POOL_EVENTS = {
+    EventType.POOL_400,
+    EventType.POOL_800,
+    EventType.POOL_1500,
+}
+
+SWIMMING_OW_EVENTS = {
+    EventType.OW_1K,
+    EventType.OW_2_5K,
+    EventType.OW_5K,
+    EventType.OW_10K,
+}
+
+SWIMMING_EVENTS = SWIMMING_POOL_EVENTS | SWIMMING_OW_EVENTS
+
+
+# Event distances in metres (for template parameterisation)
+EVENT_DISTANCES_M = {
+    EventType.FIVE_K: 5000,
+    EventType.TEN_K: 10000,
+    EventType.HALF_MARATHON: 21097,
+    EventType.MARATHON: 42195,
+    EventType.ULTRA: 50000,
+    EventType.POOL_400: 400,
+    EventType.POOL_800: 800,
+    EventType.POOL_1500: 1500,
+    EventType.OW_1K: 1000,
+    EventType.OW_2_5K: 2500,
+    EventType.OW_5K: 5000,
+    EventType.OW_10K: 10000,
+}
+
+
 class ActivityType(str, Enum):
     RUN = "Run"
     TRAIL = "Trail"
