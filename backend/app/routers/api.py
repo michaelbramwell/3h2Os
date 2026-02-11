@@ -7,6 +7,7 @@ from typing import List
 from app.core.database import get_session, User
 from app.core.auth import verify_jwt_middleware
 from app.services.plans import PlanService
+from app.services.plan_builder import PlanBuilderService
 from app.services.context import ContextService
 from app.services.activities import ActivityService
 from app.services.garmin import GarminService
@@ -23,6 +24,9 @@ from app.schemas import (
     WorkoutCreate,
     GarminLogin,
     GarminToken,
+    WizardInput,
+    PlanPreview,
+    ClonePlanRequest,
 )
 from pydantic import BaseModel
 import logging
@@ -49,6 +53,12 @@ def get_activity_service(session: Session = Depends(get_session)) -> ActivitySer
 
 def get_garmin_service(session: Session = Depends(get_session)) -> GarminService:
     return GarminService(session)
+
+
+def get_plan_builder_service(
+    session: Session = Depends(get_session),
+) -> PlanBuilderService:
+    return PlanBuilderService(session)
 
 
 async def get_current_user(
@@ -449,3 +459,79 @@ def get_garmin_token(creds: GarminLogin):
     except Exception as e:
         logger.error(f"Garmin auth internal error: {e}")
         raise HTTPException(status_code=500, detail="Internal Service Error")
+
+
+# ===========================================================================
+# WIZARD ENDPOINTS
+# ===========================================================================
+
+
+@router.post("/plans/generate-preview", response_model=PlanPreview)
+async def wizard_preview(
+    wizard_input: WizardInput,
+    user: User = Depends(get_current_user),
+    service: PlanBuilderService = Depends(get_plan_builder_service),
+):
+    """
+    Generate a plan preview from wizard inputs without saving to the database.
+    Returns phase breakdown, volume curve, and calculated zones.
+    """
+    try:
+        return service.generate_preview(wizard_input)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating plan preview: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/plans/from-wizard")
+async def wizard_create_plan(
+    wizard_input: WizardInput,
+    service: PlanBuilderService = Depends(get_plan_builder_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Generate a full plan from wizard inputs and save it to the database.
+    Updates runner profile and project with wizard data.
+    """
+    try:
+        plan = service.generate_plan(wizard_input, user)
+        return {
+            "status": "success",
+            "message": "Plan created from wizard",
+            "id": plan.id,
+            "title": plan.title,
+            "type": plan.type,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating plan from wizard: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/plans/{plan_id}/clone")
+async def clone_plan(
+    plan_id: int,
+    clone_request: ClonePlanRequest,
+    service: PlanBuilderService = Depends(get_plan_builder_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Clone an existing plan with an optional date offset.
+    """
+    try:
+        cloned = service.clone_plan(plan_id, clone_request, user)
+        return {
+            "status": "success",
+            "message": "Plan cloned",
+            "id": cloned.id,
+            "title": cloned.title,
+            "type": cloned.type,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error cloning plan: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

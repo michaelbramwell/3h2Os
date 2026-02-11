@@ -1,5 +1,32 @@
 # Release Notes
 
+## [v0.9.0] - 2026-02-12
+
+### Features & Enhancements
+- **Plan Builder Wizard**: Full multi-step wizard interface for creating periodised training plans. Guides users through sport/event selection, athlete profile, goals, plan configuration, and review before generating a complete plan.
+- **Template Engine**: 39 plan templates (15 running + 24 swimming) covering beginner/intermediate/advanced levels across all supported event types. Templates encode periodisation phases (base, build, peak, taper, race), session patterns, and volume curves.
+- **Advanced Swimming Templates**: Distinct advanced-level templates for pool (1500m) and open water (5K) with 6 sessions/week featuring intervals, threshold, and tempo simultaneously. Separated from intermediate templates which previously shared the same definitions.
+- **Zone Calculator**: Auto-calculated training zones from athlete profile data -- HR zones (Tanaka formula), running pace zones (with optional VDOT refinement from target time), and swim CSS zones. Intermediate/advanced users can override with custom values.
+- **Plan Preview**: Wizard generates a non-destructive preview (phase breakdown, volume curve, zones) before committing to the database.
+- **Clone Plan**: Duplicate any existing plan with optional date offset for reuse or experimentation.
+
+### Backend & Architecture
+- **PlanBuilderService**: New service orchestrating wizard-to-plan generation, template resolution with fallbacks, zone calculation, and profile/project persistence.
+- **Template Module**: New `core/templates/` package with `base.py` (shared periodisation logic, volume curves), `running.py` (15 templates), and `swimming.py` (24 templates).
+- **New API Endpoints**: `POST /api/plans/generate-preview`, `POST /api/plans/from-wizard`, `POST /api/plans/{id}/clone`.
+- **Data Model**: Added `RunnerProfile` (experience, events completed, pain points, zones), `RunnerProject` (event type, target time, goals), and `PlanTemplate` tables. Alembic migration for new columns and tables.
+- **Domain Enums**: Added `EventType`, `ExperienceLevel`, `PrimaryGoal`, `PainPoint`, `SwimmingEventType` enums to `models/domain.py`.
+- **Schemas**: Added `WizardInput` (with sub-schemas for each wizard step), `PlanPreview`, `ClonePlanRequest`, `HrZone` DTOs.
+
+### Frontend
+- **Wizard Components**: 6-step wizard UI (`StepSportEvent`, `StepAthleteProfile`, `StepGoalsFocus`, `StepPlanConfig`, `StepReview`, `WizardProgress`) with step navigation and form state accumulation.
+- **Wizard Route**: New `/plans/build` route for the plan builder wizard.
+- **Clone Dialog**: `ClonePlanDialog` component for duplicating plans from the plan switcher.
+- **Wizard Hook**: `useWizard` custom hook managing step state machine and form data aggregation.
+
+### Testing
+- **Plan Builder Tests**: 35 new tests covering advanced swimming template distinctness, session composition, and template selection across all event/level combinations. Total test count: 219, all passing.
+
 ## [v0.8.0] - 2026-02-03
 
 ### Features & Enhancements

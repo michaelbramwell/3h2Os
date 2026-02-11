@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getPlan, getContext, getActuals, getContextMarkdown } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
 import { RecentActivities } from '../components/RecentActivities'
@@ -8,7 +8,7 @@ import { FridgeWeek } from '../components/FridgeWeek'
 import { ActivityModal } from '../components/ActivityModal'
 import { WeekCard } from '../components/WeekCard'
 import { GarminSettings } from '../components/GarminSettings'
-import { CreatePlanDialog } from '../components/CreatePlanDialog'
+import { PlanWizard } from '../components/wizard'
 import { PlanSwitcher } from '../components/PlanSwitcher'
 import { PanelLeft, X, Plus } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
@@ -21,6 +21,7 @@ import { useAuth } from 'react-oidc-context'
 
 function Dashboard() {
   const auth = useAuth();
+  const queryClient = useQueryClient();
   const [fridgeWeekId, setFridgeWeekId] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
@@ -267,9 +268,16 @@ function Dashboard() {
         />
       )}
 
-      {showCreatePlan && (
-        <CreatePlanDialog onClose={() => setShowCreatePlan(false)} />
-      )}
+      <PlanWizard
+        isOpen={showCreatePlan}
+        onClose={() => setShowCreatePlan(false)}
+        onPlanCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['plan'] });
+          queryClient.invalidateQueries({ queryKey: ['plans'] });
+          queryClient.invalidateQueries({ queryKey: ['context'] });
+          setShowCreatePlan(false);
+        }}
+      />
     </div>
   )
 }

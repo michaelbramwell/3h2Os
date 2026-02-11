@@ -74,6 +74,11 @@ class RunnerProject(SQLModel, table=True):
     event: str
     event_date: date
 
+    # Wizard-driven fields
+    event_type: Optional[str] = Field(default=None)  # EventType enum value
+    target_time: Optional[str] = Field(default=None)  # e.g. "3:45:00"
+    primary_goal: Optional[str] = Field(default=None)  # PrimaryGoal enum value
+
     user: "User" = Relationship(back_populates="project")
 
 
@@ -84,8 +89,18 @@ class RunnerProfile(SQLModel, table=True):
     age: int
     gender: str
     height_cm: int
-    # Removed current_weight and target_weight
-    # Removed weight_history relationship
+
+    # Wizard-driven fields
+    weight_kg: Optional[float] = Field(default=None)
+    experience_level: Optional[str] = Field(default=None)  # ExperienceLevel enum value
+    events_completed_json: Optional[str] = Field(
+        default=None
+    )  # JSON map e.g. {"marathon": 3}
+    pain_points_json: Optional[str] = Field(
+        default=None
+    )  # JSON array of PainPoint values
+    weekly_availability: Optional[int] = Field(default=None)  # days per week
+    longest_recent_distance_m: Optional[int] = Field(default=None)
 
     # JSON strings for complex nested data
     training_zones_json: Optional[str] = Field(default=None)
@@ -93,7 +108,6 @@ class RunnerProfile(SQLModel, table=True):
     fueling_json: Optional[str] = Field(default=None)
 
     user: "User" = Relationship(back_populates="profile")
-    # weight_history removed
 
 
 class ActualActivity(SQLModel, table=True):
@@ -127,6 +141,15 @@ class ActualActivity(SQLModel, table=True):
     splits_json: Optional[str] = None
 
     user: "User" = Relationship(back_populates="activities")
+
+
+class PlanTemplate(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    sport: str  # "running" | "swimming"
+    event_type: str  # EventType enum value
+    level: str  # ExperienceLevel enum value
+    default_weeks: int = 14
+    structure_json: str  # JSON blob defining phases, session patterns, volume curve
 
 
 # --- Database Connection ---
