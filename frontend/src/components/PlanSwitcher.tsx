@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getPlans, activatePlan, deletePlan } from '../lib/api';
-import { ChevronDown, Check, Loader2, Calendar, Trash2 } from 'lucide-react';
+import { ChevronDown, Check, Loader2, Calendar, Trash2, Copy } from 'lucide-react';
+import { ClonePlanDialog } from './ClonePlanDialog';
 
 export function PlanSwitcher() {
     const [isOpen, setIsOpen] = useState(false);
+    const [clonePlan, setClonePlan] = useState<{ id: number; title: string } | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
 
@@ -43,6 +45,12 @@ export function PlanSwitcher() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    const handleClone = (e: React.MouseEvent, planId: number, planTitle: string) => {
+        e.stopPropagation();
+        setClonePlan({ id: planId, title: planTitle });
+        setIsOpen(false);
+    };
 
     const handleDelete = (e: React.MouseEvent, planId: number, planTitle: string) => {
         e.stopPropagation();
@@ -85,7 +93,7 @@ export function PlanSwitcher() {
                                         disabled={plan.is_active || activateMutation.isPending}
                                         className="w-full text-left px-4 py-3 flex items-center justify-between"
                                     >
-                                        <div className="min-w-0 pr-6">
+                                        <div className="min-w-0 pr-16">
                                             <div className={`font-medium text-sm truncate ${plan.is_active ? 'text-blue-600' : 'text-slate-700'}`}>
                                                 {plan.title}
                                             </div>
@@ -104,25 +112,41 @@ export function PlanSwitcher() {
                                         )}
                                     </button>
                                     
-                                    {!plan.is_active && (
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-all">
                                         <button
-                                            onClick={(e) => handleDelete(e, plan.id, plan.title)}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all opacity-0 group-hover/item:opacity-100"
-                                            title="Delete Plan"
-                                            disabled={deleteMutation.isPending}
+                                            onClick={(e) => handleClone(e, plan.id, plan.title)}
+                                            className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-all"
+                                            title="Clone Plan"
                                         >
-                                            {deleteMutation.isPending && deleteMutation.variables === plan.id ? (
-                                                <Loader2 size={14} className="animate-spin" />
-                                            ) : (
-                                                <Trash2 size={14} />
-                                            )}
+                                            <Copy size={14} />
                                         </button>
-                                    )}
+                                        {!plan.is_active && (
+                                            <button
+                                                onClick={(e) => handleDelete(e, plan.id, plan.title)}
+                                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
+                                                title="Delete Plan"
+                                                disabled={deleteMutation.isPending}
+                                            >
+                                                {deleteMutation.isPending && deleteMutation.variables === plan.id ? (
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                ) : (
+                                                    <Trash2 size={14} />
+                                                )}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )))}
                     </div>
                 </div>
             )}
+
+            <ClonePlanDialog
+                isOpen={!!clonePlan}
+                onClose={() => setClonePlan(null)}
+                planId={clonePlan?.id ?? 0}
+                planTitle={clonePlan?.title ?? ''}
+            />
         </div>
     );
 }

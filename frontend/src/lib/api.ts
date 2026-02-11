@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { Week, ContextData, Activity } from '../types/schema';
+import type { WizardInput, PlanPreview, ClonePlanRequest } from '../types/wizard';
 import { userManager } from './auth';
 
 const api = axios.create({
@@ -100,6 +101,23 @@ export const syncActivities = async (days: number = 7): Promise<{ count: number;
     const token = localStorage.getItem('garmin_token');
     const headers = token ? { 'X-Garmin-Token': token } : {};
     const response = await api.post(`/api/integrations/garmin/sync?days=${days}`, {}, { headers });
+    return response.data;
+};
+
+// --- Wizard API ---
+
+export const wizardPreview = async (input: WizardInput): Promise<PlanPreview> => {
+    const response = await api.post<PlanPreview>('/api/plans/generate-preview', input);
+    return response.data;
+};
+
+export const wizardCreatePlan = async (input: WizardInput): Promise<{ status: string; message: string; id: number; title: string; type: string }> => {
+    const response = await api.post('/api/plans/from-wizard', input);
+    return response.data;
+};
+
+export const clonePlan = async (planId: number, request: ClonePlanRequest): Promise<{ status: string; message: string; id: number; title: string; type: string }> => {
+    const response = await api.post(`/api/plans/${planId}/clone`, request);
     return response.data;
 };
 
