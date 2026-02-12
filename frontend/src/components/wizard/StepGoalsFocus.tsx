@@ -19,7 +19,7 @@ const SWIMMING_PAIN_POINTS: PainPoint[] = [
     'open_water_anxiety', 'stroke_efficiency',
 ];
 
-export function StepGoalsFocus({ data, onChange, sport, errors }: StepGoalsFocusProps) {
+export function StepGoalsFocus({ data, onChange, sport }: StepGoalsFocusProps) {
     const painPoints = sport === 'swimming' ? SWIMMING_PAIN_POINTS : ALL_PAIN_POINTS;
 
     const togglePainPoint = (pp: PainPoint) => {

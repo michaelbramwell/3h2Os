@@ -21,9 +21,7 @@ export function StepReview({
     previewLoading,
     previewError,
     onLoadPreview,
-    submitting,
     submitError,
-    onSubmit,
 }: StepReviewProps) {
     // Load preview on mount
     useEffect(() => {
