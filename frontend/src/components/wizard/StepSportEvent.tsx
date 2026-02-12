@@ -8,7 +8,7 @@ interface StepSportEventProps {
     errors: StepErrors;
 }
 
-export function StepSportEvent({ data, onChange, errors }: StepSportEventProps) {
+export function StepSportEvent({ data, onChange }: StepSportEventProps) {
     const handleSportChange = (sport: Sport) => {
         // Reset event type when sport changes
         const defaultEvent: EventType = sport === 'running' ? 'marathon' : 'pool_1500m';
