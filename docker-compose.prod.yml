@@ -41,7 +41,7 @@ services:
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - JWT_VERIFY_SIGNATURE=true
       - IDP_URL=http://keycloak:8080
-    command: /bin/sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    command: /bin/sh -c "uv run python -m db.migrate && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       db:
         condition: service_healthy

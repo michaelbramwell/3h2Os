@@ -117,7 +117,7 @@ function Dashboard() {
       return (
         <div className="flex h-screen items-center justify-center bg-slate-50">
             <div className="text-center">
-                <h1 className="text-2xl font-bold mb-4">3h2Os Training Plan</h1>
+                <h1 className="text-2xl font-bold mb-4">3h2os Training Plan</h1>
                 <p className="text-slate-500 mb-6">Please login to view your training plan.</p>
                 {auth.error && (
                     <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm max-w-md mx-auto">
@@ -128,7 +128,7 @@ function Dashboard() {
                 onClick={() => auth.signinRedirect().catch(e => alert("Login failed: " + e))}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transition"
                 >
-                Login using Keycloak
+                Login to 3h2os
                 </button>
             </div>
         </div>

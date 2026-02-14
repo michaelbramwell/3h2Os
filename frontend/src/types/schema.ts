@@ -89,18 +89,11 @@ export interface TrainingZone {
   lowBoundary_bpm?: number;
 }
 
-export interface FuelingStrategy {
-  carbsPerHr: number;
-  sodiumPerHr: number;
-  preRunCarbs: number;
-}
-
 export interface RunnerContext {
   age: number;
   gender: string;
   height_cm: number;
   personalBests?: Record<string, string>;
-  fueling?: FuelingStrategy;
   trainingZones?: {
       pace: TrainingZone[];
       heartRate: TrainingZone[];

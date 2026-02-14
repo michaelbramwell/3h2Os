@@ -21,6 +21,7 @@ export function PlanSwitcher() {
             queryClient.invalidateQueries({ queryKey: ['plan'] }); // Active plan content
             queryClient.invalidateQueries({ queryKey: ['plans'] }); // Plan list (active status)
             queryClient.invalidateQueries({ queryKey: ['actuals'] }); // Refetch actuals based on new plan type
+            queryClient.invalidateQueries({ queryKey: ['context'] }); // Refresh sidebar project context
             setIsOpen(false);
         },
     });

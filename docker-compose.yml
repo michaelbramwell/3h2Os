@@ -10,8 +10,7 @@ services:
       # Mount local source for development
       - ./backend/app:/app/app:ro
       - ./backend/scripts:/app/scripts:ro
-      - ./backend/migrations:/app/migrations:ro
-      - ./backend/alembic.ini:/app/alembic.ini:ro
+      - ./backend/db:/app/db:ro
     env_file:
       - .env
     environment:
@@ -23,7 +22,7 @@ services:
       # IDP_URL should point to keycloak service inside docker network for backend
       - IDP_URL=http://keycloak:8080
     # Run migrations before starting the app
-    command: /bin/sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    command: /bin/sh -c "uv run python -m db.migrate && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       db:
         condition: service_healthy
@@ -31,7 +30,7 @@ services:
       - default
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/docs || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')\" || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

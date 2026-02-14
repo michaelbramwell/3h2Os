@@ -25,7 +25,8 @@
    - Run `npm install`
    - Run `npm run dev`
 3. **Database:**
-   - Use `uv run alembic upgrade head` to apply migrations.
+   - Use `uv run python -m db.migrate` to apply migrations.
+   - New migrations are plain SQL files in `db/migrations/`, numbered `NNN_description.sql`.
 
 ## Key Files
 - `backend/app/main.py`: App entry point.

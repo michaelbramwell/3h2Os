@@ -398,12 +398,6 @@ class ProjectContext(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
-class FuelingStrategy(BaseModel):
-    carbsPerHr: Optional[int] = 0
-    sodiumPerHr: Optional[int] = 0
-    preRunCarbs: Optional[int] = 0
-
-
 class TrainingZone(BaseModel):
     zone: int
     lowBoundary_m_s: float
@@ -420,7 +414,6 @@ class RunnerContext(BaseModel):
     age: int
     gender: str
     height_cm: int
-    fueling: Optional[FuelingStrategy] = None
     trainingZones: Optional[TrainingZones] = None
     personalBests: Optional[Dict[str, str]] = None
 

@@ -86,7 +86,7 @@ docker compose up --build
 # Backend
 cd backend
 uv sync
-uv run alembic upgrade head
+uv run python -m db.migrate
 uv run uvicorn app.main:app --reload
 
 # Frontend (separate terminal)

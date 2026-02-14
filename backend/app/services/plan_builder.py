@@ -283,7 +283,7 @@ class PlanBuilderService:
 
         # Update profile and project
         self._update_profile(wizard, user, zones)
-        self._update_project(wizard, user)
+        self._update_project(wizard, user, plan)
 
         return plan
 
@@ -340,8 +340,14 @@ class PlanBuilderService:
         self.session.add(profile)
         self.session.commit()
 
-    def _update_project(self, wizard: WizardInput, user: User) -> None:
-        """Create or update the runner project with wizard data."""
+    def _update_project(
+        self, wizard: WizardInput, user: User, plan: "RunnerPlan" = None
+    ) -> None:
+        """Create or update the runner project with wizard data.
+
+        Also snapshots event/goal/event_date onto the RunnerPlan so that
+        activate_plan can restore them when switching between plans.
+        """
         project = self.session.exec(
             select(RunnerProject).where(RunnerProject.user_id == user.id)
         ).first()
@@ -390,6 +396,14 @@ class PlanBuilderService:
         project.primary_goal = wizard.goals_focus.primary_goal
 
         self.session.add(project)
+
+        # Snapshot project context onto the plan
+        if plan:
+            plan.event = event_label
+            plan.goal = goal_label
+            plan.event_date = event_date
+            self.session.add(plan)
+
         self.session.commit()
 
     # ------------------------------------------------------------------
