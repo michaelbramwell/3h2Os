@@ -2255,3 +2255,57 @@ class TestGenerationMethodValidation:
     def test_invalid_method_rejected(self):
         with pytest.raises(Exception):
             WizardPlanConfig(generation_method="custom")
+
+
+class TestPlanBuilderEdit:
+    def test_get_wizard_settings_found(self, session, user):
+        service = PlanBuilderService(session)
+        wizard = _make_wizard_input()
+        plan = service.generate_plan(wizard, user)
+
+        settings = service.get_wizard_settings(plan.id, user)
+        assert settings is not None
+        assert settings["sport_event"]["event_type"] == wizard.sport_event.event_type
+
+    def test_get_wizard_settings_not_found(self, session, user):
+        service = PlanBuilderService(session)
+        with pytest.raises(ValueError, match="Plan with ID 999 not found"):
+            service.get_wizard_settings(999, user)
+
+    def test_get_wizard_settings_unauthorized(self, session, user):
+        service = PlanBuilderService(session)
+        wizard = _make_wizard_input()
+        plan = service.generate_plan(wizard, user)
+
+        other_user = User(username="other", email="o@x.com")
+        session.add(other_user)
+        session.commit()
+
+        with pytest.raises(
+            ValueError, match="Cannot access a plan that does not belong to you"
+        ):
+            service.get_wizard_settings(plan.id, other_user)
+
+    def test_update_plan_from_wizard(self, session, user):
+        service = PlanBuilderService(session)
+        wizard = _make_wizard_input(total_weeks=8)
+        plan = service.generate_plan(wizard, user)
+        original_plan_id = plan.id
+
+        # Count weeks before
+        orig_weeks = session.exec(
+            select(PlanWeek).where(PlanWeek.plan_id == original_plan_id)
+        ).all()
+        assert len(orig_weeks) == 8
+
+        # Update wizard input to 12 weeks
+        wizard.plan_config.total_weeks = 12
+        updated_plan = service.update_plan_from_wizard(original_plan_id, wizard, user)
+
+        assert updated_plan.id == original_plan_id
+
+        # Count weeks after
+        new_weeks = session.exec(
+            select(PlanWeek).where(PlanWeek.plan_id == original_plan_id)
+        ).all()
+        assert len(new_weeks) == 12

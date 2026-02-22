@@ -158,7 +158,7 @@ function Dashboard() {
     <div className={`min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans ${fridgeWeekId ? 'bg-white print:p-0' : ''}`}>
       {/* Branding / Title */}
       <div className="fixed top-5 left-6 z-50 print:hidden pointer-events-none flex items-center gap-3 opacity-80">
-         <img src="/3h2os-waves.svg" alt="3h2Os Logo" className="w-10 h-10" />
+         <img src="/3h2os-waves.svg" alt="3h2os Logo" className="w-10 h-10" />
          <span className={`text-2xl font-bold text-slate-700 tracking-tight ${!isSidebarVisible ? 'hidden' : ''}`}>
             3h2os
          </span>

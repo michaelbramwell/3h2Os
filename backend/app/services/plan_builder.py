@@ -144,6 +144,11 @@ class PlanBuilderService:
                     "Reduce the plan length or move the event date."
                 )
 
+        if event_type == "none":
+            raise ValueError(
+                "Template generation is not supported for 'none' event type."
+            )
+
         template = self._resolve_template(event_type, level, sport)
         zones = self._calculate_zones(wizard)
 
@@ -206,6 +211,11 @@ class PlanBuilderService:
         event_type = wizard.sport_event.event_type
         level = wizard.athlete_profile.experience_level
         total_weeks = wizard.plan_config.total_weeks
+
+        if event_type == "none":
+            raise ValueError(
+                "Template generation is not supported for 'none' event type."
+            )
 
         template = self._resolve_template(event_type, level, sport)
 
@@ -353,6 +363,7 @@ class PlanBuilderService:
             "ow_2.5km": "2.5km Open Water",
             "ow_5km": "5km Open Water",
             "ow_10km": "10km Open Water",
+            "none": "No Event (Build Weekly)",
         }
         event_label = event_labels.get(
             wizard.sport_event.event_type, wizard.sport_event.event_type
