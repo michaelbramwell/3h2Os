@@ -1,12 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPlans, activatePlan, deletePlan } from '../lib/api';
-import { ChevronDown, Check, Loader2, Calendar, Trash2, Copy } from 'lucide-react';
+import { getPlans, activatePlan, deletePlan, getWizardSettings } from '../lib/api';
+import { ChevronDown, Check, Loader2, Calendar, Trash2, Copy, Pencil } from 'lucide-react';
 import { ClonePlanDialog } from './ClonePlanDialog';
+import { toast } from 'sonner';
+import type { WizardInput } from '../types/wizard';
 
-export function PlanSwitcher() {
+interface PlanSwitcherProps {
+    onEditPlan?: (planId: number, wizardData: WizardInput) => void;
+}
+
+export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [clonePlan, setClonePlan] = useState<{ id: number; title: string } | null>(null);
+    const [loadingEditId, setLoadingEditId] = useState<number | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
 
@@ -51,6 +58,26 @@ export function PlanSwitcher() {
         e.stopPropagation();
         setClonePlan({ id: planId, title: planTitle });
         setIsOpen(false);
+    };
+
+    const handleEdit = async (e: React.MouseEvent, planId: number) => {
+        e.stopPropagation();
+        if (!onEditPlan) return;
+        setLoadingEditId(planId);
+        try {
+            const wizardData = await getWizardSettings(planId);
+            setIsOpen(false);
+            onEditPlan(planId, wizardData);
+        } catch (err: any) {
+            const detail = err?.response?.data?.detail;
+            if (err?.response?.status === 404) {
+                toast.error(detail || 'This plan was not created with the wizard and cannot be edited here.');
+            } else {
+                toast.error(detail || 'Failed to load plan settings.');
+            }
+        } finally {
+            setLoadingEditId(null);
+        }
     };
 
     const handleDelete = (e: React.MouseEvent, planId: number, planTitle: string) => {
@@ -114,6 +141,20 @@ export function PlanSwitcher() {
                                     </button>
                                     
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-all">
+                                        {onEditPlan && (
+                                            <button
+                                                onClick={(e) => handleEdit(e, plan.id)}
+                                                className="p-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-md transition-all"
+                                                title="Edit Plan Settings"
+                                                disabled={loadingEditId === plan.id}
+                                            >
+                                                {loadingEditId === plan.id ? (
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                ) : (
+                                                    <Pencil size={14} />
+                                                )}
+                                            </button>
+                                        )}
                                         <button
                                             onClick={(e) => handleClone(e, plan.id, plan.title)}
                                             className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-all"

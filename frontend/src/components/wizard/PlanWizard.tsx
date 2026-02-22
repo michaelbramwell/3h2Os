@@ -9,15 +9,24 @@ import { StepGoalsFocus } from './StepGoalsFocus';
 import { StepPlanConfig } from './StepPlanConfig';
 import { StepReview } from './StepReview';
 import { toast } from 'sonner';
+import type { WizardInput } from '../../types/wizard';
 
 interface PlanWizardProps {
     isOpen: boolean;
     onClose: () => void;
     onPlanCreated?: (planId: number) => void;
+    /** When set, the wizard opens in edit mode for this plan ID. */
+    editPlanId?: number;
+    /** Pre-populated wizard data for edit mode. */
+    editData?: WizardInput;
 }
 
-export function PlanWizard({ isOpen, onClose, onPlanCreated }: PlanWizardProps) {
-    const wizard = useWizard();
+export function PlanWizard({ isOpen, onClose, onPlanCreated, editPlanId, editData }: PlanWizardProps) {
+    const wizard = useWizard(
+        editPlanId && editData
+            ? { planId: editPlanId, initialData: editData }
+            : undefined
+    );
     const navigate = useNavigate();
 
     if (!isOpen) return null;
@@ -30,16 +39,36 @@ export function PlanWizard({ isOpen, onClose, onPlanCreated }: PlanWizardProps) 
     const handleSubmit = async () => {
         const result = await wizard.submitPlan();
         if (result) {
-            toast.success(`Plan "${result.title}" created successfully.`);
+            toast.success(
+                wizard.isEditMode
+                    ? `Plan "${result.title}" updated successfully.`
+                    : `Plan "${result.title}" created successfully.`
+            );
             onPlanCreated?.(result.id);
             handleClose();
         }
     };
 
-    const isManualMode = wizard.planConfig.generation_method === 'manual';
+    const isManualMode = wizard.planConfig.generation_method === 'manual' || wizard.planConfig.generation_method === 'manual_weekly' || wizard.sportEvent.event_type === 'none';
     const isOnPlanConfigStep = wizard.currentStep === 'plan_config';
+    const isWeekByWeek = wizard.sportEvent.event_type === 'none';
 
     const handleNext = () => {
+        if (isWeekByWeek && wizard.currentStep === 'sport_event') {
+            // For week-by-week, we hijack the config so the builder knows what to do
+            const updatedInput = {
+                ...wizard.wizardInput,
+                plan_config: {
+                    ...wizard.wizardInput.plan_config,
+                    generation_method: 'manual_weekly' as const
+                }
+            };
+            sessionStorage.setItem('wizardInput', JSON.stringify(updatedInput));
+            handleClose();
+            navigate({ to: '/plans/build' });
+            return;
+        }
+
         if (isOnPlanConfigStep && isManualMode) {
             // Store wizard state for the manual builder page
             sessionStorage.setItem('wizardInput', JSON.stringify(wizard.wizardInput));
@@ -98,6 +127,7 @@ export function PlanWizard({ isOpen, onClose, onPlanCreated }: PlanWizardProps) 
                         submitting={wizard.submitting}
                         submitError={wizard.submitError}
                         onSubmit={handleSubmit}
+                        isEditMode={wizard.isEditMode}
                     />
                 );
             default:
@@ -105,12 +135,16 @@ export function PlanWizard({ isOpen, onClose, onPlanCreated }: PlanWizardProps) 
         }
     };
 
+    const submitLabel = wizard.isEditMode ? 'Update Plan' : 'Create Plan';
+
     const content = (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                    <h1 className="text-base font-semibold text-slate-900">Create Training Plan</h1>
+                    <h1 className="text-base font-semibold text-slate-900">
+                        {wizard.isEditMode ? 'Edit Training Plan' : 'Create Training Plan'}
+                    </h1>
                     <button
                         type="button"
                         onClick={handleClose}
@@ -153,7 +187,7 @@ export function PlanWizard({ isOpen, onClose, onPlanCreated }: PlanWizardProps) 
                             {wizard.submitting && (
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                             )}
-                            Create Plan
+                            {submitLabel}
                         </button>
                     ) : (
                         <button
@@ -162,7 +196,7 @@ export function PlanWizard({ isOpen, onClose, onPlanCreated }: PlanWizardProps) 
                             disabled={!wizard.canProceed}
                             className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                            {isOnPlanConfigStep && isManualMode ? 'Open Builder' : 'Next'}
+                            {(isOnPlanConfigStep && isManualMode) || (wizard.currentStep === 'sport_event' && isWeekByWeek) ? 'Open Builder' : 'Next'}
                         </button>
                     )}
                 </div>

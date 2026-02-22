@@ -8,10 +8,10 @@ interface StepSportEventProps {
     errors: StepErrors;
 }
 
-export function StepSportEvent({ data, onChange }: StepSportEventProps) {
+export function StepSportEvent({ data, onChange, errors }: StepSportEventProps) {
     const handleSportChange = (sport: Sport) => {
         // Reset event type when sport changes
-        const defaultEvent: EventType = sport === 'running' ? 'marathon' : 'pool_1500m';
+        const defaultEvent: EventType = data.event_type === 'none' ? 'none' : (sport === 'running' ? 'marathon' : 'pool_1500m');
         onChange({ sport, event_type: defaultEvent });
     };
 
@@ -19,7 +19,7 @@ export function StepSportEvent({ data, onChange }: StepSportEventProps) {
         ? RunningEvents
         : [...SwimmingPoolEvents, ...SwimmingOWEvents];
 
-    const isPool = SwimmingPoolEvents.includes(data.event_type);
+    const isPool = SwimmingPoolEvents.includes(data.event_type) && data.event_type !== 'none';
     const isOW = SwimmingOWEvents.includes(data.event_type);
 
     return (
@@ -27,6 +27,25 @@ export function StepSportEvent({ data, onChange }: StepSportEventProps) {
             <div>
                 <h2 className="text-lg font-semibold text-slate-900 mb-1">Sport & Event</h2>
                 <p className="text-sm text-slate-500">Choose your sport and target event distance.</p>
+            </div>
+
+            {/* Plan name (compulsory) */}
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Plan Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    value={data.plan_name || ''}
+                    onChange={e => onChange({ plan_name: e.target.value })}
+                    placeholder="e.g. My First Marathon"
+                    className={`w-full p-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.plan_name ? 'border-red-400' : 'border-slate-300'
+                    }`}
+                />
+                {errors.plan_name && (
+                    <p className="mt-1 text-xs text-red-500">{errors.plan_name}</p>
+                )}
             </div>
 
             {/* Sport selection */}
@@ -80,6 +99,7 @@ export function StepSportEvent({ data, onChange }: StepSportEventProps) {
             </div>
 
             {/* Event name (optional) */}
+            {data.event_type !== 'none' && (
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                     Event Name <span className="text-slate-400 font-normal">(optional)</span>
@@ -92,8 +112,10 @@ export function StepSportEvent({ data, onChange }: StepSportEventProps) {
                     className="w-full p-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>
+            )}
 
             {/* Event date (optional) */}
+            {data.event_type !== 'none' && (
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                     Event Date <span className="text-slate-400 font-normal">(optional)</span>
@@ -105,6 +127,7 @@ export function StepSportEvent({ data, onChange }: StepSportEventProps) {
                     className="w-full p-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>
+            )}
         </div>
     );
 }

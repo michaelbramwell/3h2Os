@@ -14,7 +14,7 @@ from app.models.domain import (
 # --- Wizard Schemas ---
 
 _VALID_SPORTS = {"running", "swimming"}
-_VALID_EVENT_TYPES = {e.value for e in EventType}
+_VALID_EVENT_TYPES = {e.value for e in EventType} | {"none"}
 _VALID_EXPERIENCE_LEVELS = {e.value for e in ExperienceLevel}
 _VALID_PRIMARY_GOALS = {e.value for e in PrimaryGoal}
 _VALID_PAIN_POINTS = {e.value for e in PainPoint}
@@ -23,10 +23,18 @@ _VALID_PAIN_POINTS = {e.value for e in PainPoint}
 class WizardSportEvent(BaseModel):
     """Step 1: Sport & Event selection."""
 
+    plan_name: str
     sport: str  # "running" | "swimming"
     event_type: str  # EventType enum value
     event_name: Optional[str] = None  # Free text, e.g. "Perth City to Surf 2026"
     event_date: Optional[date] = None
+
+    @field_validator("plan_name")
+    @classmethod
+    def validate_plan_name(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Plan name is required")
+        return v.strip()
 
     @field_validator("sport")
     @classmethod
@@ -149,7 +157,7 @@ class WizardPlanConfig(BaseModel):
 
     total_weeks: int = 14
     taper_weeks: Optional[int] = None  # 1-3, None = use template default
-    generation_method: Literal["template", "ai", "manual"] = "template"
+    generation_method: Literal["template", "ai", "manual", "manual_weekly"] = "template"
 
     @field_validator("total_weeks")
     @classmethod

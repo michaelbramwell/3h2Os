@@ -12,6 +12,7 @@ import { PlanWizard } from '../components/wizard'
 import { PlanSwitcher } from '../components/PlanSwitcher'
 import { PanelLeft, X, Plus } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
+import type { WizardInput } from '../types/wizard'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -25,6 +26,7 @@ function Dashboard() {
   const [fridgeWeekId, setFridgeWeekId] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const [editPlan, setEditPlan] = useState<{ id: number; data: WizardInput } | null>(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   useEffect(() => {
@@ -181,7 +183,7 @@ function Dashboard() {
                     <Plus size={18} />
                  </button>
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
-                 <PlanSwitcher />
+                 <PlanSwitcher onEditPlan={(planId, wizardData) => setEditPlan({ id: planId, data: wizardData })} />
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
                  <GarminSettings />
                  <span className="text-xs text-slate-500 font-medium border-l border-slate-300 pl-2">
@@ -276,6 +278,19 @@ function Dashboard() {
           queryClient.invalidateQueries({ queryKey: ['plans'] });
           queryClient.invalidateQueries({ queryKey: ['context'] });
           setShowCreatePlan(false);
+        }}
+      />
+
+      <PlanWizard
+        isOpen={!!editPlan}
+        onClose={() => setEditPlan(null)}
+        editPlanId={editPlan?.id}
+        editData={editPlan?.data}
+        onPlanCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['plan'] });
+          queryClient.invalidateQueries({ queryKey: ['plans'] });
+          queryClient.invalidateQueries({ queryKey: ['context'] });
+          setEditPlan(null);
         }}
       />
     </div>

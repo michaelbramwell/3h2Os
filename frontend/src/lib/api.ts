@@ -116,6 +116,16 @@ export const wizardCreatePlan = async (input: WizardInput): Promise<{ status: st
     return response.data;
 };
 
+export const getWizardSettings = async (planId: number): Promise<WizardInput> => {
+    const response = await api.get<WizardInput>(`/api/plans/${planId}/wizard-settings`);
+    return response.data;
+};
+
+export const wizardUpdatePlan = async (planId: number, input: WizardInput): Promise<{ status: string; message: string; id: number; title: string; type: string }> => {
+    const response = await api.put(`/api/plans/${planId}/from-wizard`, input);
+    return response.data;
+};
+
 export const clonePlan = async (planId: number, request: ClonePlanRequest): Promise<{ status: string; message: string; id: number; title: string; type: string }> => {
     const response = await api.post(`/api/plans/${planId}/clone`, request);
     return response.data;

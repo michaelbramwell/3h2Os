@@ -14,6 +14,7 @@ interface StepReviewProps {
     submitting: boolean;
     submitError: string | null;
     onSubmit: () => void;
+    isEditMode?: boolean;
 }
 
 export function StepReview({
@@ -22,6 +23,7 @@ export function StepReview({
     previewError,
     onLoadPreview,
     submitError,
+    isEditMode,
 }: StepReviewProps) {
     // Load preview on mount
     useEffect(() => {
@@ -137,7 +139,11 @@ export function StepReview({
         <div className="space-y-6">
             <div>
                 <h2 className="text-lg font-semibold text-slate-900 mb-1">Review & Confirm</h2>
-                <p className="text-sm text-slate-500">Review your plan before creating it.</p>
+                <p className="text-sm text-slate-500">
+                    {isEditMode
+                        ? 'Review the updated plan. This will regenerate all weeks and workouts.'
+                        : 'Review your plan before creating it.'}
+                </p>
             </div>
 
             {/* Plan summary */}

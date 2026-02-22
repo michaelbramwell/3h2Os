@@ -10,11 +10,22 @@ import type {
     Sport,
 } from '../types/wizard';
 import { WIZARD_STEPS, defaultTaperWeeks } from '../types/wizard';
-import { wizardPreview, wizardCreatePlan } from '../lib/api';
+import { wizardPreview, wizardCreatePlan, wizardUpdatePlan } from '../lib/api';
 
 export type StepErrors = Record<string, string>;
 
+export interface UseWizardOptions {
+    /** When set, the wizard operates in edit mode for this plan. */
+    planId?: number;
+    /** Initial data to pre-populate the wizard (used in edit mode). */
+    initialData?: WizardInput;
+}
+
 interface UseWizardReturn {
+    // Mode
+    isEditMode: boolean;
+    editPlanId: number | null;
+
     // Navigation
     currentStep: WizardStep;
     stepIndex: number;
@@ -57,6 +68,7 @@ interface UseWizardReturn {
 }
 
 const DEFAULT_SPORT_EVENT: WizardSportEvent = {
+    plan_name: '',
     sport: 'running' as Sport,
     event_type: 'marathon',
 };
@@ -81,18 +93,30 @@ const DEFAULT_PLAN_CONFIG: WizardPlanConfig = {
     generation_method: 'template',
 };
 
-export function useWizard(): UseWizardReturn {
+export function useWizard(options?: UseWizardOptions): UseWizardReturn {
+    const isEditMode = !!(options?.planId);
+    const editPlanId = options?.planId ?? null;
+    const init = options?.initialData;
+
     // Step navigation
     const [stepIndex, setStepIndex] = useState(0);
     const currentStep = WIZARD_STEPS[stepIndex];
     const isFirstStep = stepIndex === 0;
     const isLastStep = stepIndex === WIZARD_STEPS.length - 1;
 
-    // Step data
-    const [sportEvent, setSportEventState] = useState<WizardSportEvent>(DEFAULT_SPORT_EVENT);
-    const [athleteProfile, setAthleteProfileState] = useState<WizardAthleteProfile>(DEFAULT_ATHLETE_PROFILE);
-    const [goalsFocus, setGoalsFocusState] = useState<WizardGoalsFocus>(DEFAULT_GOALS_FOCUS);
-    const [planConfig, setPlanConfigState] = useState<WizardPlanConfig>(DEFAULT_PLAN_CONFIG);
+    // Step data -- seed from initialData when in edit mode
+    const [sportEvent, setSportEventState] = useState<WizardSportEvent>(
+        init?.sport_event ?? DEFAULT_SPORT_EVENT
+    );
+    const [athleteProfile, setAthleteProfileState] = useState<WizardAthleteProfile>(
+        init?.athlete_profile ?? DEFAULT_ATHLETE_PROFILE
+    );
+    const [goalsFocus, setGoalsFocusState] = useState<WizardGoalsFocus>(
+        init?.goals_focus ?? DEFAULT_GOALS_FOCUS
+    );
+    const [planConfig, setPlanConfigState] = useState<WizardPlanConfig>(
+        init?.plan_config ?? DEFAULT_PLAN_CONFIG
+    );
 
     // Preview state
     const [preview, setPreview] = useState<PlanPreview | null>(null);
@@ -146,6 +170,9 @@ export function useWizard(): UseWizardReturn {
         const errors: StepErrors = {};
 
         // Step 1: sport_event
+        if (!sportEvent.plan_name?.trim()) {
+            errors.plan_name = 'Plan name is required';
+        }
         if (!sportEvent.sport || !['running', 'swimming'].includes(sportEvent.sport)) {
             errors.sport = 'Select a sport';
         }
@@ -166,9 +193,10 @@ export function useWizard(): UseWizardReturn {
             errors.weekly_availability = 'Select training days per week (1-7)';
         }
 
-        // Step 4: plan_config
-        if (!planConfig.total_weeks || planConfig.total_weeks < 6 || planConfig.total_weeks > 30) {
-            errors.total_weeks = 'Plan length must be between 6 and 30 weeks';
+        if (sportEvent.event_type !== 'none' && planConfig.generation_method !== 'manual_weekly') {
+            if (!planConfig.total_weeks || planConfig.total_weeks < 6 || planConfig.total_weeks > 30) {
+                errors.total_weeks = 'Plan length must be between 6 and 30 weeks';
+            }
         }
 
         return errors;
@@ -176,7 +204,7 @@ export function useWizard(): UseWizardReturn {
 
     const canProceed = useMemo(() => {
         const stepFieldMap: Record<WizardStep, string[]> = {
-            sport_event: ['sport', 'event_type'],
+            sport_event: ['plan_name', 'sport', 'event_type'],
             athlete_profile: ['age', 'experience_level'],
             goals_focus: ['weekly_availability'],
             plan_config: ['total_weeks'],
@@ -215,21 +243,26 @@ export function useWizard(): UseWizardReturn {
         }
     }, [wizardInput]);
 
-    // Submit
+    // Submit -- create or update depending on mode
     const submitPlan = useCallback(async () => {
         setSubmitting(true);
         setSubmitError(null);
         try {
-            const result = await wizardCreatePlan(wizardInput);
-            return { id: result.id, title: result.title };
+            if (isEditMode && editPlanId) {
+                const result = await wizardUpdatePlan(editPlanId, wizardInput);
+                return { id: result.id, title: result.title };
+            } else {
+                const result = await wizardCreatePlan(wizardInput);
+                return { id: result.id, title: result.title };
+            }
         } catch (err: any) {
-            const msg = err?.response?.data?.detail || err?.message || 'Failed to create plan';
+            const msg = err?.response?.data?.detail || err?.message || 'Failed to save plan';
             setSubmitError(msg);
             return null;
         } finally {
             setSubmitting(false);
         }
-    }, [wizardInput]);
+    }, [wizardInput, isEditMode, editPlanId]);
 
     // Reset
     const reset = useCallback(() => {
@@ -246,6 +279,8 @@ export function useWizard(): UseWizardReturn {
     }, []);
 
     return {
+        isEditMode,
+        editPlanId,
         currentStep,
         stepIndex,
         isFirstStep,

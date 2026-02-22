@@ -461,6 +461,31 @@ class PlanService:
                 total += act.distance_m
         return total
 
+    def delete_plan_contents(self, plan_id: int) -> None:
+        """
+        Deletes all weeks and workouts for a plan, but keeps the plan record itself.
+        Used when re-generating a plan from updated wizard settings.
+        """
+        week_ids = self.session.exec(
+            select(PlanWeek.id).where(PlanWeek.plan_id == plan_id)
+        ).all()
+
+        if week_ids:
+            self.session.exec(
+                delete(PlanWorkout).where(PlanWorkout.week_id.in_(week_ids))
+            )
+            self.session.exec(delete(PlanWeek).where(PlanWeek.plan_id == plan_id))
+
+        self.session.commit()
+
+    def populate_plan_weeks(
+        self, plan: RunnerPlan, plan_data: List[Dict[str, Any]]
+    ) -> None:
+        """
+        Populates a plan with weeks/workouts from plan_data using the relational mapper.
+        """
+        plan_to_relational(self.session, plan, plan_data)
+
     def delete_plan(self, plan_id: int, user: User) -> None:
         """
         Deletes a specific plan and its associated data.
