@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 import os
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_session, User
 from app.core.auth import verify_jwt_middleware
@@ -151,6 +151,7 @@ class PlanMeta(BaseModel):
     type: str
     is_active: bool
     created_at: datetime
+    wizard_input_json: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -508,6 +509,60 @@ async def wizard_create_plan(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating plan from wizard: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/plans/{plan_id}/wizard-settings")
+async def get_plan_wizard_settings(
+    plan_id: int,
+    service: PlanBuilderService = Depends(get_plan_builder_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Retrieve the wizard settings used to create a plan, so the wizard can be
+    re-opened in edit mode.
+    """
+    try:
+        wizard_input = service.get_wizard_settings(plan_id, user)
+        if wizard_input is None:
+            raise HTTPException(
+                status_code=404,
+                detail="No wizard settings found for this plan. It may have been created manually.",
+            )
+        return wizard_input
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting wizard settings: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/plans/{plan_id}/from-wizard")
+async def wizard_update_plan(
+    plan_id: int,
+    wizard_input: WizardInput,
+    service: PlanBuilderService = Depends(get_plan_builder_service),
+    user: User = Depends(get_current_user),
+):
+    """
+    Re-generate a plan from updated wizard inputs, replacing the existing plan's
+    weeks/workouts. Updates runner profile and project with wizard data.
+    """
+    try:
+        plan = service.update_plan_from_wizard(plan_id, wizard_input, user)
+        return {
+            "status": "success",
+            "message": "Plan updated from wizard",
+            "id": plan.id,
+            "title": plan.title,
+            "type": plan.type,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating plan from wizard: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

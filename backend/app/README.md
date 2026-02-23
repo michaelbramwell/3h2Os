@@ -68,7 +68,7 @@ tests/                    # pytest suite (219 tests)
 
 2. **Run Migrations (Initial Setup):**
    ```bash
-   uv run alembic upgrade head
+   uv run python -m db.migrate
    ```
 
 3. **Run Server:**
@@ -94,12 +94,16 @@ This starts PostgreSQL, Keycloak, and the FastAPI app with automatic migrations.
 ## Migrations
 
 ```bash
-# Create a new migration
-uv run alembic revision --autogenerate -m "Description of change"
+# Apply pending migrations
+uv run python -m db.migrate
 
-# Apply migrations
-uv run alembic upgrade head
+# Check migration status
+uv run python -m db.migrate --status
 ```
+
+New migrations are plain SQL files in `db/migrations/`, numbered sequentially
+(e.g. `003_add_foo.sql`). The runner tracks applied scripts in a
+`__schema_versions` table.
 
 ## Tests
 

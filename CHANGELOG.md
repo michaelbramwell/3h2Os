@@ -1,5 +1,16 @@
 # Release Notes
 
+## [v1.0.0] - 2026-02-22
+
+### Features & Enhancements
+- **Plan Edits**: Enabled the ability to modify future workouts within existing plans.
+- **Week-by-Week Plans**: Added a "No Event (Build Weekly)" option to Step 1 of the wizard. This bypasses automated plan generation and routes users directly to the manual builder.
+- **UI Improvements**: Resolved CSS grid layout issues in the manual workout builder and fixed a bug preventing decimal inputs in the distance fields.
+
+### Backend & Architecture
+- **Controller Cleanup**: Simplified backend title generation to strictly use the user-provided plan name. Updated corresponding endpoints, validation schemas (made `plan_name` compulsory in Step 1), and fixed broken test suites.
+- **Migration System**: Replaced Alembic with a custom forward-only SQL migration runner using numbered `.sql` scripts (`db/migrations/`) tracked in a `__schema_versions` table.
+
 ## [v0.9.0] - 2026-02-12
 
 ### Features & Enhancements

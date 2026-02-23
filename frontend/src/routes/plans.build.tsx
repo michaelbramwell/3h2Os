@@ -197,31 +197,49 @@ function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProp
         ? ACTIVITY_TYPES.filter(t => ['Swimming', 'Rest', 'Cross', 'Other'].includes(t))
         : ACTIVITY_TYPES;
 
+    const [localDistance, setLocalDistance] = useState(
+        workout.distance_m > 0 ? (workout.distance_m / 1000).toString() : ''
+    );
+    const [isEditingDistance, setIsEditingDistance] = useState(false);
+
+    // Sync local input with external changes when not actively editing
+    useEffect(() => {
+        if (!isEditingDistance) {
+            setLocalDistance(workout.distance_m > 0 ? (workout.distance_m / 1000).toString() : '');
+        }
+    }, [workout.distance_m, isEditingDistance]);
+
+    const handleDistanceChange = (val: string) => {
+        setLocalDistance(val);
+        const km = parseFloat(val);
+        onChange({ ...workout, distance_m: isNaN(km) ? 0 : Math.round(km * 1000) });
+    };
+
     return (
-        <div className="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
-            <div className="flex items-start justify-between gap-2">
+        <div className="bg-white border border-slate-200 rounded-lg p-2 space-y-2 relative group">
+            <div className="flex items-start justify-between gap-1">
                 <input
                     type="text"
                     value={workout.name}
                     onChange={e => onChange({ ...workout, name: e.target.value })}
                     placeholder="Workout name"
-                    className="flex-1 text-sm font-medium border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs font-medium border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                     type="button"
                     onClick={onRemove}
-                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                    className="p-1 text-slate-300 hover:text-red-500 bg-white absolute -top-1 -right-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Remove workout"
                 >
                     <Trash2 className="w-3.5 h-3.5" />
                 </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
                 <select
                     value={workout.type}
                     onChange={e => onChange({ ...workout, type: e.target.value as ActivityType })}
-                    className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                     {relevantTypes.map(t => (
                         <option key={t} value={t}>{t}</option>
@@ -230,7 +248,7 @@ function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProp
                 <select
                     value={workout.format || ''}
                     onChange={e => onChange({ ...workout, format: (e.target.value || undefined) as WorkoutFormat | undefined })}
-                    className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                     <option value="">No format</option>
                     {WORKOUT_FORMATS.map(f => (
@@ -239,41 +257,37 @@ function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProp
                 </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-                <div>
-                    <label className="text-[10px] text-slate-400 block mb-0.5">Distance (km)</label>
-                    <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={workout.distance_m > 0 ? (workout.distance_m / 1000).toFixed(1) : ''}
-                        onChange={e => {
-                            const km = parseFloat(e.target.value);
-                            onChange({ ...workout, distance_m: isNaN(km) ? 0 : Math.round(km * 1000) });
-                        }}
-                        placeholder="0.0"
-                        className="w-full text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                </div>
-                <div>
-                    <label className="text-[10px] text-slate-400 block mb-0.5">Time of day</label>
-                    <select
-                        value={workout.timeOfDay}
-                        onChange={e => onChange({ ...workout, timeOfDay: e.target.value })}
-                        className="w-full text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                    </select>
-                </div>
+            <div className="flex gap-1.5">
+                <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={localDistance}
+                    onChange={e => handleDistanceChange(e.target.value)}
+                    onFocus={() => setIsEditingDistance(true)}
+                    onBlur={() => {
+                        setIsEditingDistance(false);
+                        setLocalDistance(workout.distance_m > 0 ? (workout.distance_m / 1000).toString() : '');
+                    }}
+                    placeholder="km"
+                    className="w-full flex-1 text-xs border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <select
+                    value={workout.timeOfDay}
+                    onChange={e => onChange({ ...workout, timeOfDay: e.target.value })}
+                    className="w-12 shrink-0 text-xs border border-slate-200 rounded px-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                </select>
             </div>
 
             <textarea
                 value={workout.description || ''}
                 onChange={e => onChange({ ...workout, description: e.target.value })}
-                placeholder="Description (optional)"
+                placeholder="Description"
                 rows={2}
-                className="w-full text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
             />
         </div>
     );
@@ -452,9 +466,7 @@ function ManualPlanBuilder() {
             try {
                 const input = JSON.parse(stored) as WizardInput;
                 setWizardInput(input);
-                setTitle(
-                    `${input.sport_event.event_name || EVENT_LABELS[input.sport_event.event_type] || input.sport_event.event_type} Plan`
-                );
+                setTitle(input.sport_event.plan_name || `${input.sport_event.event_name || EVENT_LABELS[input.sport_event.event_type] || input.sport_event.event_type} Plan`);
 
                 // Build prefilled weeks
                 const prefilled = buildPrefilledWeeks(input);
@@ -835,6 +847,18 @@ function populateWeekWorkouts(
 
 // Build the full set of prefilled weeks from wizard input
 function buildPrefilledWeeks(input: WizardInput): Week[] {
+    const isManualWeekly = input.plan_config.generation_method === 'manual_weekly' || input.sport_event.event_type === 'none';
+    const isManual = input.plan_config.generation_method === 'manual';
+
+    if (isManualWeekly) {
+        // Just return one completely empty week starting next Monday
+        const today = new Date();
+        const daysAhead = (7 - today.getDay() + 1) % 7 || 7;
+        const nextMonday = new Date(today);
+        nextMonday.setDate(today.getDate() + daysAhead);
+        return [createEmptyWeek(nextMonday.toISOString().split('T')[0])];
+    }
+
     const totalWeeks = input.plan_config.total_weeks;
     const taperWeeks = input.plan_config.taper_weeks ?? defaultTaperWeeks(input.sport_event.event_type as EventType);
     const level = input.athlete_profile.experience_level as ExperienceLevel;
@@ -884,12 +908,19 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
 
     const allWeeks: Week[] = [];
 
+    // Helper to conditionally populate workouts
+    const maybePopulate = (week: Week, phaseType: 'base' | 'build' | 'peak' | 'taper_early' | 'taper_late' | 'race') => {
+        if (!isManual) {
+            populateWeekWorkouts(week, phaseType, level, trainingDays, longRunDay, activityType, timeOfDay);
+        }
+    };
+
     // Base phase
     for (let i = 0; i < baseWeeks; i++) {
         const ws = mondayOfWeek(allWeeks.length, startDate);
         const week = createEmptyWeek(ws);
         week.status = (i + 1) % 4 === 0 ? 'recovery' : 'normal';
-        populateWeekWorkouts(week, 'base', level, trainingDays, longRunDay, activityType, timeOfDay);
+        maybePopulate(week, 'base');
         allWeeks.push(week);
     }
 
@@ -898,7 +929,7 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
         const ws = mondayOfWeek(allWeeks.length, startDate);
         const week = createEmptyWeek(ws);
         week.status = (i + 1) % 4 === 0 ? 'recovery' : 'normal';
-        populateWeekWorkouts(week, 'build', level, trainingDays, longRunDay, activityType, timeOfDay);
+        maybePopulate(week, 'build');
         allWeeks.push(week);
     }
 
@@ -907,7 +938,7 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
         const ws = mondayOfWeek(allWeeks.length, startDate);
         const week = createEmptyWeek(ws);
         week.status = (i + 1) % 4 === 0 ? 'recovery' : 'normal';
-        populateWeekWorkouts(week, 'peak', level, trainingDays, longRunDay, activityType, timeOfDay);
+        maybePopulate(week, 'peak');
         allWeeks.push(week);
     }
 
@@ -918,7 +949,7 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
         week.status = 'taper';
         const isLateTaper = taperWeeks > 1 && i >= Math.ceil(taperWeeks / 2);
         const taperPhase = isLateTaper ? 'taper_late' : 'taper_early';
-        populateWeekWorkouts(week, taperPhase, level, trainingDays, longRunDay, activityType, timeOfDay);
+        maybePopulate(week, taperPhase);
         allWeeks.push(week);
     }
 
@@ -928,25 +959,27 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
         const week = createEmptyWeek(ws);
         week.status = 'race';
 
-        // Race on the long run day (typically Sunday)
-        const raceWorkout = createRaceWorkout(eventType, raceDistance, activityType, timeOfDay);
-        week.days[DAY_LABELS[longRunDay]].workouts = [raceWorkout];
+        if (!isManual) {
+            // Race on the long run day (typically Sunday)
+            const raceWorkout = createRaceWorkout(eventType, raceDistance, activityType, timeOfDay);
+            week.days[DAY_LABELS[longRunDay]].workouts = [raceWorkout];
 
-        // Light sessions on a few other days
-        const otherDays = trainingDays.filter(d => d !== longRunDay).slice(0, 3);
-        const racePattern = getPhasePattern('race', level);
-        otherDays.forEach((d, idx) => {
-            const key = racePattern.nonLongRun[idx] || 'recovery';
-            const sess = SESSIONS[key];
-            week.days[DAY_LABELS[d]].workouts = [{
-                name: sess.name,
-                type: activityType,
-                format: sess.format,
-                distance_m: 0,
-                timeOfDay,
-                description: sess.description,
-            }];
-        });
+            // Light sessions on a few other days
+            const otherDays = trainingDays.filter(d => d !== longRunDay).slice(0, 3);
+            const racePattern = getPhasePattern('race', level);
+            otherDays.forEach((d, idx) => {
+                const key = racePattern.nonLongRun[idx] || 'recovery';
+                const sess = SESSIONS[key];
+                week.days[DAY_LABELS[d]].workouts = [{
+                    name: sess.name,
+                    type: activityType,
+                    format: sess.format,
+                    distance_m: 0,
+                    timeOfDay,
+                    description: sess.description,
+                }];
+            });
+        }
 
         allWeeks.push(week);
     }

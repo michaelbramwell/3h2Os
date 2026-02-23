@@ -12,7 +12,7 @@
 - **Auth:** All API endpoints are protected via `verify_jwt_middleware`.
   - **Verification:** Validates Keycloak JWTs using RS256 public keys.
   - **Configuration:** Uses `JWT_PUBLIC_KEY_PATH` (pointing to `certs/public_key.pem`) or fetches from IdP (future).
-- **Database:** Uses PostgreSQL for all environments. Schema changes are managed via Alembic.
+- **Database:** Uses PostgreSQL for all environments. Schema changes are managed via custom forward-only SQL migrations in `db/migrations/` using `db/migrate.py`.
 - **API:** RESTful API with Pydantic schemas. 
 - **Validation:** "Guardrails" logic in `reflect_and_validate.py` ensures training safety.
 
@@ -25,7 +25,8 @@
    - Run `npm install`
    - Run `npm run dev`
 3. **Database:**
-   - Use `uv run alembic upgrade head` to apply migrations.
+   - Use `uv run python -m db.migrate` to apply migrations.
+   - New migrations are plain SQL files in `db/migrations/`, numbered `NNN_description.sql`.
 
 ## Key Files
 - `backend/app/main.py`: App entry point.
@@ -34,4 +35,5 @@
 - `frontend/src/lib/auth.ts`: Frontend auth logic (if applicable).
 
 ## Operational Rules
+- **Branding:** The project name is strictly "3h2os" (all lowercase except the '3'). Never use "3h2Os".
 - **Commit Safety:** Do not commit changes without explicit user permission. Always present a summary of changes and ask for confirmation before running `git commit`.

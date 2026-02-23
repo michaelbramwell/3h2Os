@@ -55,6 +55,7 @@ export interface PlanMeta {
     type: string;
     is_active: boolean;
     created_at: string;
+    wizard_input_json?: string;
 }
 
 export const getPlans = async (): Promise<PlanMeta[]> => {
@@ -113,6 +114,16 @@ export const wizardPreview = async (input: WizardInput): Promise<PlanPreview> =>
 
 export const wizardCreatePlan = async (input: WizardInput): Promise<{ status: string; message: string; id: number; title: string; type: string }> => {
     const response = await api.post('/api/plans/from-wizard', input);
+    return response.data;
+};
+
+export const getWizardSettings = async (planId: number): Promise<WizardInput> => {
+    const response = await api.get<WizardInput>(`/api/plans/${planId}/wizard-settings`);
+    return response.data;
+};
+
+export const wizardUpdatePlan = async (planId: number, input: WizardInput): Promise<{ status: string; message: string; id: number; title: string; type: string }> => {
+    const response = await api.put(`/api/plans/${planId}/from-wizard`, input);
     return response.data;
 };
 

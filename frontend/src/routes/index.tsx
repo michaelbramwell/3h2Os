@@ -12,6 +12,7 @@ import { PlanWizard } from '../components/wizard'
 import { PlanSwitcher } from '../components/PlanSwitcher'
 import { PanelLeft, X, Plus } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
+import type { WizardInput } from '../types/wizard'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -25,6 +26,7 @@ function Dashboard() {
   const [fridgeWeekId, setFridgeWeekId] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showCreatePlan, setShowCreatePlan] = useState(false);
+  const [editPlan, setEditPlan] = useState<{ id: number; data: WizardInput } | null>(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
 
   useEffect(() => {
@@ -117,7 +119,7 @@ function Dashboard() {
       return (
         <div className="flex h-screen items-center justify-center bg-slate-50">
             <div className="text-center">
-                <h1 className="text-2xl font-bold mb-4">3h2Os Training Plan</h1>
+                <h1 className="text-2xl font-bold mb-4">3h2os Training Plan</h1>
                 <p className="text-slate-500 mb-6">Please login to view your training plan.</p>
                 {auth.error && (
                     <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm max-w-md mx-auto">
@@ -128,7 +130,7 @@ function Dashboard() {
                 onClick={() => auth.signinRedirect().catch(e => alert("Login failed: " + e))}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transition"
                 >
-                Login using Keycloak
+                Login to 3h2os
                 </button>
             </div>
         </div>
@@ -156,7 +158,7 @@ function Dashboard() {
     <div className={`min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 font-sans ${fridgeWeekId ? 'bg-white print:p-0' : ''}`}>
       {/* Branding / Title */}
       <div className="fixed top-5 left-6 z-50 print:hidden pointer-events-none flex items-center gap-3 opacity-80">
-         <img src="/3h2os-waves.svg" alt="3h2Os Logo" className="w-10 h-10" />
+         <img src="/3h2os-waves.svg" alt="3h2os Logo" className="w-10 h-10" />
          <span className={`text-2xl font-bold text-slate-700 tracking-tight ${!isSidebarVisible ? 'hidden' : ''}`}>
             3h2os
          </span>
@@ -181,7 +183,7 @@ function Dashboard() {
                     <Plus size={18} />
                  </button>
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
-                 <PlanSwitcher />
+                 <PlanSwitcher onEditPlan={(planId, wizardData) => setEditPlan({ id: planId, data: wizardData })} />
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
                  <GarminSettings />
                  <span className="text-xs text-slate-500 font-medium border-l border-slate-300 pl-2">
@@ -276,6 +278,19 @@ function Dashboard() {
           queryClient.invalidateQueries({ queryKey: ['plans'] });
           queryClient.invalidateQueries({ queryKey: ['context'] });
           setShowCreatePlan(false);
+        }}
+      />
+
+      <PlanWizard
+        isOpen={!!editPlan}
+        onClose={() => setEditPlan(null)}
+        editPlanId={editPlan?.id}
+        editData={editPlan?.data}
+        onPlanCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['plan'] });
+          queryClient.invalidateQueries({ queryKey: ['plans'] });
+          queryClient.invalidateQueries({ queryKey: ['context'] });
+          setEditPlan(null);
         }}
       />
     </div>

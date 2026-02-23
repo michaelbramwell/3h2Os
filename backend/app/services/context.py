@@ -40,15 +40,6 @@ class ContextService:
     def _map_to_schema(self, user: User) -> ContextSchema:
         project_ctx = ProjectContext.model_validate(user.project)
 
-        # Parse JSON fields
-        fueling = None
-        if user.profile.fueling_json:
-            try:
-                fueling = json.loads(user.profile.fueling_json)
-            except json.JSONDecodeError:
-                # If fueling JSON is invalid, leave `fueling` as None and continue.
-                pass
-
         zones = None
         if user.profile.training_zones_json:
             try:
@@ -76,7 +67,6 @@ class ContextService:
             age=user.profile.age,
             gender=user.profile.gender,
             height_cm=user.profile.height_cm,
-            fueling=fueling,
             trainingZones=zones,
         )
         return ContextSchema(project=project_ctx, runner=runner_ctx)

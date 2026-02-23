@@ -94,30 +94,7 @@ class PlanBuilderService:
 
     def _build_plan_title(self, wizard: WizardInput) -> str:
         """Generate a human-readable plan title from wizard inputs."""
-        event_type = wizard.sport_event.event_type
-        level = wizard.athlete_profile.experience_level
-
-        # Humanise the event type
-        event_labels = {
-            "5k": "5K",
-            "10k": "10K",
-            "half_marathon": "Half Marathon",
-            "marathon": "Marathon",
-            "ultra": "Ultra",
-            "pool_400m": "400m Pool",
-            "pool_800m": "800m Pool",
-            "pool_1500m": "1500m Pool",
-            "ow_1km": "1km Open Water",
-            "ow_2.5km": "2.5km Open Water",
-            "ow_5km": "5km Open Water",
-            "ow_10km": "10km Open Water",
-        }
-        event_label = event_labels.get(event_type, event_type)
-        level_label = level.capitalize()
-
-        if wizard.sport_event.event_name:
-            return f"{wizard.sport_event.event_name} - {level_label} {event_label}"
-        return f"{level_label} {event_label} Plan"
+        return wizard.sport_event.plan_name
 
     # ------------------------------------------------------------------
     # Start date calculation
@@ -166,6 +143,11 @@ class PlanBuilderService:
                     f"Plan would start on {preview_start.isoformat()} which is in the past. "
                     "Reduce the plan length or move the event date."
                 )
+
+        if event_type == "none":
+            raise ValueError(
+                "Template generation is not supported for 'none' event type."
+            )
 
         template = self._resolve_template(event_type, level, sport)
         zones = self._calculate_zones(wizard)
@@ -223,15 +205,19 @@ class PlanBuilderService:
     # Full generation (creates plan + updates profile/project)
     # ------------------------------------------------------------------
 
-    def generate_plan(self, wizard: WizardInput, user: User) -> RunnerPlan:
-        """Generate a full plan from wizard inputs and persist it."""
+    def _generate_plan_data(self, wizard: WizardInput):
+        """Helper to generate plan data from wizard input."""
         sport = wizard.sport_event.sport
         event_type = wizard.sport_event.event_type
         level = wizard.athlete_profile.experience_level
         total_weeks = wizard.plan_config.total_weeks
 
+        if event_type == "none":
+            raise ValueError(
+                "Template generation is not supported for 'none' event type."
+            )
+
         template = self._resolve_template(event_type, level, sport)
-        zones = self._calculate_zones(wizard)
 
         # Determine sessions per week
         build_week_tmpl = template.week_templates.get(
@@ -257,7 +243,7 @@ class PlanBuilderService:
             )
 
         # Generate plan data
-        plan_data = generate_plan_from_template(
+        return generate_plan_from_template(
             template=template,
             start_date=start_date,
             total_weeks=total_weeks,
@@ -268,6 +254,13 @@ class PlanBuilderService:
             preferred_training_days=wizard.athlete_profile.preferred_training_days,
             preferred_long_run_day=wizard.athlete_profile.preferred_long_run_day,
         )
+
+    def generate_plan(self, wizard: WizardInput, user: User) -> RunnerPlan:
+        """Generate a full plan from wizard inputs and persist it."""
+        sport = wizard.sport_event.sport
+        zones = self._calculate_zones(wizard)
+
+        plan_data = self._generate_plan_data(wizard)
 
         # Build title
         title = self._build_plan_title(wizard)
@@ -281,9 +274,14 @@ class PlanBuilderService:
             activate=True,
         )
 
+        # Store wizard input on the plan for future editing
+        plan.wizard_input_json = wizard.model_dump_json()
+        self.session.add(plan)
+        self.session.commit()
+
         # Update profile and project
         self._update_profile(wizard, user, zones)
-        self._update_project(wizard, user)
+        self._update_project(wizard, user, plan)
 
         return plan
 
@@ -340,8 +338,14 @@ class PlanBuilderService:
         self.session.add(profile)
         self.session.commit()
 
-    def _update_project(self, wizard: WizardInput, user: User) -> None:
-        """Create or update the runner project with wizard data."""
+    def _update_project(
+        self, wizard: WizardInput, user: User, plan: "RunnerPlan" = None
+    ) -> None:
+        """Create or update the runner project with wizard data.
+
+        Also snapshots event/goal/event_date onto the RunnerPlan so that
+        activate_plan can restore them when switching between plans.
+        """
         project = self.session.exec(
             select(RunnerProject).where(RunnerProject.user_id == user.id)
         ).first()
@@ -359,6 +363,7 @@ class PlanBuilderService:
             "ow_2.5km": "2.5km Open Water",
             "ow_5km": "5km Open Water",
             "ow_10km": "10km Open Water",
+            "none": "No Event (Build Weekly)",
         }
         event_label = event_labels.get(
             wizard.sport_event.event_type, wizard.sport_event.event_type
@@ -390,11 +395,63 @@ class PlanBuilderService:
         project.primary_goal = wizard.goals_focus.primary_goal
 
         self.session.add(project)
+
+        # Snapshot project context onto the plan
+        if plan:
+            plan.event = event_label
+            plan.goal = goal_label
+            plan.event_date = event_date
+            self.session.add(plan)
+
         self.session.commit()
 
     # ------------------------------------------------------------------
     # Clone plan
     # ------------------------------------------------------------------
+
+    def get_wizard_settings(self, plan_id: int, user: User) -> Optional[Dict[str, Any]]:
+        """Retrieve the stored wizard input for an existing plan."""
+        plan = self.session.get(RunnerPlan, plan_id)
+        if not plan:
+            raise ValueError(f"Plan with ID {plan_id} not found")
+        if plan.user_id != user.id:
+            raise ValueError("Cannot access a plan that does not belong to you")
+
+        if not plan.wizard_input_json:
+            return None
+
+        return json.loads(plan.wizard_input_json)
+
+    def update_plan_from_wizard(
+        self, plan_id: int, wizard: WizardInput, user: User
+    ) -> RunnerPlan:
+        """Re-generate a plan from updated wizard inputs, replacing the existing plan."""
+        plan = self.session.get(RunnerPlan, plan_id)
+        if not plan:
+            raise ValueError(f"Plan with ID {plan_id} not found")
+        if plan.user_id != user.id:
+            raise ValueError("Cannot update a plan that does not belong to you")
+
+        sport = wizard.sport_event.sport
+        zones = self._calculate_zones(wizard)
+        plan_data = self._generate_plan_data(wizard)
+
+        # Delete existing weeks/workouts from this plan
+        self.plan_service.delete_plan_contents(plan_id)
+
+        # Update plan metadata
+        plan.title = self._build_plan_title(wizard)
+        plan.type = sport
+        plan.wizard_input_json = wizard.model_dump_json()
+
+        # Re-populate the plan with new weeks/workouts
+        self.plan_service.populate_plan_weeks(plan, plan_data)
+
+        # Update profile and project
+        self._update_profile(wizard, user, zones)
+        self._update_project(wizard, user, plan)
+
+        return plan
 
     def clone_plan(
         self, plan_id: int, clone_request: ClonePlanRequest, user: User

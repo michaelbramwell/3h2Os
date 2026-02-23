@@ -81,6 +81,7 @@ def _make_wizard_input(
 ) -> WizardInput:
     return WizardInput(
         sport_event=WizardSportEvent(
+            plan_name="Test Plan",
             sport=sport,
             event_type=event_type,
             event_date=event_date,
@@ -530,7 +531,7 @@ class TestPlanBuilderGenerate:
         assert plan.id is not None
         assert plan.is_active is True
         assert plan.type == "running"
-        assert "Marathon" in plan.title or "marathon" in plan.title.lower()
+        assert plan.title == "Test Plan"
 
     def test_generate_creates_weeks_and_workouts(self, session, user):
         service = PlanBuilderService(session)
@@ -587,25 +588,12 @@ class TestPlanBuilderGenerate:
 
 
 class TestPlanBuilderTitle:
-    def test_title_with_event_name(self, session):
+    def test_title_returns_plan_name(self, session):
         service = PlanBuilderService(session)
         wizard = _make_wizard_input()
-        wizard.sport_event.event_name = "Perth City to Surf 2026"
+        wizard.sport_event.plan_name = "My Awesome Plan"
         title = service._build_plan_title(wizard)
-        assert "Perth City to Surf 2026" in title
-
-    def test_title_without_event_name(self, session):
-        service = PlanBuilderService(session)
-        wizard = _make_wizard_input(level="beginner", event_type="half_marathon")
-        title = service._build_plan_title(wizard)
-        assert "Beginner" in title
-        assert "Half Marathon" in title
-
-    def test_title_swimming(self, session):
-        service = PlanBuilderService(session)
-        wizard = _make_wizard_input(sport="swimming", event_type="pool_1500m")
-        title = service._build_plan_title(wizard)
-        assert "1500m" in title
+        assert title == "My Awesome Plan"
 
 
 class TestPlanBuilderStartDate:
@@ -722,24 +710,32 @@ class TestClonePlan:
 
 class TestWizardSportEventValidation:
     def test_valid_running(self):
-        s = WizardSportEvent(sport="running", event_type="marathon")
+        s = WizardSportEvent(
+            plan_name="Test Plan", sport="running", event_type="marathon"
+        )
         assert s.sport == "running"
 
     def test_valid_swimming(self):
-        s = WizardSportEvent(sport="swimming", event_type="pool_1500m")
+        s = WizardSportEvent(
+            plan_name="Test Plan", sport="swimming", event_type="pool_1500m"
+        )
         assert s.sport == "swimming"
 
     def test_invalid_sport_rejects(self):
         with pytest.raises(Exception, match="sport"):
-            WizardSportEvent(sport="cycling", event_type="marathon")
+            WizardSportEvent(
+                plan_name="Test Plan", sport="cycling", event_type="marathon"
+            )
 
     def test_invalid_event_type_rejects(self):
         with pytest.raises(Exception, match="event_type"):
-            WizardSportEvent(sport="running", event_type="100m_dash")
+            WizardSportEvent(
+                plan_name="Test Plan", sport="running", event_type="100m_dash"
+            )
 
     def test_all_running_event_types_accepted(self):
         for et in ["5k", "10k", "half_marathon", "marathon", "ultra"]:
-            s = WizardSportEvent(sport="running", event_type=et)
+            s = WizardSportEvent(plan_name="Test Plan", sport="running", event_type=et)
             assert s.event_type == et
 
     def test_all_swimming_event_types_accepted(self):
@@ -752,7 +748,7 @@ class TestWizardSportEventValidation:
             "ow_5km",
             "ow_10km",
         ]:
-            s = WizardSportEvent(sport="swimming", event_type=et)
+            s = WizardSportEvent(plan_name="Test Plan", sport="swimming", event_type=et)
             assert s.event_type == et
 
 
@@ -2256,6 +2252,64 @@ class TestGenerationMethodValidation:
         config = WizardPlanConfig(generation_method="manual")
         assert config.generation_method == "manual"
 
+    def test_manual_weekly_accepted(self):
+        config = WizardPlanConfig(generation_method="manual_weekly")
+        assert config.generation_method == "manual_weekly"
+
     def test_invalid_method_rejected(self):
         with pytest.raises(Exception):
             WizardPlanConfig(generation_method="custom")
+
+
+class TestPlanBuilderEdit:
+    def test_get_wizard_settings_found(self, session, user):
+        service = PlanBuilderService(session)
+        wizard = _make_wizard_input()
+        plan = service.generate_plan(wizard, user)
+
+        settings = service.get_wizard_settings(plan.id, user)
+        assert settings is not None
+        assert settings["sport_event"]["event_type"] == wizard.sport_event.event_type
+
+    def test_get_wizard_settings_not_found(self, session, user):
+        service = PlanBuilderService(session)
+        with pytest.raises(ValueError, match="Plan with ID 999 not found"):
+            service.get_wizard_settings(999, user)
+
+    def test_get_wizard_settings_unauthorized(self, session, user):
+        service = PlanBuilderService(session)
+        wizard = _make_wizard_input()
+        plan = service.generate_plan(wizard, user)
+
+        other_user = User(username="other", email="o@x.com")
+        session.add(other_user)
+        session.commit()
+
+        with pytest.raises(
+            ValueError, match="Cannot access a plan that does not belong to you"
+        ):
+            service.get_wizard_settings(plan.id, other_user)
+
+    def test_update_plan_from_wizard(self, session, user):
+        service = PlanBuilderService(session)
+        wizard = _make_wizard_input(total_weeks=8)
+        plan = service.generate_plan(wizard, user)
+        original_plan_id = plan.id
+
+        # Count weeks before
+        orig_weeks = session.exec(
+            select(PlanWeek).where(PlanWeek.plan_id == original_plan_id)
+        ).all()
+        assert len(orig_weeks) == 8
+
+        # Update wizard input to 12 weeks
+        wizard.plan_config.total_weeks = 12
+        updated_plan = service.update_plan_from_wizard(original_plan_id, wizard, user)
+
+        assert updated_plan.id == original_plan_id
+
+        # Count weeks after
+        new_weeks = session.exec(
+            select(PlanWeek).where(PlanWeek.plan_id == original_plan_id)
+        ).all()
+        assert len(new_weeks) == 12

@@ -10,6 +10,7 @@ export const ExperienceLevel = {
 } as const;
 
 export type EventType =
+  | "none"
   | "5k"
   | "10k"
   | "half_marathon"
@@ -24,6 +25,7 @@ export type EventType =
   | "ow_10km";
 
 export const RunningEvents: EventType[] = [
+  "none",
   "5k",
   "10k",
   "half_marathon",
@@ -32,6 +34,7 @@ export const RunningEvents: EventType[] = [
 ];
 
 export const SwimmingPoolEvents: EventType[] = [
+  "none",
   "pool_400m",
   "pool_800m",
   "pool_1500m",
@@ -50,6 +53,7 @@ export const SwimmingEvents: EventType[] = [
 ];
 
 export const EventLabels: Record<EventType, string> = {
+  none: "No Event (Build Weekly)",
   "5k": "5K",
   "10k": "10K",
   half_marathon: "Half Marathon",
@@ -130,6 +134,7 @@ export function defaultTaperWeeks(eventType: EventType): number {
 // --- Wizard step data ---
 
 export interface WizardSportEvent {
+  plan_name: string;
   sport: Sport;
   event_type: EventType;
   event_name?: string;
@@ -159,7 +164,7 @@ export interface WizardGoalsFocus {
 export interface WizardPlanConfig {
   total_weeks: number;
   taper_weeks?: number; // 1-3, undefined = use template default
-    generation_method: "template" | "ai" | "manual";
+  generation_method: "template" | "ai" | "manual" | "manual_weekly";
 }
 
 export interface WizardInput {

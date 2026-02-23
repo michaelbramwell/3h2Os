@@ -1,4 +1,4 @@
-import type { ContextData, RunnerContext, FuelingStrategy } from '../types/schema';
+import type { ContextData, RunnerContext } from '../types/schema';
 import { ContextSection } from './ContextSection';
 import { getZoneLabel } from '../lib/calculations';
 
@@ -12,8 +12,8 @@ function GoalCard({ project }: { project: ContextData['project'] }) {
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Goal</h2>
-            <p className="text-2xl font-bold text-slate-900">{project.goal}</p>
-            <p className="text-sm text-slate-500 mt-1">{project.event} • {new Date(project.eventDate).toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+            <p className="text-2xl font-bold text-slate-900">{project.event}</p>
+            <p className="text-sm text-slate-500 mt-1">{project.goal} • {new Date(project.eventDate).toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
         </div>
     );
 }
@@ -25,29 +25,6 @@ function PhaseCard({ status }: { status: ContextData['status'] }) {
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Current Phase</h2>
             <p className="text-lg font-bold text-slate-900">{status.phase}</p>
             <p className="text-sm text-slate-500 mt-1">{status.nextAction || 'Ongoing'}</p>
-        </div>
-    );
-}
-
-function FuelingCard({ fueling }: { fueling?: FuelingStrategy }) {
-    if (!fueling) return null;
-    return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Fueling Audit</h2>
-            <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <p className="text-xs text-slate-600">{fueling.carbsPerHr}g Carbs / hour (Long Runs)</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <p className="text-xs text-slate-600">{fueling.sodiumPerHr}mg Sodium / hour</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <p className="text-xs text-slate-600">Pre-run: {fueling.preRunCarbs}g Carbs</p>
-                </div>
-            </div>
         </div>
     );
 }
@@ -125,7 +102,6 @@ export function Sidebar({ context, markdown }: SidebarProps) {
         <div className="space-y-6">
             <GoalCard project={context.project} />
             <PhaseCard status={context.status} />
-            <FuelingCard fueling={context.runner.fueling} />
             <ZonesCard zones={context.runner.trainingZones} />
             <GarminStatusCard />
             {markdown && <ContextSection markdown={markdown} />}

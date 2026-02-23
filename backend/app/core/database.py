@@ -57,8 +57,17 @@ class RunnerPlan(SQLModel, table=True):
     is_active: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+    # Project context snapshot – copied from RunnerProject at creation time
+    # so that activate_plan can restore it when switching plans.
+    event: Optional[str] = Field(default=None)
+    goal: Optional[str] = Field(default=None)
+    event_date: Optional[date] = Field(default=None)
+
     # Deprecated: Store the entire legacy plan.json structure as a JSON string
     plan_json: str = Field(default="[]")
+
+    # Store the wizard input used to create/edit this plan so it can be recalled
+    wizard_input_json: Optional[str] = Field(default=None)
 
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     user: Optional[User] = Relationship(back_populates="plans")

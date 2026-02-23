@@ -5,7 +5,14 @@ import os
 from typing import List, Dict, Any
 
 from app.core import plan_logic
-from app.core.database import RunnerPlan, User, PlanWeek, PlanWorkout, ActualActivity
+from app.core.database import (
+    RunnerPlan,
+    User,
+    PlanWeek,
+    PlanWorkout,
+    ActualActivity,
+    RunnerProject,
+)
 from app.core.mappers import plan_to_relational, relational_to_plan
 from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate, WeekUpdate
 from app.core.validation import ValidationEngine, ValidationWarningError
@@ -154,6 +161,8 @@ class PlanService:
     def activate_plan(self, plan_id: int) -> RunnerPlan:
         """
         Activates a specific plan ID and deactivates others.
+        Syncs the plan's project context (event/goal/event_date) back to
+        RunnerProject so the sidebar reflects the correct data.
         """
         plan = self.session.get(RunnerPlan, plan_id)
         if not plan:
@@ -163,6 +172,21 @@ class PlanService:
 
         plan.is_active = True
         self.session.add(plan)
+
+        # Restore project context from the plan snapshot
+        if plan.event or plan.goal or plan.event_date:
+            project = self.session.exec(
+                select(RunnerProject).where(RunnerProject.user_id == plan.user_id)
+            ).first()
+            if project:
+                if plan.event is not None:
+                    project.event = plan.event
+                if plan.goal is not None:
+                    project.goal = plan.goal
+                if plan.event_date is not None:
+                    project.event_date = plan.event_date
+                self.session.add(project)
+
         self.session.commit()
         self.session.refresh(plan)
         return plan
@@ -436,6 +460,31 @@ class PlanService:
             if act.type in ["running", "trail_running", "swimming", "swim", "pool"]:
                 total += act.distance_m
         return total
+
+    def delete_plan_contents(self, plan_id: int) -> None:
+        """
+        Deletes all weeks and workouts for a plan, but keeps the plan record itself.
+        Used when re-generating a plan from updated wizard settings.
+        """
+        week_ids = self.session.exec(
+            select(PlanWeek.id).where(PlanWeek.plan_id == plan_id)
+        ).all()
+
+        if week_ids:
+            self.session.exec(
+                delete(PlanWorkout).where(PlanWorkout.week_id.in_(week_ids))
+            )
+            self.session.exec(delete(PlanWeek).where(PlanWeek.plan_id == plan_id))
+
+        self.session.commit()
+
+    def populate_plan_weeks(
+        self, plan: RunnerPlan, plan_data: List[Dict[str, Any]]
+    ) -> None:
+        """
+        Populates a plan with weeks/workouts from plan_data using the relational mapper.
+        """
+        plan_to_relational(self.session, plan, plan_data)
 
     def delete_plan(self, plan_id: int, user: User) -> None:
         """
