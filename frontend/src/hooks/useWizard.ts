@@ -207,7 +207,7 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
             sport_event: ['plan_name', 'sport', 'event_type'],
             athlete_profile: ['age', 'experience_level'],
             goals_focus: ['weekly_availability'],
-            plan_config: ['total_weeks'],
+            plan_config: (sportEvent.event_type === 'none') ? [] : ['total_weeks'],
             review: [], // No gating on review
         };
         const fields = stepFieldMap[currentStep] || [];

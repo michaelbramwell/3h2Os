@@ -9,6 +9,7 @@
 
 ### Backend & Architecture
 - **Controller Cleanup**: Simplified backend title generation to strictly use the user-provided plan name. Updated corresponding endpoints, validation schemas (made `plan_name` compulsory in Step 1), and fixed broken test suites.
+- **Migration System**: Replaced Alembic with a custom forward-only SQL migration runner using numbered `.sql` scripts (`db/migrations/`) tracked in a `__schema_versions` table.
 
 ## [v0.9.0] - 2026-02-12
 

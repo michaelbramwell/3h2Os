@@ -101,7 +101,12 @@ def migrate(engine) -> int:
                 continue
             log.info("Applying %s ...", path.name)
             t0 = time.monotonic()
-            _apply(conn, path)
+            try:
+                _apply(conn, path)
+            except Exception as e:
+                log.error("Failed to apply %s: %s", path.name, e)
+                conn.rollback()
+                raise
             elapsed = time.monotonic() - t0
             log.info("  done (%.1fs)", elapsed)
             applied += 1

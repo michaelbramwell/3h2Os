@@ -111,7 +111,9 @@ export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
                                 No saved plans found.
                             </div>
                         ) : (
-                            plans.map((plan) => (
+                            plans.map((plan) => {
+                                const isManual = plan.wizard_input_json?.includes('"event_type":"none"') || plan.wizard_input_json?.includes('"event_type": "none"');
+                                return (
                                 <div 
                                     key={plan.id}
                                     className="relative group/item hover:bg-slate-50 transition"
@@ -141,7 +143,7 @@ export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
                                     </button>
                                     
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-all">
-                                        {onEditPlan && (
+                                        {onEditPlan && !isManual && (
                                             <button
                                                 onClick={(e) => handleEdit(e, plan.id)}
                                                 className="p-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-md transition-all"
@@ -178,7 +180,9 @@ export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
                                         )}
                                     </div>
                                 </div>
-                            )))}
+                            );
+                            })
+                        )}
                     </div>
                 </div>
             )}

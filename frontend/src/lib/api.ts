@@ -55,6 +55,7 @@ export interface PlanMeta {
     type: string;
     is_active: boolean;
     created_at: string;
+    wizard_input_json?: string;
 }
 
 export const getPlans = async (): Promise<PlanMeta[]> => {

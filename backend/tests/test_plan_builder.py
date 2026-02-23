@@ -2252,6 +2252,10 @@ class TestGenerationMethodValidation:
         config = WizardPlanConfig(generation_method="manual")
         assert config.generation_method == "manual"
 
+    def test_manual_weekly_accepted(self):
+        config = WizardPlanConfig(generation_method="manual_weekly")
+        assert config.generation_method == "manual_weekly"
+
     def test_invalid_method_rejected(self):
         with pytest.raises(Exception):
             WizardPlanConfig(generation_method="custom")

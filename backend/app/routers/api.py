@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 import os
-from typing import List
+from typing import List, Optional
 
 from app.core.database import get_session, User
 from app.core.auth import verify_jwt_middleware
@@ -151,6 +151,7 @@ class PlanMeta(BaseModel):
     type: str
     is_active: bool
     created_at: datetime
+    wizard_input_json: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
