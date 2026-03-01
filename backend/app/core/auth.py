@@ -105,9 +105,21 @@ security = HTTPBearer(auto_error=False)
 def allow_anonymous(func):
     """
     Decorator to mark an endpoint as allowing anonymous access.
+    Used for endpoints that Strava (or other external services) hit without a JWT,
+    e.g. the webhook verification and event endpoints.
     """
     setattr(func, "is_public", True)
     return func
+
+
+def _is_public_path(request: Request) -> bool:
+    """Path-based public check — belt-and-suspenders alongside @allow_anonymous."""
+    path = request.url.path
+    # Webhook paths are hit by Strava servers without a JWT
+    return path in {
+        "/strava/webhook",
+        "/api/strava/webhook",
+    }
 
 
 async def verify_jwt_middleware(request: Request):
@@ -117,7 +129,7 @@ async def verify_jwt_middleware(request: Request):
     If endpoint is protected (default), require valid token.
     """
     endpoint = request.scope.get("endpoint")
-    is_public = getattr(endpoint, "is_public", False)
+    is_public = _is_public_path(request) or getattr(endpoint, "is_public", False)
 
     # Extract Token
     auth_header = request.headers.get("Authorization")
@@ -209,3 +221,44 @@ async def verify_jwt_middleware(request: Request):
             detail=f"Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def require_role(role: str):
+    """
+    Returns a FastAPI dependency that enforces the caller has the given Keycloak
+    realm role (checked in realm_access.roles of the JWT payload).
+
+    The required role name can be overridden per-call via an env var if needed,
+    but the default admin role is controlled by ADMIN_ROLE (default: 'app_admin').
+
+    Usage:
+        @router.put("/admin/something")
+        async def my_endpoint(
+            _: None = Depends(require_role("app_admin")),
+            ...
+        ):
+    """
+
+    async def _check(request: Request):
+        payload = getattr(request.state, "user", None)
+
+        # Dev mode: if no JWT is present and DEFAULT_USERNAME is set, allow through.
+        if payload is None:
+            if (
+                os.getenv("DEFAULT_USERNAME")
+                and os.getenv("ENVIRONMENT", "production") == "development"
+            ):
+                return  # Skip role check in local dev without auth
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+            )
+
+        realm_roles: list = payload.get("realm_access", {}).get("roles", [])
+        if role not in realm_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires role: {role}",
+            )
+
+    return _check

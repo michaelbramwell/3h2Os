@@ -1,5 +1,5 @@
-from sqlmodel import Session, select
-from app.core.database import User, RunnerProject, RunnerProfile
+from sqlmodel import Session, select, text
+from app.core.database import User, RunnerProject, RunnerProfile, FeatureFlag
 from datetime import datetime
 import json
 import os
@@ -66,3 +66,80 @@ def migrate_context_json(session: Session, username: str = "mike"):
 
     session.commit()
     print("Context migration complete.")
+
+
+def migrate_add_user_types_column(session: Session):
+    """
+    Adds the user_types_json column to the user table if it doesn't exist.
+    Safe to run repeatedly (idempotent).
+    """
+    try:
+        session.exec(text('SELECT user_types_json FROM "user" LIMIT 1'))
+        print("user.user_types_json column already exists, skipping.")
+    except Exception:
+        session.rollback()
+        try:
+            session.exec(
+                text(
+                    'ALTER TABLE "user" ADD COLUMN user_types_json VARCHAR DEFAULT \'["standard"]\''
+                )
+            )
+            session.commit()
+            print("Added user.user_types_json column.")
+        except Exception as e:
+            session.rollback()
+            print(f"Could not add user_types_json column: {e}")
+
+
+def create_feature_flag_table(session: Session):
+    """
+    Creates the featureflag table if it doesn't already exist.
+    Safe to run repeatedly (idempotent).
+    """
+    try:
+        session.exec(text("SELECT id FROM featureflag LIMIT 1"))
+        print("featureflag table already exists, skipping creation.")
+    except Exception:
+        session.rollback()
+        try:
+            session.exec(
+                text("""
+                CREATE TABLE IF NOT EXISTS featureflag (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR NOT NULL UNIQUE,
+                    enabled_for_json VARCHAR NOT NULL DEFAULT '[]',
+                    description VARCHAR
+                )
+            """)
+            )
+            session.commit()
+            print("Created featureflag table.")
+        except Exception as e:
+            session.rollback()
+            print(f"Could not create featureflag table: {e}")
+
+
+def seed_feature_flags(session: Session):
+    """
+    Ensures the core feature flags exist with their default values.
+    Only inserts flags that are missing; never overwrites existing ones.
+    """
+    defaults = [
+        {
+            "name": "isSwimmingEnabled",
+            "enabled_for_json": "[]",  # off for all users
+            "description": "Controls visibility of swimming plans and UI across the app.",
+        },
+    ]
+
+    for flag_def in defaults:
+        existing = session.exec(
+            select(FeatureFlag).where(FeatureFlag.name == flag_def["name"])
+        ).first()
+        if not existing:
+            flag = FeatureFlag(**flag_def)
+            session.add(flag)
+            print(f"Seeded feature flag: {flag_def['name']}")
+
+    session.commit()
+    print("Feature flag seeding complete.")

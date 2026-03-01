@@ -7,12 +7,17 @@ from app.models.domain import ActivityType, WorkoutFormat
 
 # --- Models ---
 
+# Valid user types for feature flag targeting
+USER_TYPES = {"standard", "alpha", "beta", "premium"}
+
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(index=True, unique=True)
     email: str = Field(index=True, unique=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    # JSON array of user type strings, e.g. '["standard"]'
+    user_types_json: Optional[str] = Field(default='["standard"]')
 
     plans: List["RunnerPlan"] = Relationship(back_populates="user")
     activities: List["ActualActivity"] = Relationship(back_populates="user")
@@ -22,6 +27,40 @@ class User(SQLModel, table=True):
     profile: Optional["RunnerProfile"] = Relationship(
         back_populates="user", sa_relationship_kwargs={"uselist": False}
     )
+
+
+class FeatureFlag(SQLModel, table=True):
+    """
+    A named feature flag that can be enabled for specific user types or all users.
+
+    enabled_for_json: JSON array of user type strings that have this flag enabled,
+                      or '["*"]' to mean all users, or '[]' to mean no users (off).
+    Example: '["alpha", "beta"]' — only alpha and beta users see this feature.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True)  # e.g. "isSwimmingEnabled"
+    enabled_for_json: str = Field(default="[]")  # JSON array of user types or ["*"]
+    description: Optional[str] = Field(default=None)
+
+
+class StravaToken(SQLModel, table=True):
+    """
+    Stores OAuth token data for a user's Strava connection.
+    One row per user; upserted on every token exchange or refresh.
+    """
+
+    __tablename__ = "strava_token"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", unique=True)
+    athlete_id: int  # Strava's numeric athlete ID
+    access_token: str  # Short-lived; expires after ~6 hours
+    refresh_token: str  # Long-lived; used to obtain a new access token
+    expires_at: int  # Unix epoch seconds
+    scope: str = Field(default="activity:read_all,profile:read_all")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class PlanWorkout(SQLModel, table=True):
@@ -99,8 +138,14 @@ class RunnerProfile(SQLModel, table=True):
     gender: str
     height_cm: int
 
+    # Date of birth — stored so age can be computed dynamically; imported from Strava/Garmin.
+    birthday: Optional[date] = Field(default=None)
+
     # Wizard-driven fields
     weight_kg: Optional[float] = Field(default=None)
+    ftp: Optional[int] = Field(
+        default=None
+    )  # Functional Threshold Power (watts); imported from Strava
     experience_level: Optional[str] = Field(default=None)  # ExperienceLevel enum value
     events_completed_json: Optional[str] = Field(
         default=None
@@ -121,9 +166,15 @@ class RunnerProfile(SQLModel, table=True):
 
 class ActualActivity(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    activity_id: int = Field(
-        sa_column=Column(BigInteger(), unique=True, index=True)
-    )  # Garmin ID
+    activity_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(BigInteger(), unique=True, index=True, nullable=True),
+    )  # Garmin activity ID; null for Strava-only records
+    strava_activity_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(BigInteger(), unique=True, index=True, nullable=True),
+    )  # Strava activity ID; null for Garmin-only records
+    source: str = Field(default="garmin")  # 'garmin' | 'strava' | 'manual'
     user_id: int = Field(foreign_key="user.id")
 
     date: date
