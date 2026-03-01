@@ -87,6 +87,8 @@ export interface TrainingZone {
   zone: number;
   lowBoundary_m_s?: number;
   lowBoundary_bpm?: number;
+  highBoundary_bpm?: number;
+  description?: string;
 }
 
 export interface RunnerContext {
@@ -140,7 +142,9 @@ export interface Activity {
     type: string;
     distance_m: number;
     duration_s: number;
-    activityId: number;
+    activityId?: number | null;      // Garmin activity ID; null for Strava-only records
+    stravaActivityId?: number | null; // Strava activity ID; null for Garmin-only records
+    source?: string;                  // 'garmin' | 'strava' | 'manual'
     average_pace_m_s?: number;
     average_hr?: number;
     max_hr?: number;
@@ -153,13 +157,19 @@ export interface Activity {
     pace_zones?: HrZone[];
     power_zones?: HrZone[];
     splits?: Record<string, any>[];
-    
+
     /**
      * Marker field indicating that this activity represents an actual,
      * completed workout (as opposed to a planned or template activity).
-     *
-     * This is optional so that any existing `Activity` objects remain
-     * assignable to `ActualActivity` without requiring additional fields.
      */
     actual?: true;
+}
+
+// Feature Flags
+
+export type UserType = 'standard' | 'alpha' | 'beta' | 'premium';
+
+export interface FeatureFlags {
+    isSwimmingEnabled: boolean;
+    [key: string]: boolean;
 }
