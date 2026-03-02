@@ -1,16 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlmodel import Session, select
 import os
 from typing import List, Optional
 
 from app.core.database import get_session, User
-from app.core.auth import verify_jwt_middleware
+from app.core.auth import verify_jwt_middleware, require_role, allow_anonymous
 from app.services.plans import PlanService
 from app.services.plan_builder import PlanBuilderService
 from app.services.context import ContextService
 from app.services.activities import ActivityService
 from app.services.garmin import GarminService
+from app.services.strava import StravaService
+from app.services.feature_flags import FeatureFlagService
 from app.core.validation import ValidationWarningError
 from dataclasses import asdict
 from app.schemas import (
@@ -27,6 +29,16 @@ from app.schemas import (
     WizardInput,
     PlanPreview,
     ClonePlanRequest,
+    FeatureFlagSchema,
+    FeatureFlagUpdate,
+    UserFlagsResponse,
+    StravaAuthUrlResponse,
+    StravaStatusResponse,
+    StravaExchangeRequest,
+    StravaExchangeResponse,
+    WizardDefaultsResponse,
+    WizardAthleteProfileDefaults,
+    WizardGoalsFocusDefaults,
 )
 from pydantic import BaseModel
 import logging
@@ -55,10 +67,20 @@ def get_garmin_service(session: Session = Depends(get_session)) -> GarminService
     return GarminService(session)
 
 
+def get_strava_service(session: Session = Depends(get_session)) -> StravaService:
+    return StravaService(session)
+
+
 def get_plan_builder_service(
     session: Session = Depends(get_session),
 ) -> PlanBuilderService:
     return PlanBuilderService(session)
+
+
+def get_feature_flag_service(
+    session: Session = Depends(get_session),
+) -> FeatureFlagService:
+    return FeatureFlagService(session)
 
 
 async def get_current_user(
@@ -305,8 +327,17 @@ async def sync_garmin_activities(
             start_date = end_date - timedelta(days=days)
 
             activities = garmin_service.fetch_activities(
-                start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")
+                start_date.strftime("%Y-%m-%d"),
+                end_date.strftime("%Y-%m-%d"),
+                user=user,
             )
+
+            # Import Garmin user profile (birthday, weight, gender) into RunnerProfile.
+            # Non-blocking — errors are logged, not raised.
+            try:
+                garmin_service.fetch_user_profile(user.id)
+            except Exception as gpe:
+                logger.warning(f"Garmin profile import failed (non-fatal): {gpe}")
 
             # Convert dataclasses to Pydantic models
             schema_activities = [ActivitySchema(**asdict(a)) for a in activities]
@@ -472,13 +503,23 @@ async def wizard_preview(
     wizard_input: WizardInput,
     user: User = Depends(get_current_user),
     service: PlanBuilderService = Depends(get_plan_builder_service),
+    flag_service: FeatureFlagService = Depends(get_feature_flag_service),
 ):
     """
     Generate a plan preview from wizard inputs without saving to the database.
     Returns phase breakdown, volume curve, and calculated zones.
     """
     try:
+        if wizard_input.sport_event.sport == "swimming" and not flag_service.is_enabled(
+            "isSwimmingEnabled", user
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Swimming plans are not enabled for your account.",
+            )
         return service.generate_preview(wizard_input)
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -491,12 +532,20 @@ async def wizard_create_plan(
     wizard_input: WizardInput,
     service: PlanBuilderService = Depends(get_plan_builder_service),
     user: User = Depends(get_current_user),
+    flag_service: FeatureFlagService = Depends(get_feature_flag_service),
 ):
     """
     Generate a full plan from wizard inputs and save it to the database.
     Updates runner profile and project with wizard data.
     """
     try:
+        if wizard_input.sport_event.sport == "swimming" and not flag_service.is_enabled(
+            "isSwimmingEnabled", user
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Swimming plans are not enabled for your account.",
+            )
         plan = service.generate_plan(wizard_input, user)
         return {
             "status": "success",
@@ -505,6 +554,8 @@ async def wizard_create_plan(
             "title": plan.title,
             "type": plan.type,
         }
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -545,12 +596,20 @@ async def wizard_update_plan(
     wizard_input: WizardInput,
     service: PlanBuilderService = Depends(get_plan_builder_service),
     user: User = Depends(get_current_user),
+    flag_service: FeatureFlagService = Depends(get_feature_flag_service),
 ):
     """
     Re-generate a plan from updated wizard inputs, replacing the existing plan's
     weeks/workouts. Updates runner profile and project with wizard data.
     """
     try:
+        if wizard_input.sport_event.sport == "swimming" and not flag_service.is_enabled(
+            "isSwimmingEnabled", user
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Swimming plans are not enabled for your account.",
+            )
         plan = service.update_plan_from_wizard(plan_id, wizard_input, user)
         return {
             "status": "success",
@@ -559,6 +618,8 @@ async def wizard_update_plan(
             "title": plan.title,
             "type": plan.type,
         }
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -590,3 +651,428 @@ async def clone_plan(
     except Exception as e:
         logger.error(f"Error cloning plan: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===========================================================================
+# FEATURE FLAGS ENDPOINTS
+# ===========================================================================
+
+
+@router.get("/flags", response_model=UserFlagsResponse)
+async def get_flags_for_current_user(
+    user: User = Depends(get_current_user),
+    service: FeatureFlagService = Depends(get_feature_flag_service),
+):
+    """
+    Return all feature flags resolved to True/False for the current user.
+    Example response: {"flags": {"isSwimmingEnabled": false}}
+    """
+    try:
+        flags = service.get_flags_for_user(user)
+        return UserFlagsResponse(flags=flags)
+    except Exception as e:
+        logger.error(f"Error getting feature flags: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+import os as _os
+
+_ADMIN_ROLE = _os.getenv("ADMIN_ROLE", "app_admin")
+
+
+@router.get("/admin/flags", response_model=List[FeatureFlagSchema])
+async def admin_list_flags(
+    _: None = Depends(require_role(_ADMIN_ROLE)),
+    service: FeatureFlagService = Depends(get_feature_flag_service),
+):
+    """
+    Admin: list all feature flags with their raw enabled_for configuration.
+    Requires the '{ADMIN_ROLE}' Keycloak realm role (default: 'app_admin').
+    """
+    try:
+        import json
+
+        flags = service.list_flags()
+        return [
+            FeatureFlagSchema(
+                id=f.id,
+                name=f.name,
+                enabled_for=json.loads(f.enabled_for_json or "[]"),
+                description=f.description,
+            )
+            for f in flags
+        ]
+    except Exception as e:
+        logger.error(f"Error listing flags: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/admin/flags/{flag_name}", response_model=FeatureFlagSchema)
+async def admin_set_flag(
+    flag_name: str,
+    payload: FeatureFlagUpdate,
+    _: None = Depends(require_role(_ADMIN_ROLE)),
+    service: FeatureFlagService = Depends(get_feature_flag_service),
+):
+    """
+    Admin: create or update a feature flag.
+    Pass enabled_for=["*"] to enable for all, [] to disable, or a list of user types.
+    Requires the '{ADMIN_ROLE}' Keycloak realm role (default: 'app_admin').
+    """
+    try:
+        import json
+
+        flag = service.set_flag(flag_name, payload.enabled_for, payload.description)
+        return FeatureFlagSchema(
+            id=flag.id,
+            name=flag.name,
+            enabled_for=json.loads(flag.enabled_for_json or "[]"),
+            description=flag.description,
+        )
+    except Exception as e:
+        logger.error(f"Error setting flag: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Strava integration
+# ---------------------------------------------------------------------------
+
+
+@router.get("/strava/auth-url", response_model=StravaAuthUrlResponse, tags=["Strava"])
+async def strava_auth_url(
+    user: User = Depends(get_current_user),
+    strava: StravaService = Depends(get_strava_service),
+):
+    """Return the Strava OAuth authorization URL for the current user."""
+    return StravaAuthUrlResponse(url=strava.get_auth_url(user.id))
+
+
+@router.post("/strava/exchange", response_model=StravaExchangeResponse, tags=["Strava"])
+async def strava_exchange(
+    body: StravaExchangeRequest,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Exchange a Strava authorization code for tokens.
+    Called by the frontend after Strava redirects back with ?code=&state=.
+    Requires a valid JWT — the user is already authenticated.
+    The state token is verified as CSRF protection only; the user identity
+    comes from the JWT via get_current_user.
+    """
+    from app.services.strava import verify_state_token
+
+    try:
+        verify_state_token(body.state)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid state token: {e}")
+
+    try:
+        strava = StravaService(session)
+        token_data = strava.exchange_code(body.code)
+        strava.save_token(user.id, token_data)
+
+        try:
+            strava.merge_athlete_profile(user.id, token_data["access_token"])
+        except Exception as e:
+            logger.warning(f"Strava athlete profile merge failed (non-fatal): {e}")
+
+        return StravaExchangeResponse(ok=True)
+    except Exception as e:
+        logger.error(f"Strava exchange error: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail="Strava token exchange failed")
+
+
+@router.get("/strava/status", response_model=StravaStatusResponse, tags=["Strava"])
+async def strava_status(
+    user: User = Depends(get_current_user),
+    strava: StravaService = Depends(get_strava_service),
+):
+    """Return whether the current user has Strava connected."""
+    token = strava.get_token(user.id)
+    if not token:
+        return StravaStatusResponse(connected=False)
+    return StravaStatusResponse(
+        connected=True,
+        athlete_id=token.athlete_id,
+        scope=token.scope,
+    )
+
+
+@router.delete("/strava/disconnect", tags=["Strava"])
+async def strava_disconnect(
+    user: User = Depends(get_current_user),
+    strava: StravaService = Depends(get_strava_service),
+):
+    """Disconnect Strava by deleting the stored token."""
+    strava.disconnect(user.id)
+    return {"status": "disconnected"}
+
+
+@router.post("/integrations/strava/sync", tags=["Strava"])
+async def sync_strava_activities(
+    days: int = 7,
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Sync Strava activities for the past N days.
+    Fetches activities, enriches zones, then saves via ActivityService (with precedence logic).
+    Also triggers recalculate_plan_progression on the active plan, same as Garmin sync.
+    """
+    strava = StravaService(session)
+
+    # Load zone thresholds from user profile for stream-based zone computation
+    hr_thresholds = []
+    pace_thresholds = []
+    power_thresholds = []
+    try:
+        import json
+
+        ctx_service = ContextService(session)
+        ctx = ctx_service.get_context(user=user)
+        if ctx.runner and ctx.runner.trainingZones:
+            if ctx.runner.trainingZones.hr:
+                hr_thresholds = [z.model_dump() for z in ctx.runner.trainingZones.hr]
+            if ctx.runner.trainingZones.pace:
+                pace_thresholds = [
+                    z.model_dump() for z in ctx.runner.trainingZones.pace
+                ]
+    except Exception as e:
+        logger.warning(f"Could not load zone thresholds for Strava sync: {e}")
+
+    try:
+        activities = strava.sync_activities(
+            user=user,
+            days=days,
+            hr_thresholds=hr_thresholds,
+            pace_thresholds=pace_thresholds,
+            power_thresholds=power_thresholds,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Strava sync error for user {user.username}: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail=f"Strava API error: {str(e)}")
+
+    activity_service = ActivityService(session)
+    saved_count = activity_service.save_activities(activities, user=user)
+
+    # Recalculate plan progression (same as Garmin sync)
+    try:
+        plan_service = PlanService(session)
+        plan_service.recalculate_plan_progression(user)
+    except Exception as e:
+        logger.warning(f"Could not recalculate plan progression after Strava sync: {e}")
+
+    return {"synced": saved_count, "days": days}
+
+
+# ---------------------------------------------------------------------------
+# Strava webhooks
+# ---------------------------------------------------------------------------
+
+
+@router.get("/strava/webhook", tags=["Strava"])
+@allow_anonymous
+async def strava_webhook_verify(
+    hub_mode: str = None,
+    hub_challenge: str = None,
+    hub_verify_token: str = None,
+):
+    """
+    Strava webhook subscription verification (GET handshake).
+    Strava sends hub.mode=subscribe, hub.challenge=<random>, hub.verify_token=<our token>.
+    We must echo back hub.challenge if the verify token matches.
+    Set STRAVA_WEBHOOK_VERIFY_TOKEN in env to a secret string of your choice.
+    """
+    expected_token = os.environ.get("STRAVA_WEBHOOK_VERIFY_TOKEN", "")
+    if hub_mode == "subscribe" and hub_challenge and hub_verify_token == expected_token:
+        return JSONResponse({"hub.challenge": hub_challenge})
+    raise HTTPException(status_code=403, detail="Webhook verification failed")
+
+
+@router.post("/strava/webhook", tags=["Strava"])
+@allow_anonymous
+async def strava_webhook_event(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    """
+    Strava webhook event receiver (POST).
+    Handles:
+    - athlete deauthorization: deletes the stored token so we hold no data for revoked users.
+    - activity create/update: triggers a short sync for the affected athlete.
+    Strava requires a 200 response within 2 seconds; all heavy work is fire-and-forget.
+    """
+    try:
+        event = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    object_type = event.get("object_type")
+    aspect_type = event.get("aspect_type")
+    owner_id = event.get("owner_id")  # Strava athlete_id
+
+    logger.info(
+        f"Strava webhook: object_type={object_type} aspect_type={aspect_type} owner_id={owner_id}"
+    )
+
+    # Deauthorization: athlete has revoked access — delete their token immediately.
+    # Strava sends: object_type="athlete", aspect_type="update", updates={"authorized": "false"}
+    updates = event.get("updates", {})
+    if (
+        object_type == "athlete"
+        and aspect_type == "update"
+        and updates.get("authorized") == "false"
+    ):
+        if owner_id:
+            from app.core.database import StravaToken
+
+            token = session.exec(
+                select(StravaToken).where(StravaToken.athlete_id == owner_id)
+            ).first()
+            if token:
+                session.delete(token)
+                session.commit()
+                logger.info(
+                    f"Deleted Strava token for athlete_id={owner_id} (deauthorized via webhook)"
+                )
+        return {"status": "ok"}
+
+    # Activity created or updated: trigger a short re-sync for the owning user
+    if object_type == "activity" and aspect_type in ("create", "update"):
+        if owner_id:
+            from app.core.database import StravaToken
+
+            token = session.exec(
+                select(StravaToken).where(StravaToken.athlete_id == owner_id)
+            ).first()
+            if token:
+                try:
+                    strava = StravaService(session)
+                    user = session.exec(
+                        select(User).where(User.id == token.user_id)
+                    ).first()
+                    if user:
+                        activities = strava.sync_activities(user=user, days=2)
+                        activity_service = ActivityService(session)
+                        activity_service.save_activities(activities, user=user)
+                        plan_service = PlanService(session)
+                        plan_service.recalculate_plan_progression(user)
+                except Exception as e:
+                    logger.warning(
+                        f"Webhook-triggered sync failed for athlete_id={owner_id}: {e}"
+                    )
+        return {"status": "ok"}
+
+    # All other event types — acknowledge and ignore
+    return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# Wizard defaults
+# ---------------------------------------------------------------------------
+
+
+@router.get("/wizard/defaults", response_model=WizardDefaultsResponse)
+async def get_wizard_defaults(
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """
+    Return partial wizard defaults seeded from the stored RunnerProfile and recent
+    activity history.  All fields are Optional — only populated fields are returned.
+    The frontend merges these on top of its own hardcoded defaults.
+
+    Priority: Strava data > Garmin data > wizard-submitted data (already stored on profile).
+    This endpoint simply reads whatever is currently in RunnerProfile; the priority
+    was enforced at import time by merge_athlete_profile / GarminService.fetch_user_profile.
+    """
+    import json
+    from app.core.database import RunnerProfile, ActualActivity
+    from datetime import date as date_type, timedelta
+    from sqlmodel import select
+
+    profile = session.exec(
+        select(RunnerProfile).where(RunnerProfile.user_id == user.id)
+    ).first()
+
+    athlete_defaults = WizardAthleteProfileDefaults()
+    goals_defaults = WizardGoalsFocusDefaults()
+
+    if profile:
+        # age — compute from birthday if available, else use stored age
+        if profile.birthday:
+            today = date_type.today()
+            bday = profile.birthday
+            age = (
+                today.year
+                - bday.year
+                - ((today.month, today.day) < (bday.month, bday.day))
+            )
+            athlete_defaults.age = age
+        elif profile.age:
+            athlete_defaults.age = profile.age
+
+        if profile.weight_kg:
+            athlete_defaults.weight_kg = profile.weight_kg
+
+        if profile.experience_level:
+            athlete_defaults.experience_level = profile.experience_level
+
+        if profile.events_completed_json:
+            try:
+                events_map = json.loads(profile.events_completed_json)
+                # Sum all completed events as a scalar for the wizard's events_completed field
+                total = sum(int(v) for v in events_map.values() if v)
+                athlete_defaults.events_completed = total
+            except Exception:
+                pass
+
+        # Training zones
+        if profile.training_zones_json:
+            try:
+                zones = json.loads(profile.training_zones_json)
+                hr_zones = zones.get("hr", [])
+                if hr_zones:
+                    athlete_defaults.use_calculated_zones = False
+                    athlete_defaults.custom_zones = {"heartRate": hr_zones}
+            except Exception:
+                pass
+
+        if profile.weekly_availability:
+            goals_defaults.weekly_availability = profile.weekly_availability
+
+        if profile.pain_points_json:
+            try:
+                goals_defaults.pain_points = json.loads(profile.pain_points_json)
+            except Exception:
+                pass
+
+        # longest_recent_distance_m — from stored profile value OR from recent activities
+        if profile.longest_recent_distance_m:
+            goals_defaults.longest_recent_distance_m = profile.longest_recent_distance_m
+        else:
+            # Compute from running activities in the last 30 days
+            try:
+                cutoff = date_type.today() - timedelta(days=30)
+                recent_runs = session.exec(
+                    select(ActualActivity).where(
+                        ActualActivity.user_id == user.id,
+                        ActualActivity.type.in_(["running", "trail_running"]),
+                        ActualActivity.date >= cutoff,
+                    )
+                ).all()
+                if recent_runs:
+                    max_dist = max(int(a.distance_m) for a in recent_runs)
+                    if max_dist > 0:
+                        goals_defaults.longest_recent_distance_m = max_dist
+            except Exception as e:
+                logger.warning(f"Could not compute longest_recent_distance_m: {e}")
+
+    return WizardDefaultsResponse(
+        athlete_profile=athlete_defaults,
+        goals_focus=goals_defaults,
+    )

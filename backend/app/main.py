@@ -11,16 +11,14 @@ load_dotenv(find_dotenv())
 
 from app.core.database import create_db_and_tables, engine, User, RunnerPlan
 from app.routers import pages, api
-from app.core.migrations_logic import migrate_context_json
 from app.core.auth import verify_jwt_middleware
+from db.migrate import migrate
 
 
 # --- Lifecycle ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # create_db_and_tables() # Disabled in favor of Alembic migrations
-    # Create a default user and plan if none exist (for local dev transition)
-    # Note: This logic might fail if tables don't exist yet (i.e. if migration hasn't run)
+    migrate(engine)
 
     try:
         with Session(engine) as session:
@@ -52,9 +50,6 @@ async def lifespan(app: FastAPI):
                     )
                     session.add(plan)
                     session.commit()
-
-            # Run Context Migration
-            migrate_context_json(session)
 
     except Exception as e:
         print(f"Startup data init skipped (tables likely missing): {e}")
