@@ -1,14 +1,3 @@
-# Stage 1: Build frontend assets
-FROM node:20-slim AS frontend-builder
-WORKDIR /src
-COPY app/static/package.json app/static/tsconfig.json ./app/static/
-COPY app/static/ts ./app/static/ts
-WORKDIR /src/app/static
-# Install dependencies and build via tsc
-RUN npm install && npm run build
-
-
-# Stage 2: Application Runner
 FROM python:3.13-slim-bookworm
 
 # Install uv via pip to avoid GHCR auth issues
@@ -29,9 +18,6 @@ RUN uv sync --frozen --no-dev
 
 # Copy application source code
 COPY . .
-
-# Copy built frontend assets from the builder stage
-COPY --from=frontend-builder /src/app/static/js ./app/static/js
 
 # Create the data directory (expected by database.py default)
 RUN mkdir -p data
