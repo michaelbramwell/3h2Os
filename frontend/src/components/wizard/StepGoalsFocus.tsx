@@ -1,12 +1,15 @@
 import type { WizardGoalsFocus, PrimaryGoal, PainPoint } from '../../types/wizard';
 import type { StepErrors } from '../../hooks/useWizard';
 import { PrimaryGoalLabels, PainPointLabels } from '../../types/wizard';
+import type { IntegrationSources } from './IntegrationBanner';
+import { IntegrationBanner } from './IntegrationBanner';
 
 interface StepGoalsFocusProps {
     data: WizardGoalsFocus;
     onChange: (data: Partial<WizardGoalsFocus>) => void;
     sport: string;
     errors: StepErrors;
+    integrationSources?: IntegrationSources;
 }
 
 const ALL_PAIN_POINTS: PainPoint[] = [
@@ -19,7 +22,7 @@ const SWIMMING_PAIN_POINTS: PainPoint[] = [
     'open_water_anxiety', 'stroke_efficiency',
 ];
 
-export function StepGoalsFocus({ data, onChange, sport }: StepGoalsFocusProps) {
+export function StepGoalsFocus({ data, onChange, sport, integrationSources }: StepGoalsFocusProps) {
     const painPoints = sport === 'swimming' ? SWIMMING_PAIN_POINTS : ALL_PAIN_POINTS;
 
     const togglePainPoint = (pp: PainPoint) => {
@@ -37,6 +40,8 @@ export function StepGoalsFocus({ data, onChange, sport }: StepGoalsFocusProps) {
                 <h2 className="text-lg font-semibold text-slate-900 mb-1">Goals & Focus</h2>
                 <p className="text-sm text-slate-500">What are you training for?</p>
             </div>
+
+            {integrationSources && <IntegrationBanner sources={integrationSources} />}
 
             {/* Primary goal */}
             <div>
