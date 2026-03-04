@@ -1,19 +1,8 @@
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
-from sqlalchemy.pool import StaticPool
+from sqlmodel import Session
 from app.services.activities import ActivityService
 from app.schemas import ActivitySchema
 from app.core.database import User
-
-
-@pytest.fixture(name="session")
-def session_fixture():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
 
 
 def test_save_and_retrieve_activity_with_splits(session):

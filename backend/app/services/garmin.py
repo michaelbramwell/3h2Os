@@ -6,6 +6,7 @@ import io
 import tempfile
 import shutil
 import uuid
+from datetime import date
 from typing import List, Dict, Any, Optional
 
 from garminconnect import Garmin
@@ -137,7 +138,83 @@ class GarminService:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
-    def fetch_activities(self, start_date: str, end_date: str) -> List[ActualActivity]:
+    def fetch_user_profile(self, user_id: int) -> None:
+        """
+        Fetch the Garmin user profile and merge into RunnerProfile.
+        Only writes fields that are not already set (Strava takes precedence).
+
+        Fields populated (Garmin → RunnerProfile):
+          - birthday / age  (from userData.birthDate "YYYY-MM-DD")
+          - weight_kg       (from userData.weight in grams → kg)
+          - gender          (from userData.gender "MALE"/"FEMALE")
+
+        Silently no-ops if the Garmin client is unavailable or the profile is missing.
+        """
+        if not self.client or not self.session:
+            return
+
+        try:
+            from app.core.database import RunnerProfile
+
+            profile = self.session.exec(
+                select(RunnerProfile).where(RunnerProfile.user_id == user_id)
+            ).first()
+            if not profile:
+                return
+
+            raw = self.client.get_user_profile()
+            if not raw:
+                return
+
+            user_data = raw.get("userData", raw)  # some versions nest under userData
+            changed = False
+
+            # birthday / age — only set if not already populated by Strava
+            birth_str = user_data.get("birthDate")  # "YYYY-MM-DD"
+            if birth_str and not profile.birthday:
+                try:
+                    bday = date.fromisoformat(birth_str)
+                    profile.birthday = bday
+                    today = date.today()
+                    age = (
+                        today.year
+                        - bday.year
+                        - ((today.month, today.day) < (bday.month, bday.day))
+                    )
+                    profile.age = age
+                    changed = True
+                except ValueError:
+                    logger.warning(
+                        f"Garmin returned unparseable birthDate '{birth_str}' for user {user_id}"
+                    )
+
+            # weight — only set if not already populated by Strava (Strava always wins)
+            weight_g = user_data.get("weight")  # Garmin stores weight in grams
+            if weight_g and not profile.weight_kg:
+                profile.weight_kg = round(float(weight_g) / 1000.0, 1)
+                changed = True
+
+            # gender — only set if not already populated
+            gender_raw = user_data.get("gender", "")
+            if gender_raw and (not profile.gender or profile.gender == "unknown"):
+                gender_lower = gender_raw.lower()
+                if gender_lower in ("male", "female"):
+                    profile.gender = gender_lower
+                    changed = True
+
+            if changed:
+                self.session.add(profile)
+                self.session.commit()
+                logger.info(f"Garmin profile imported for user_id={user_id}")
+
+        except Exception as e:
+            logger.warning(
+                f"Could not fetch Garmin user profile for user {user_id}: {e}"
+            )
+
+    def fetch_activities(
+        self, start_date: str, end_date: str, user=None
+    ) -> List[ActualActivity]:
         """Fetches activities between start_date and end_date (YYYY-MM-DD)."""
         logger.info(f"Fetching activities from {start_date} to {end_date}...")
 
@@ -145,38 +222,33 @@ class GarminService:
         # For a 14-week plan, 100 activities should be plenty
         activities = self.client.get_activities(0, 100)
 
-        filtered_activities = self.filter_activities(activities, start_date, end_date)
+        filtered_activities = self.filter_activities(
+            activities, start_date, end_date, user=user
+        )
 
         logger.info(f"Found {len(filtered_activities)} activities in range.")
         return filtered_activities
 
     def filter_activities(
-        self, activities: List[Dict[str, Any]], start_date: str, end_date: str
+        self,
+        activities: List[Dict[str, Any]],
+        start_date: str,
+        end_date: str,
+        user=None,
     ) -> List[ActualActivity]:
         """Filters raw Garmin activities by date range and maps to our schema."""
         filtered_activities: List[ActualActivity] = []
 
         # Load pace thresholds from DB or Session
         pace_thresholds = []
-        if self.session:
+        if self.session and user:
             try:
-                # Use default user or injecting context? ContextService defaults to "mike" or now "runner"
-                # ContextService.get_context requires a User object, not username string
-                from app.core.database import User  # Ensure User is imported
-
-                user = self.session.exec(
-                    select(User).where(
-                        User.username == os.environ.get("DEFAULT_USERNAME", "runner")
-                    )
-                ).first()
-
-                if user:
-                    ctx_service = ContextService(self.session)
-                    ctx = ctx_service.get_context(user=user)
-                    if ctx.runner.trainingZones and ctx.runner.trainingZones.pace:
-                        pace_thresholds = [
-                            z.model_dump() for z in ctx.runner.trainingZones.pace
-                        ]
+                ctx_service = ContextService(self.session)
+                ctx = ctx_service.get_context(user=user)
+                if ctx.runner.trainingZones and ctx.runner.trainingZones.pace:
+                    pace_thresholds = [
+                        z.model_dump() for z in ctx.runner.trainingZones.pace
+                    ]
             except Exception as e:
                 logger.warning(f"Could not load pace thresholds from DB: {e}")
 
