@@ -8,6 +8,7 @@ import type {
     WizardInput,
     PlanPreview,
     Sport,
+    WizardDefaultsResponse,
 } from '../types/wizard';
 import { WIZARD_STEPS, defaultTaperWeeks } from '../types/wizard';
 import { wizardPreview, wizardCreatePlan, wizardUpdatePlan } from '../lib/api';
@@ -19,6 +20,12 @@ export interface UseWizardOptions {
     planId?: number;
     /** Initial data to pre-populate the wizard (used in edit mode). */
     initialData?: WizardInput;
+    /**
+     * Profile-sourced defaults for create mode.
+     * These are merged on top of hardcoded defaults; only non-null/undefined fields
+     * from the response overwrite the defaults.
+     */
+    profileDefaults?: WizardDefaultsResponse;
 }
 
 interface UseWizardReturn {
@@ -75,16 +82,16 @@ const DEFAULT_SPORT_EVENT: WizardSportEvent = {
 
 const DEFAULT_ATHLETE_PROFILE: WizardAthleteProfile = {
     experience_level: 'intermediate',
-    age: 35,
-    weight_kg: 75,
-    events_completed: 0,
+    age: 48,
+    weight_kg: 97,
+    events_completed: 8,
     use_calculated_zones: true,
 };
 
 const DEFAULT_GOALS_FOCUS: WizardGoalsFocus = {
     primary_goal: 'finish',
     pain_points: [],
-    weekly_availability: 5,
+    weekly_availability: 6,
     longest_recent_distance_m: 0,
 };
 
@@ -97,6 +104,39 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
     const isEditMode = !!(options?.planId);
     const editPlanId = options?.planId ?? null;
     const init = options?.initialData;
+    const profileDefaults = options?.profileDefaults;
+
+    // Build the effective initial athlete profile:
+    // - in edit mode: use the saved wizard data
+    // - in create mode: start from hardcoded defaults, then overlay profile-sourced values
+    const initialAthleteProfile: WizardAthleteProfile = useMemo(() => {
+        if (init?.athlete_profile) return init.athlete_profile;
+        if (!profileDefaults) return DEFAULT_ATHLETE_PROFILE;
+        const d = profileDefaults.athlete_profile;
+        return {
+            ...DEFAULT_ATHLETE_PROFILE,
+            ...(d.age != null && { age: d.age }),
+            ...(d.weight_kg != null && { weight_kg: d.weight_kg }),
+            ...(d.experience_level != null && { experience_level: d.experience_level as WizardAthleteProfile['experience_level'] }),
+            ...(d.events_completed != null && { events_completed: d.events_completed }),
+            ...(d.use_calculated_zones != null && { use_calculated_zones: d.use_calculated_zones }),
+            ...(d.custom_zones != null && { custom_zones: d.custom_zones }),
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const initialGoalsFocus: WizardGoalsFocus = useMemo(() => {
+        if (init?.goals_focus) return init.goals_focus;
+        if (!profileDefaults) return DEFAULT_GOALS_FOCUS;
+        const d = profileDefaults.goals_focus;
+        return {
+            ...DEFAULT_GOALS_FOCUS,
+            ...(d.weekly_availability != null && { weekly_availability: d.weekly_availability }),
+            ...(d.longest_recent_distance_m != null && { longest_recent_distance_m: d.longest_recent_distance_m }),
+            ...(d.pain_points != null && { pain_points: d.pain_points as WizardGoalsFocus['pain_points'] }),
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Step navigation
     const [stepIndex, setStepIndex] = useState(0);
@@ -109,10 +149,10 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
         init?.sport_event ?? DEFAULT_SPORT_EVENT
     );
     const [athleteProfile, setAthleteProfileState] = useState<WizardAthleteProfile>(
-        init?.athlete_profile ?? DEFAULT_ATHLETE_PROFILE
+        initialAthleteProfile
     );
     const [goalsFocus, setGoalsFocusState] = useState<WizardGoalsFocus>(
-        init?.goals_focus ?? DEFAULT_GOALS_FOCUS
+        initialGoalsFocus
     );
     const [planConfig, setPlanConfigState] = useState<WizardPlanConfig>(
         init?.plan_config ?? DEFAULT_PLAN_CONFIG
@@ -181,8 +221,8 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
         }
 
         // Step 2: athlete_profile
-        if (!athleteProfile.age || athleteProfile.age < 10 || athleteProfile.age > 100) {
-            errors.age = 'Age must be between 10 and 100';
+        if (!athleteProfile.age || athleteProfile.age < 8 || athleteProfile.age > 110) {
+            errors.age = 'Age must be between 8 and 110';
         }
         if (!['beginner', 'intermediate', 'advanced'].includes(athleteProfile.experience_level)) {
             errors.experience_level = 'Select an experience level';
@@ -194,8 +234,8 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
         }
 
         if (sportEvent.event_type !== 'none' && planConfig.generation_method !== 'manual_weekly') {
-            if (!planConfig.total_weeks || planConfig.total_weeks < 6 || planConfig.total_weeks > 30) {
-                errors.total_weeks = 'Plan length must be between 6 and 30 weeks';
+            if (!planConfig.total_weeks || planConfig.total_weeks < 1 || planConfig.total_weeks > 52) {
+                errors.total_weeks = 'Plan length must be between 1 and 52 weeks';
             }
         }
 

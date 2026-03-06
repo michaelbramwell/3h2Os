@@ -1,6 +1,10 @@
 // --- Wizard enums ---
 
 export type Sport = "running" | "swimming";
+export const Sport = {
+  RUNNING: "running",
+  SWIMMING: "swimming",
+} as const;
 
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
 export const ExperienceLevel = {
@@ -223,3 +227,28 @@ export const WizardStepLabels: Record<WizardStep, string> = {
   plan_config: "Plan Config",
   review: "Review & Confirm",
 };
+
+// --- Wizard defaults (from GET /api/wizard/defaults) ---
+
+/** Partial athlete profile fields that can be pre-filled from RunnerProfile. */
+export interface WizardAthleteProfileDefaults {
+    age?: number;
+    weight_kg?: number;
+    experience_level?: string;
+    use_calculated_zones?: boolean;
+    custom_zones?: Record<string, any>;
+    events_completed?: number;
+}
+
+/** Partial goals/focus fields that can be pre-filled from RunnerProfile. */
+export interface WizardGoalsFocusDefaults {
+    weekly_availability?: number;
+    longest_recent_distance_m?: number;
+    pain_points?: string[];
+}
+
+/** Response from GET /api/wizard/defaults */
+export interface WizardDefaultsResponse {
+    athlete_profile: WizardAthleteProfileDefaults;
+    goals_focus: WizardGoalsFocusDefaults;
+}

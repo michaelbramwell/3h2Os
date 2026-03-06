@@ -139,7 +139,7 @@ export interface HrZone {
 export interface Activity {
     date: string;
     name: string;
-    type: string;
+    type: ActivityType;
     distance_m: number;
     duration_s: number;
     activityId?: number | null;      // Garmin activity ID; null for Strava-only records
