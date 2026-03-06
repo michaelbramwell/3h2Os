@@ -59,6 +59,7 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
         if (s.includes('marathon')) return 'bg-yellow-50/50 border-yellow-400 ring-2 ring-yellow-200 shadow-md';
         if (s.includes('race')) return 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-100';
         if (s.includes('taper')) return 'bg-purple-50/30 border-purple-200';
+        if (s.includes('peak')) return 'bg-rose-50/30 border-rose-200 ring-1 ring-rose-100';
         
         // Temporal States
         if (s === 'completed') return 'bg-slate-50 border-slate-200 opacity-70 grayscale-[0.5]'; 

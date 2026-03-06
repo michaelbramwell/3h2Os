@@ -60,6 +60,7 @@ export function WeekStats({
                         Week of {new Date(weekStarting).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
                         {(status === 'race' || status === 'marathon') && <span className="ml-2 text-yellow-600">🏆</span>}
                         {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
+                        {status === 'peak' && <span className="ml-2 text-rose-600">⛰️</span>}
                     </h3>
                     {showStravaSyncButton && (
                         <button
@@ -85,6 +86,7 @@ export function WeekStats({
                 {isCurrentWeek && <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 rounded-full">Current Week</span>}
                 {(status === 'race' || status === 'marathon') && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-yellow-700 bg-yellow-100 rounded-full">Race Week</span>}
                 {status === 'taper' && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 rounded-full">Taper</span>}
+                {status === 'peak' && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-rose-700 bg-rose-100 rounded-full">Peak</span>}
             </div>
             
             {/* Progress Stats using flex for compact layout */}
