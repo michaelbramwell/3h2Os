@@ -2,107 +2,159 @@ import { useState } from 'react';
 import type { Activity } from '../types/schema';
 import { ActivityModal } from './ActivityModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { syncActivities } from '../lib/api';
+import { syncActivities, syncStravaActivities } from '../lib/api';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { useGarminToken } from '../hooks/useGarminToken';
+import { useStravaStatus } from '../hooks/useStravaStatus';
 import { formatDistance, formatPace } from '../lib/formatters'
 
 interface RecentActivitiesProps {
     activities: Activity[];
 }
 
+function SourceBadge({ source }: { source?: string }) {
+    if (!source || source === 'garmin') {
+        return (
+            <span className="inline-block text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-700 leading-none">
+                G
+            </span>
+        );
+    }
+    if (source === 'strava') {
+        return (
+            <span
+                className="inline-block text-[9px] font-bold px-1 py-0.5 rounded text-white leading-none"
+                style={{ backgroundColor: '#FC4C02' }}
+            >
+                S
+            </span>
+        );
+    }
+    return null;
+}
+
 export function RecentActivities({ activities }: RecentActivitiesProps) {
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
     const queryClient = useQueryClient();
     const { hasToken: hasGarminToken } = useGarminToken();
+    const { connected: stravaConnected } = useStravaStatus();
 
-
-    const syncMutation = useMutation({
+    const garminSyncMutation = useMutation({
         mutationFn: () => syncActivities(7),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['actuals'] });
         }
     });
 
-    // Debug logging
-    console.log('RecentActivities Rendered. Activities count:', activities?.length);
+    const stravaSyncMutation = useMutation({
+        mutationFn: () => syncStravaActivities(7),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+        }
+    });
 
     // Sort by date descending, default to empty array if null
-    const sortedActivities = activities ? [...activities].sort((a, b) => 
+    const sortedActivities = activities ? [...activities].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
     ) : [];
+
+    // When both are connected, show only the Strava button (Strava takes precedence)
+    const showStravaSyncButton = stravaConnected;
+    const showGarminSyncButton = !stravaConnected && hasGarminToken;
 
     return (
         <>
             <div className="bg-white rounded-lg shadow p-6 border border-slate-200 relative z-0">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Activities</h3>
-                    {hasGarminToken && (
-                        <button 
-                            onClick={() => syncMutation.mutate()} 
-                            disabled={syncMutation.isPending}
-                            className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
-                            title="Fetch latest activities from Garmin"
-                        >
-                            {syncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                            {syncMutation.isPending ? 'Syncing...' : 'Scan for new runs'}
-                        </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {showStravaSyncButton && (
+                            <button
+                                onClick={() => stravaSyncMutation.mutate()}
+                                disabled={stravaSyncMutation.isPending}
+                                className="flex items-center gap-2 text-xs font-medium text-white disabled:opacity-50 transition-colors px-2 py-1 rounded"
+                                style={{ backgroundColor: '#FC4C02' }}
+                                title="Fetch latest activities from Strava"
+                            >
+                                {stravaSyncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                {stravaSyncMutation.isPending ? 'Syncing...' : 'Scan via Strava'}
+                            </button>
+                        )}
+                        {showGarminSyncButton && (
+                            <button
+                                onClick={() => garminSyncMutation.mutate()}
+                                disabled={garminSyncMutation.isPending}
+                                className="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+                                title="Fetch latest activities from Garmin"
+                            >
+                                {garminSyncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                {garminSyncMutation.isPending ? 'Syncing...' : 'Scan for new runs'}
+                            </button>
+                        )}
+                    </div>
                 </div>
-                
-                {sortedActivities.length === 0 ? (
-                    <div className="text-gray-500 text-sm italic py-4 text-center">No recent activities found. Click scan to sync from Garmin.</div>
-                ) : (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                        <thead>
-                            <tr className="border-b text-left text-xs uppercase text-gray-500">
-                                <th className="pb-2 font-medium">Date</th>
-                                <th className="pb-2 font-medium">Activity</th>
-                                <th className="pb-2 font-medium">Dist</th>
-                                <th className="pb-2 font-medium">Pace</th>
-                                <th className="pb-2 font-medium">HR</th>
-                            </tr>
-                        </thead>
-                        <tbody className="font-mono">
-                            {sortedActivities.slice(0, 5).map((activity, idx) => {
-                                const date = new Date(activity.date);
-                                const distanceKm = activity.distance_m / 1000;
 
-                                return (
-                                    <tr 
-                                        key={activity.activityId || idx} 
-                                        onClick={() => setSelectedActivity(activity)}
-                                        className="border-b last:border-0 hover:bg-slate-50 cursor-pointer transition-colors group"
-                                    >
-                                        <td className="py-3 text-gray-600">
+                {sortedActivities.length === 0 ? (
+                    <div className="text-gray-500 text-sm italic py-4 text-center">No recent activities found. Click scan to sync from Garmin or Strava.</div>
+                ) : (
+                    <div className="divide-y divide-slate-100">
+                        {sortedActivities.slice(0, 5).map((activity, idx) => {
+                            const date = new Date(activity.date);
+                            const distanceKm = activity.distance_m / 1000;
+
+                            return (
+                                <div
+                                    key={activity.stravaActivityId ?? activity.activityId ?? idx}
+                                    onClick={() => setSelectedActivity(activity)}
+                                    className="py-2.5 hover:bg-slate-50 cursor-pointer transition-colors group px-1 -mx-1 rounded"
+                                >
+                                    {/* Top line: date + name + source badge */}
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className="text-xs text-slate-400 shrink-0">
                                             {date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' })}
-                                        </td>
-                                        <td className="py-3 font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
+                                        </span>
+                                        <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
                                             {activity.name}
-                                        </td>
-                                        <td className="py-3 text-gray-600">
+                                        </span>
+                                        <SourceBadge source={activity.source} />
+                                    </div>
+                                    {/* Bottom line: stats + View on Strava */}
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                        <span className="font-mono text-xs text-slate-500">
                                             {formatDistance(activity.distance_m)} km
-                                        </td>
-                                        <td className="py-3 text-gray-600">
-                                            {formatPace(distanceKm > 0 ? activity.duration_s / distanceKm : 0)} /km
-                                        </td>
-                                        <td className="py-3 text-gray-600">
-                                            {activity.average_hr ? Math.round(activity.average_hr) : '-'} bpm
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+                                        </span>
+                                        <span className="font-mono text-xs text-slate-400">
+                                            {formatPace(distanceKm > 0 ? activity.duration_s / distanceKm : 0)}/km
+                                        </span>
+                                        {activity.average_hr && (
+                                            <span className="font-mono text-xs text-slate-400">
+                                                {Math.round(activity.average_hr)} bpm
+                                            </span>
+                                        )}
+                                        {activity.stravaActivityId && (
+                                            <a
+                                                href={`https://www.strava.com/activities/${activity.stravaActivityId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={e => e.stopPropagation()}
+                                                className="ml-auto text-[10px] font-bold shrink-0"
+                                                style={{ color: '#FC5200' }}
+                                            >
+                                                View on Strava
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
 
             {selectedActivity && (
-                <ActivityModal 
-                    activity={selectedActivity} 
-                    onClose={() => setSelectedActivity(null)} 
+                <ActivityModal
+                    activity={selectedActivity}
+                    onClose={() => setSelectedActivity(null)}
                 />
             )}
         </>
