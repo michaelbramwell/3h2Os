@@ -7,7 +7,8 @@ import { RecentActivities } from '../components/RecentActivities'
 import { FridgeWeek } from '../components/FridgeWeek'
 import { ActivityModal } from '../components/ActivityModal'
 import { WeekCard } from '../components/WeekCard'
-import { GarminSettings } from '../components/GarminSettings'
+import { IntegrationsMenu } from '../components/IntegrationsMenu'
+import { AppBrand, AppDescription, AppFooter } from '../components/AppShell'
 import { PlanWizard } from '../components/wizard'
 import { PlanSwitcher } from '../components/PlanSwitcher'
 import { PanelLeft, X, Plus } from 'lucide-react'
@@ -117,22 +118,25 @@ function Dashboard() {
 
   if (!auth.isAuthenticated) {
       return (
-        <div className="flex h-screen items-center justify-center bg-slate-50">
-            <div className="text-center">
-                <h1 className="text-2xl font-bold mb-4">3h2os Training Plan</h1>
-                <p className="text-slate-500 mb-6">Please login to view your training plan.</p>
-                {auth.error && (
-                    <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm max-w-md mx-auto">
-                        Authentication Error: {auth.error.message}
-                    </div>
-                )}
-                <button 
-                onClick={() => auth.signinRedirect().catch(e => alert("Login failed: " + e))}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full font-bold shadow-lg transition"
-                >
-                Login to 3h2os
-                </button>
-            </div>
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center px-6 py-16">
+          <div className="w-full max-w-xl space-y-10">
+            <AppBrand />
+            <AppDescription />
+
+            {auth.error && (
+              <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
+                Authentication error: {auth.error.message}
+              </div>
+            )}
+            <button
+              onClick={() => auth.signinRedirect().catch(e => alert("Login failed: " + e))}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-semibold shadow-md transition text-sm"
+            >
+              Sign in
+            </button>
+
+            <AppFooter showPrivacy />
+          </div>
         </div>
       )
   }
@@ -185,16 +189,22 @@ function Dashboard() {
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
                  <PlanSwitcher onEditPlan={(planId, wizardData) => setEditPlan({ id: planId, data: wizardData })} />
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
-                 <GarminSettings />
+                 <IntegrationsMenu />
                  <span className="text-xs text-slate-500 font-medium border-l border-slate-300 pl-2">
-                    {auth.user?.profile.preferred_username || "User"}
-                 </span>
-                 <button 
-                    onClick={() => auth.removeUser()}
-                    className="text-xs text-red-500 hover:text-red-700 font-bold ml-1"
-                 >
-                    Logout
-                 </button>
+                     {auth.user?.profile.preferred_username || "User"}
+                  </span>
+                  <button 
+                     onClick={() => auth.removeUser()}
+                     className="text-xs text-red-500 hover:text-red-700 font-bold ml-1"
+                  >
+                     Logout
+                  </button>
+                  <a
+                     href="/privacy"
+                     className="text-xs text-slate-400 hover:text-slate-600 border-l border-slate-300 pl-2"
+                  >
+                     Privacy
+                  </a>
              </div>
          ) : (
              <button 
@@ -266,6 +276,7 @@ function Dashboard() {
       {selectedActivity && (
         <ActivityModal 
             activity={selectedActivity} 
+            context={context as ContextData}
             onClose={() => setSelectedActivity(null)} 
         />
       )}
