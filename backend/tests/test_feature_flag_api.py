@@ -15,7 +15,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.core.database import get_session, User, FeatureFlag
-from app.routers.api import get_current_user
+from app.routers.deps import get_current_user
 from app.core.auth import verify_jwt_middleware
 from fastapi import Request
 
