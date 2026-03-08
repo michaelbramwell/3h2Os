@@ -71,9 +71,9 @@ class SyncService:
         try:
             ctx = self.context_service.get_context(user=user)
             if ctx.runner and ctx.runner.trainingZones:
-                if ctx.runner.trainingZones.hr:
+                if ctx.runner.trainingZones.heartRate:
                     hr_thresholds = [
-                        z.model_dump() for z in ctx.runner.trainingZones.hr
+                        z.model_dump() for z in ctx.runner.trainingZones.heartRate
                     ]
                 if ctx.runner.trainingZones.pace:
                     pace_thresholds = [

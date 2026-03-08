@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from sqlmodel import Session
 import os
@@ -20,6 +20,13 @@ from app.schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Strava"])
+
+# Webhook path includes a secret token so the URL is unguessable.
+# When registering the subscription with Strava, use the full URL including this segment.
+_WEBHOOK_SECRET = os.environ.get("STRAVA_WEBHOOK_SECRET", "")
+_WEBHOOK_PATH = (
+    f"/strava/webhook/{_WEBHOOK_SECRET}" if _WEBHOOK_SECRET else "/strava/webhook"
+)
 
 
 def get_strava_service(session: Session = Depends(get_session)) -> StravaService:
@@ -117,12 +124,12 @@ async def sync_strava_activities(
         raise HTTPException(status_code=502, detail=f"Strava API error: {str(e)}")
 
 
-@router.get("/strava/webhook")
+@router.get(_WEBHOOK_PATH)
 @allow_anonymous
 async def strava_webhook_verify(
-    hub_mode: str = None,
-    hub_challenge: str = None,
-    hub_verify_token: str = None,
+    hub_mode: str = Query(None, alias="hub.mode"),
+    hub_challenge: str = Query(None, alias="hub.challenge"),
+    hub_verify_token: str = Query(None, alias="hub.verify_token"),
 ):
     """
     Strava webhook subscription verification (GET handshake).
@@ -134,7 +141,7 @@ async def strava_webhook_verify(
     raise HTTPException(status_code=403, detail="Webhook verification failed")
 
 
-@router.post("/strava/webhook")
+@router.post(_WEBHOOK_PATH)
 @allow_anonymous
 async def strava_webhook_event(
     request: Request,

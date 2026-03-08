@@ -87,7 +87,7 @@ When working in this workspace, always refer to the following context to underst
   - `002_add_project_context_to_plan.sql` — `event`, `goal`, `event_date` on `runnerplan`
   - `003_add_wizard_input_to_plan.sql` — `wizard_input_json` on `runnerplan`
   - `004_add_feature_flags.sql` — `user_types_json` on `user`; `featureflag` table
-- **Runtime startup** (`migrations_logic.py`): idempotent Python helpers that also run at app startup as a safety net for dev environments; they become no-ops once the SQL migration has been applied.
+- **Runtime startup** (`db.migrate`): forward-only SQL migration runner that also runs at app startup via lifespan; migrations become no-ops once applied.
 
 ### Feature Flag System
 

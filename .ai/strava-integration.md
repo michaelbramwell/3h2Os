@@ -1,6 +1,6 @@
 # Strava Integration
 
-Status: Planned — not yet implemented.
+Status: Implemented — PR #45.
 
 ## Overview
 

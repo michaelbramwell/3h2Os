@@ -23,5 +23,5 @@ export function useFeatureFlags(): FeatureFlags {
         staleTime: 5 * 60 * 1000,
     });
 
-    return data ?? DEFAULT_FLAGS;
+    return { ...DEFAULT_FLAGS, ...data };
 }

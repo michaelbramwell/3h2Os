@@ -33,21 +33,18 @@ class ActivityService:
             )
 
         count = 0
-        for act in activities:
-            # Helper to dump zones
-            def dump_zones(zones):
-                if not zones:
-                    return None
-                try:
-                    return json.dumps(
-                        [
-                            z.model_dump() if hasattr(z, "model_dump") else z
-                            for z in zones
-                        ]
-                    )
-                except Exception:
-                    return None
 
+        def dump_zones(zones):
+            if not zones:
+                return None
+            try:
+                return json.dumps(
+                    [z.model_dump() if hasattr(z, "model_dump") else z for z in zones]
+                )
+            except Exception:
+                return None
+
+        for act in activities:
             act_date = date.fromisoformat(act.date)
             source = act.source if act.source else "garmin"
 
@@ -204,7 +201,8 @@ class ActivityService:
         row.pace_zones_json = dump_zones(act.pace_zones)
         row.power_zones_json = dump_zones(act.power_zones)
         row.splits_json = dump_zones(act.splits)
-        # aerobic_te / anaerobic_te / training_load intentionally not overwritten here;
+        row.training_load = act.training_load
+        # aerobic_te / anaerobic_te intentionally not overwritten here;
         # callers preserve or overwrite as appropriate.
 
     def _find_matching_activity(

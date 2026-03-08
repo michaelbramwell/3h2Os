@@ -116,10 +116,7 @@ def _is_public_path(request: Request) -> bool:
     """Path-based public check — belt-and-suspenders alongside @allow_anonymous."""
     path = request.url.path
     # Webhook paths are hit by Strava servers without a JWT
-    return path in {
-        "/strava/webhook",
-        "/api/strava/webhook",
-    }
+    return path.startswith("/strava/webhook") or path.startswith("/api/strava/webhook")
 
 
 async def verify_jwt_middleware(request: Request):

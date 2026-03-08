@@ -371,13 +371,13 @@ class StravaService:
                     converted = [
                         {
                             "zone": idx + 1,
-                            "name": z.get("name", f"Zone {idx + 1}"),
-                            "minBpm": z.get("min", 0),
-                            "maxBpm": z.get("max", 0),
+                            "lowBoundary_bpm": z.get("min", 0),
+                            "highBoundary_bpm": z.get("max", 0),
+                            "description": z.get("name", f"Zone {idx + 1}"),
                         }
                         for idx, z in enumerate(strava_zone_list)
                     ]
-                    profile.training_zones_json = json.dumps({"hr": converted})
+                    profile.training_zones_json = json.dumps({"heartRate": converted})
                     self.session.add(profile)
                     self.session.commit()
         except Exception as e:
@@ -528,7 +528,9 @@ class StravaService:
             return buckets
 
         hr_buckets = (
-            build_buckets(hr_thresholds, "minBpm", "zone") if hr_thresholds else {}
+            build_buckets(hr_thresholds, "lowBoundary_bpm", "zone")
+            if hr_thresholds
+            else {}
         )
         pace_buckets = (
             build_buckets(pace_thresholds, "lowBoundary_m_s", "zone")

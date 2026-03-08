@@ -1,7 +1,12 @@
 import { createPortal } from 'react-dom';
-import type { Activity, HrZone, ContextData } from '../types/schema';
+import type { Activity, HrZone, ContextData, TrainingZone } from '../types/schema';
 import { ActivityType } from '../types/schema';
 import { formatPace, formatSwimPace, formatDistance } from '../lib/formatters';
+
+/** Case-insensitive activity type check (backend stores lowercase, frontend enum is TitleCase). */
+function isType(actual: string | undefined, expected: string): boolean {
+    return actual?.toLowerCase() === expected.toLowerCase();
+}
 
 interface ActivityModalProps {
     activity: Activity | null;
@@ -81,7 +86,7 @@ function derivePaceZonesFromSplits(
         });
 }
 
-function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], type: 'pace' | 'hr' | 'power', activityType?: ActivityType, derived?: boolean }) {
+function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], type: 'pace' | 'hr' | 'power', activityType?: string, derived?: boolean }) {
     if (!zones || zones.length === 0) return null;
 
     const active = zones.filter(z => (z.secsInZone || 0) > 10);
@@ -101,7 +106,7 @@ function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], ty
                 let valStr = '';
                 
                 if (type === 'pace') {
-                     const isSwim = activityType === ActivityType.SWIMMING;
+                     const isSwim = isType(activityType, ActivityType.SWIMMING);
                      
                      if (z.avgValue && z.avgValue > 0) {
                         valStr = isSwim 
@@ -118,7 +123,7 @@ function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], ty
                         // Fallback: Use zone boundaries
                         if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
                         else if (highPace) valStr = `< ${highPace}`;
-                        else if (lowPace) valStr = `> ${lowPace}`;
+                        else if (lowPace) valStr = `< ${lowPace}`; // Top zone: faster than this pace
                      }
                 } else if (z.avgValue && z.avgValue > 0) {
                      valStr = Math.round(z.avgValue) + (type === 'hr' ? 'bpm' : (type === 'power' ? 'W' : ''));
@@ -143,10 +148,10 @@ function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], ty
     );
 }
 
-function SplitsList({ splits, activityType }: { splits?: any[], activityType?: ActivityType }) {
+function SplitsList({ splits, activityType }: { splits?: any[], activityType?: string }) {
     if (!splits || splits.length === 0) return null;
 
-    const isSwim = activityType === ActivityType.SWIMMING;
+    const isSwim = isType(activityType, ActivityType.SWIMMING);
 
     return (
         <div className="space-y-0.5">
@@ -181,7 +186,7 @@ export function ActivityModal({ activity, context, onClose }: ActivityModalProps
 
     const dateStr = new Date(activity.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
     const distKm = formatDistance(activity.distance_m, 2);
-    const isSwim = activity.type === ActivityType.SWIMMING;
+    const isSwim = isType(activity.type, ActivityType.SWIMMING);
     
     let paceLabel = '/k';
     let paceValue = '--:--';
@@ -202,7 +207,7 @@ export function ActivityModal({ activity, context, onClose }: ActivityModalProps
     const anData = getTEData(anScore);
 
     // Resolve pace zones: prefer telemetry-enriched zones, fall back to split-derived zones.
-    const isRunning = activity.type === ActivityType.RUN || activity.type === ActivityType.TRAIL;
+    const isRunning = isType(activity.type, ActivityType.RUN) || isType(activity.type, ActivityType.TRAIL);
     const telemetryPaceZones = activity.pace_zones && activity.pace_zones.length > 0 ? activity.pace_zones : null;
     const paceThresholds = context?.runner?.trainingZones?.pace?.length
         ? context.runner.trainingZones.pace
