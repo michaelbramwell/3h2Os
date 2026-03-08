@@ -1,5 +1,18 @@
 # Release Notes
 
+## [v1.1.0] - 2026-03-08
+
+### Features & Enhancements
+- **Strava OAuth Integration**: Added Strava OAuth integration with activity sync capabilities.
+- **Garmin Integration Update**: Updated Garmin integration for improved activity synchronization.
+- **Feature Flags System**: Implemented feature flags system for A/B testing functionality.
+- **Plan Wizard Enhancement**: Enhanced plan wizard with athlete profile and integration banner.
+- **Test Coverage**: Added significant test coverage for calculations, formatters, and components.
+
+### Backend & Architecture
+- **API Router Refactoring**: Refactored monolithic API router into separate domain routers (plans, activities, flags, wizard, strava, garmin).
+- **Database Migrations**: New database migrations for feature flags and profile fields.
+
 ## [v1.0.0] - 2026-02-22
 
 ### Features & Enhancements

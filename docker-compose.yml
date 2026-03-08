@@ -21,8 +21,8 @@ services:
       - CORS_ORIGINS=http://localhost:5173,http://localhost:8000
       # IDP_URL should point to keycloak service inside docker network for backend
       - IDP_URL=http://keycloak:8080
-    # Run migrations before starting the app
-    command: /bin/sh -c "uv run python -m db.migrate && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    # Migrations run automatically via app lifespan on startup
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
     depends_on:
       db:
         condition: service_healthy
@@ -44,7 +44,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-running_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/scripts/init_db.sql:/docker-entrypoint-initdb.d/init_keycloak.sql:ro
+      - ./backend/db/init_keycloak.sql:/docker-entrypoint-initdb.d/init_keycloak.sql:ro
     ports:
       - "5432:5432"
     healthcheck:

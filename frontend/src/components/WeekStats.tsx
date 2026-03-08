@@ -1,7 +1,8 @@
 import { Printer, RefreshCw, Loader2, Edit2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { syncActivities } from '../lib/api'
+import { syncActivities, syncStravaActivities } from '../lib/api'
 import { useGarminToken } from '../hooks/useGarminToken'
+import { useStravaStatus } from '../hooks/useStravaStatus'
 
 import { formatDistance } from '../lib/formatters'
 
@@ -32,12 +33,24 @@ export function WeekStats({
 }: WeekStatsProps) {
     const queryClient = useQueryClient();
     const { hasToken: hasGarminToken } = useGarminToken();
-    const syncMutation = useMutation({
+    const { connected: stravaConnected } = useStravaStatus();
+
+    const garminSyncMutation = useMutation({
         mutationFn: () => syncActivities(7),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['actuals'] });
         }
     });
+
+    const stravaSyncMutation = useMutation({
+        mutationFn: () => syncStravaActivities(7),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+        }
+    });
+
+    const showStravaSyncButton = isCurrentWeek && stravaConnected;
+    const showGarminSyncButton = isCurrentWeek && !stravaConnected && hasGarminToken;
 
     return (
         <div className="sticky top-0 z-10 flex flex-col md:flex-row justify-between items-start md:items-center -mx-5 -mt-5 pt-5 px-5 pb-3 mb-4 border-b border-slate-100/50 gap-4 rounded-t-xl backdrop-blur-md bg-white/30">
@@ -47,21 +60,33 @@ export function WeekStats({
                         Week of {new Date(weekStarting).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
                         {(status === 'race' || status === 'marathon') && <span className="ml-2 text-yellow-600">🏆</span>}
                         {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
+                        {status === 'peak' && <span className="ml-2 text-rose-600">⛰️</span>}
                     </h3>
-                    {isCurrentWeek && hasGarminToken && (
+                    {showStravaSyncButton && (
                         <button
-                            onClick={() => syncMutation.mutate()}
-                            disabled={syncMutation.isPending}
+                            onClick={() => stravaSyncMutation.mutate()}
+                            disabled={stravaSyncMutation.isPending}
                             className="p-1 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
-                            title="Scan for new runs"
+                            title="Scan for new runs via Strava"
                         >
-                            {syncMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                            {stravaSyncMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        </button>
+                    )}
+                    {showGarminSyncButton && (
+                        <button
+                            onClick={() => garminSyncMutation.mutate()}
+                            disabled={garminSyncMutation.isPending}
+                            className="p-1 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
+                            title="Scan for new runs via Garmin"
+                        >
+                            {garminSyncMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                         </button>
                     )}
                 </div>
                 {isCurrentWeek && <span className="inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-100 rounded-full">Current Week</span>}
                 {(status === 'race' || status === 'marathon') && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-yellow-700 bg-yellow-100 rounded-full">Race Week</span>}
                 {status === 'taper' && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-purple-700 bg-purple-100 rounded-full">Taper</span>}
+                {status === 'peak' && <span className="ml-2 inline-block px-2 py-0.5 mt-1 text-[10px] font-bold uppercase tracking-wider text-rose-700 bg-rose-100 rounded-full">Peak</span>}
             </div>
             
             {/* Progress Stats using flex for compact layout */}

@@ -1,9 +1,16 @@
 import { createPortal } from 'react-dom';
-import type { Activity, HrZone } from '../types/schema';
+import type { Activity, HrZone, ContextData, TrainingZone } from '../types/schema';
+import { ActivityType } from '../types/schema';
 import { formatPace, formatSwimPace, formatDistance } from '../lib/formatters';
+
+/** Case-insensitive activity type check (backend stores lowercase, frontend enum is TitleCase). */
+function isType(actual: string | undefined, expected: string): boolean {
+    return actual?.toLowerCase() === expected.toLowerCase();
+}
 
 interface ActivityModalProps {
     activity: Activity | null;
+    context?: ContextData;
     onClose: () => void;
 }
 
@@ -17,7 +24,69 @@ function getTEData(score: number): { label: string; color: string } {
     return { label: 'Over', color: 'text-red-600 bg-red-50 ring-red-200' };
 }
 
-function ZoneList({ zones, type, activityType }: { zones?: HrZone[], type: 'pace' | 'hr' | 'power', activityType?: string }) {
+/**
+ * Derives HrZone-shaped pace zone buckets from splits + training zone thresholds.
+ * Each split's averageSpeed (m/s) is classified into the appropriate zone.
+ * Returns one entry per zone that had at least one split, with:
+ *   - secsInZone: total time of matching splits
+ *   - avgValue: distance-weighted average speed (m/s) across matching splits
+ *   - zoneLow / zoneHigh: speed boundaries (m/s)
+ */
+function derivePaceZonesFromSplits(
+    splits: Record<string, any>[],
+    thresholds: TrainingZone[]
+): HrZone[] {
+    if (!splits?.length || !thresholds?.length) return [];
+
+    const sorted = [...thresholds].sort((a, b) => (a.lowBoundary_m_s ?? 0) - (b.lowBoundary_m_s ?? 0));
+
+    // Build zone boundary pairs
+    const zones = sorted.map((t, i) => ({
+        zone: t.zone,
+        low: t.lowBoundary_m_s ?? 0,
+        high: sorted[i + 1]?.lowBoundary_m_s ?? Infinity,
+    }));
+
+    // Accumulators per zone number
+    const acc: Record<number, { secs: number; distWeightedSpeed: number; totalDist: number; low: number; high: number }> = {};
+    for (const z of zones) {
+        acc[z.zone] = { secs: 0, distWeightedSpeed: 0, totalDist: 0, low: z.low, high: z.high };
+    }
+
+    for (const split of splits) {
+        const speed: number = split.averageSpeed;
+        const dist: number = split.distance ?? 1000;
+        if (!speed || speed <= 0) continue;
+
+        // Find matching zone (highest lower boundary that speed exceeds)
+        let matched: number | null = null;
+        for (const z of [...zones].reverse()) {
+            if (speed >= z.low) { matched = z.zone; break; }
+        }
+        if (matched === null) matched = zones[0].zone; // below all thresholds → Z1
+
+        const splitSecs = dist / speed;
+        acc[matched].secs += splitSecs;
+        acc[matched].distWeightedSpeed += speed * dist;
+        acc[matched].totalDist += dist;
+    }
+
+    return zones
+        .filter(z => acc[z.zone].secs > 0)
+        .map(z => {
+            const data = acc[z.zone];
+            return {
+                zoneNumber: z.zone,
+                secsInZone: Math.round(data.secs),
+                avgValue: data.totalDist > 0 ? data.distWeightedSpeed / data.totalDist : 0,
+                zoneLow: data.low,
+                zoneHigh: data.high === Infinity ? 0 : data.high,
+                percentInZone: 0,
+            };
+        });
+}
+
+function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], type: 'pace' | 'hr' | 'power', activityType?: string, derived?: boolean }) {
     if (!zones || zones.length === 0) return null;
 
     const active = zones.filter(z => (z.secsInZone || 0) > 10);
@@ -37,7 +106,7 @@ function ZoneList({ zones, type, activityType }: { zones?: HrZone[], type: 'pace
                 let valStr = '';
                 
                 if (type === 'pace') {
-                     const isSwim = activityType?.toLowerCase() === 'swimming';
+                     const isSwim = isType(activityType, ActivityType.SWIMMING);
                      
                      if (z.avgValue && z.avgValue > 0) {
                         valStr = isSwim 
@@ -53,8 +122,8 @@ function ZoneList({ zones, type, activityType }: { zones?: HrZone[], type: 'pace
 
                         // Fallback: Use zone boundaries
                         if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
-                        else if (highPace) valStr = `< ${highPace}`; // Faster than X (or slower pace value depending on metric, but physically faster)
-                        else if (lowPace) valStr = `> ${lowPace}`; // Slower than Y
+                        else if (highPace) valStr = `< ${highPace}`;
+                        else if (lowPace) valStr = `< ${lowPace}`; // Top zone: faster than this pace
                      }
                 } else if (z.avgValue && z.avgValue > 0) {
                      valStr = Math.round(z.avgValue) + (type === 'hr' ? 'bpm' : (type === 'power' ? 'W' : ''));
@@ -72,6 +141,9 @@ function ZoneList({ zones, type, activityType }: { zones?: HrZone[], type: 'pace
                     </div>
                 );
             })}
+            {derived && (
+                <div className="text-[9px] text-slate-300 pt-1">derived from splits</div>
+            )}
         </div>
     );
 }
@@ -79,7 +151,7 @@ function ZoneList({ zones, type, activityType }: { zones?: HrZone[], type: 'pace
 function SplitsList({ splits, activityType }: { splits?: any[], activityType?: string }) {
     if (!splits || splits.length === 0) return null;
 
-    const isSwim = activityType?.toLowerCase() === 'swimming';
+    const isSwim = isType(activityType, ActivityType.SWIMMING);
 
     return (
         <div className="space-y-0.5">
@@ -109,12 +181,12 @@ function SplitsList({ splits, activityType }: { splits?: any[], activityType?: s
     );
 }
 
-export function ActivityModal({ activity, onClose }: ActivityModalProps) {
+export function ActivityModal({ activity, context, onClose }: ActivityModalProps) {
     if (!activity) return null;
 
     const dateStr = new Date(activity.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
     const distKm = formatDistance(activity.distance_m, 2);
-    const isSwim = activity.type.toLowerCase() === 'swimming';
+    const isSwim = isType(activity.type, ActivityType.SWIMMING);
     
     let paceLabel = '/k';
     let paceValue = '--:--';
@@ -133,6 +205,18 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
     const anScore = activity.anaerobic_te || 0;
     const aeData = getTEData(aeScore);
     const anData = getTEData(anScore);
+
+    // Resolve pace zones: prefer telemetry-enriched zones, fall back to split-derived zones.
+    const isRunning = isType(activity.type, ActivityType.RUN) || isType(activity.type, ActivityType.TRAIL);
+    const telemetryPaceZones = activity.pace_zones && activity.pace_zones.length > 0 ? activity.pace_zones : null;
+    const paceThresholds = context?.runner?.trainingZones?.pace?.length
+        ? context.runner.trainingZones.pace
+        : undefined;
+    const derivedPaceZones = !telemetryPaceZones && isRunning && activity.splits?.length && paceThresholds?.length
+        ? derivePaceZonesFromSplits(activity.splits, paceThresholds)
+        : null;
+    const resolvedPaceZones = telemetryPaceZones ?? derivedPaceZones ?? null;
+    const paceZonesDerived = !telemetryPaceZones && !!derivedPaceZones;
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -209,13 +293,13 @@ export function ActivityModal({ activity, onClose }: ActivityModalProps) {
 
                     {/* Zones Sections */}
                     <div className="space-y-6">
-                        {activity.pace_zones && activity.pace_zones.length > 0 && (
+                        {resolvedPaceZones && resolvedPaceZones.length > 0 && (
                             <div>
                                 <div className="flex justify-between items-end border-b-2 border-slate-100 pb-1 mb-2">
                                     <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Pace Zones</h4>
                                     <span className="text-[9px] text-slate-300 font-bold uppercase">Zone / Avg / Time</span>
                                 </div>
-                                <ZoneList zones={activity.pace_zones} type="pace" activityType={activity.type} />
+                                <ZoneList zones={resolvedPaceZones} type="pace" activityType={activity.type} derived={paceZonesDerived} />
                             </div>
                         )}
 

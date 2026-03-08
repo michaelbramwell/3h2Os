@@ -222,7 +222,9 @@ class ActualActivity:
     anaerobic_te: Optional[float] = None
     training_load: Optional[float] = None
     calories: Optional[float] = None
-    activityId: Optional[int] = None
+    activityId: Optional[int] = None  # Garmin activity ID
+    stravaActivityId: Optional[int] = None  # Strava activity ID
+    source: str = "garmin"  # 'garmin' | 'strava' | 'manual'
     hr_zones: List[Dict] = field(default_factory=list)
     power_zones: List[Dict] = field(default_factory=list)
     pace_zones: List[Dict] = field(default_factory=list)

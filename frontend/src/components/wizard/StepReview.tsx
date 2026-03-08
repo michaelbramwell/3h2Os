@@ -76,7 +76,7 @@ export function StepReview({
                             switch (phase.name.toLowerCase()) {
                                 case 'base': return 'rgba(59, 130, 246, 0.5)';
                                 case 'build': return 'rgba(34, 197, 94, 0.5)';
-                                case 'peak': return 'rgba(245, 158, 11, 0.5)';
+                                case 'peak': return 'rgba(244, 63, 94, 0.5)';
                                 case 'taper': return 'rgba(168, 85, 247, 0.5)';
                                 case 'race': return 'rgba(239, 68, 68, 0.5)';
                                 default: return 'rgba(148, 163, 184, 0.5)';
@@ -93,7 +93,7 @@ export function StepReview({
                             switch (phase.name.toLowerCase()) {
                                 case 'base': return 'rgb(59, 130, 246)';
                                 case 'build': return 'rgb(34, 197, 94)';
-                                case 'peak': return 'rgb(245, 158, 11)';
+                                case 'peak': return 'rgb(244, 63, 94)';
                                 case 'taper': return 'rgb(168, 85, 247)';
                                 case 'race': return 'rgb(239, 68, 68)';
                                 default: return 'rgb(148, 163, 184)';
@@ -130,7 +130,7 @@ export function StepReview({
     const phaseColors: Record<string, string> = {
         base: 'bg-blue-500',
         build: 'bg-green-500',
-        peak: 'bg-amber-500',
+        peak: 'bg-rose-500',
         taper: 'bg-purple-500',
         race: 'bg-red-500',
     };

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import type { Week, ContextData, Activity } from '../types/schema';
-import type { WizardInput, PlanPreview, ClonePlanRequest } from '../types/wizard';
+import type { Week, ContextData, Activity, FeatureFlags } from '../types/schema';
+import type { WizardInput, PlanPreview, ClonePlanRequest, WizardDefaultsResponse } from '../types/wizard';
 import { userManager } from './auth';
 
 const api = axios.create({
@@ -129,6 +129,52 @@ export const wizardUpdatePlan = async (planId: number, input: WizardInput): Prom
 
 export const clonePlan = async (planId: number, request: ClonePlanRequest): Promise<{ status: string; message: string; id: number; title: string; type: string }> => {
     const response = await api.post(`/api/plans/${planId}/clone`, request);
+    return response.data;
+};
+
+export const getWizardDefaults = async (): Promise<WizardDefaultsResponse> => {
+    const response = await api.get<WizardDefaultsResponse>('/api/wizard/defaults');
+    return response.data;
+};
+
+// --- Feature Flags ---
+
+export const getFeatureFlags = async (): Promise<FeatureFlags> => {
+    const response = await api.get<{ flags: FeatureFlags }>('/api/flags');
+    return response.data.flags;
+};
+
+
+// --- Strava ---
+
+export interface StravaStatus {
+    connected: boolean;
+    athlete_id: number | null;
+    scope: string | null;
+}
+
+export const getStravaAuthUrl = async (): Promise<string> => {
+    const response = await api.get<{ url: string }>('/api/strava/auth-url');
+    return response.data.url;
+};
+
+export const getStravaStatus = async (): Promise<StravaStatus> => {
+    const response = await api.get<StravaStatus>('/api/strava/status');
+    return response.data;
+};
+
+export const disconnectStrava = async (): Promise<void> => {
+    await api.delete('/api/strava/disconnect');
+};
+
+export const exchangeStravaCode = async (code: string, state: string): Promise<void> => {
+    await api.post('/api/strava/exchange', { code, state });
+};
+
+export const syncStravaActivities = async (days: number = 7): Promise<{ synced: number; days: number }> => {
+    const response = await api.post<{ synced: number; days: number }>(
+        `/api/integrations/strava/sync?days=${days}`
+    );
     return response.data;
 };
 

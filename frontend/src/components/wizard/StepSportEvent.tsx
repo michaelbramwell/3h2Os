@@ -1,26 +1,33 @@
-import type { WizardSportEvent, EventType, Sport } from '../../types/wizard';
+import type { WizardSportEvent, EventType } from '../../types/wizard';
 import type { StepErrors } from '../../hooks/useWizard';
-import { RunningEvents, SwimmingPoolEvents, SwimmingOWEvents, EventLabels } from '../../types/wizard';
+import { Sport, RunningEvents, SwimmingPoolEvents, SwimmingOWEvents, EventLabels } from '../../types/wizard';
 
 interface StepSportEventProps {
     data: WizardSportEvent;
     onChange: (data: Partial<WizardSportEvent>) => void;
     errors: StepErrors;
+    swimmingEnabled?: boolean;
 }
 
-export function StepSportEvent({ data, onChange, errors }: StepSportEventProps) {
+export function StepSportEvent({ data, onChange, errors, swimmingEnabled = false }: StepSportEventProps) {
     const handleSportChange = (sport: Sport) => {
         // Reset event type when sport changes
-        const defaultEvent: EventType = data.event_type === 'none' ? 'none' : (sport === 'running' ? 'marathon' : 'pool_1500m');
+        const defaultEvent: EventType = data.event_type === 'none' ? 'none' : (sport === Sport.RUNNING ? 'marathon' : 'pool_1500m');
         onChange({ sport, event_type: defaultEvent });
     };
 
-    const availableEvents = data.sport === 'running'
+    // If swimming becomes disabled while it's selected, switch back to running
+    const effectiveSport: Sport = (!swimmingEnabled && data.sport === Sport.SWIMMING) ? Sport.RUNNING : data.sport;
+
+    const availableEvents = effectiveSport === Sport.RUNNING
         ? RunningEvents
         : [...SwimmingPoolEvents, ...SwimmingOWEvents];
 
     const isPool = SwimmingPoolEvents.includes(data.event_type) && data.event_type !== 'none';
     const isOW = SwimmingOWEvents.includes(data.event_type);
+
+    // Available sports — only show swimming when the flag is on
+    const availableSports: Sport[] = swimmingEnabled ? [Sport.RUNNING, Sport.SWIMMING] : [Sport.RUNNING];
 
     return (
         <div className="space-y-6">
@@ -52,19 +59,19 @@ export function StepSportEvent({ data, onChange, errors }: StepSportEventProps) 
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Sport</label>
                 <div className="grid grid-cols-2 gap-3">
-                    {(['running', 'swimming'] as Sport[]).map(sport => (
+                    {availableSports.map(sport => (
                         <button
                             key={sport}
                             type="button"
                             onClick={() => handleSportChange(sport)}
                             className={`
                                 p-3 rounded-lg border-2 text-sm font-medium transition-all
-                                ${data.sport === sport
+                                ${effectiveSport === sport
                                     ? 'border-blue-600 bg-blue-50 text-blue-700'
                                     : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}
                             `}
                         >
-                            {sport === 'running' ? 'Running' : 'Swimming'}
+                            {sport === Sport.RUNNING ? 'Running' : 'Swimming'}
                         </button>
                     ))}
                 </div>
@@ -73,7 +80,7 @@ export function StepSportEvent({ data, onChange, errors }: StepSportEventProps) 
             {/* Event type selection */}
             <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Event Distance</label>
-                {data.sport === 'swimming' && (
+                {effectiveSport === Sport.SWIMMING && (
                     <div className="flex gap-2 mb-3">
                         <span className={`text-xs px-2 py-0.5 rounded ${isPool ? 'bg-blue-100 text-blue-700 font-medium' : 'text-slate-400'}`}>Pool</span>
                         <span className={`text-xs px-2 py-0.5 rounded ${isOW ? 'bg-blue-100 text-blue-700 font-medium' : 'text-slate-400'}`}>Open Water</span>

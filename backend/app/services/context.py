@@ -20,18 +20,16 @@ class ContextService:
     def __init__(self, session: Session):
         self.session = session
 
-    def get_context(self, user: User = None) -> ContextSchema:
+    def get_context(self, user: User) -> ContextSchema:
         """
-        Retrieves the Context (Project + Runner Profile).
+        Retrieves the Context (Project + Runner Profile) for the given user.
         """
         if not user:
-            username = os.environ.get("DEFAULT_USERNAME", "runner")
-            # Try DB
-            user = self.session.exec(
-                select(User).where(User.username == username)
-            ).first()
+            raise ValueError(
+                "get_context requires a User — caller must resolve the user first"
+            )
 
-        if user and user.project and user.profile:
+        if user.project and user.profile:
             return self._map_to_schema(user)
 
         # Empty

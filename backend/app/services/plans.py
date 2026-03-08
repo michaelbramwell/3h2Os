@@ -1,7 +1,6 @@
 from sqlmodel import Session, select, delete
 from datetime import datetime, date, timedelta
 import json
-import os
 from typing import List, Dict, Any
 
 from app.core import plan_logic
@@ -28,25 +27,18 @@ class PlanService:
         self.session = session
         self.validator = ValidationEngine()
 
-    def get_active_plan(self, user: User = None) -> List[WeekSchema]:
+    def get_active_plan(self, user: User) -> List[WeekSchema]:
         """
         Retrieves the active plan for the user.
         Prioritizes Relational DB -> JSON Blob in DB -> JSON File.
         """
-        if user:
-            statement = (
-                select(RunnerPlan)
-                .where(RunnerPlan.user_id == user.id)
-                .where(RunnerPlan.is_active == True)
-            )
-        else:
-            username = os.environ.get("DEFAULT_USERNAME", "runner")
-            statement = (
-                select(RunnerPlan)
-                .join(User)
-                .where(User.username == username)
-                .where(RunnerPlan.is_active == True)
-            )
+        if not user:
+            raise ValueError("get_active_plan requires a User object")
+        statement = (
+            select(RunnerPlan)
+            .where(RunnerPlan.user_id == user.id)
+            .where(RunnerPlan.is_active == True)
+        )
 
         plan = self.session.exec(statement).first()
 
@@ -104,7 +96,7 @@ class PlanService:
     def create_or_update_plan(
         self,
         plan_data: List[Dict[str, Any]],
-        user: User = None,
+        user: User,
         title: str = None,
         plan_type: str = "running",
         activate: bool = False,
@@ -113,17 +105,7 @@ class PlanService:
         Creates a new plan version. Optionally activates it.
         """
         if not user:
-            username = os.environ.get("DEFAULT_USERNAME", "runner")
-            # Ensure user exists
-            user = self.session.exec(
-                select(User).where(User.username == username)
-            ).first()
-            if not user:
-                print(f"User '{username}' not found. Creating...")
-                user = User(username=username, email=f"{username}@example.com")
-                self.session.add(user)
-                self.session.commit()
-                self.session.refresh(user)
+            raise ValueError("create_or_update_plan requires a User object")
 
         # Determine if this is the user's first plan
         existing_plans = self.session.exec(
@@ -349,26 +331,18 @@ class PlanService:
         return workout
 
     def add_workout(
-        self, creation_data: WorkoutCreate, user: User = None, force: bool = False
+        self, creation_data: WorkoutCreate, user: User, force: bool = False
     ) -> PlanWorkout:
         """
         Adds a new workout to the active plan.
         """
         if not user:
-            username = os.environ.get("DEFAULT_USERNAME", "runner")
-            # 1. Get Active Plan
-            statement = (
-                select(RunnerPlan)
-                .join(User)
-                .where(User.username == username)
-                .where(RunnerPlan.is_active == True)
-            )
-        else:
-            statement = (
-                select(RunnerPlan)
-                .where(RunnerPlan.user_id == user.id)
-                .where(RunnerPlan.is_active == True)
-            )
+            raise ValueError("add_workout requires a User object")
+        statement = (
+            select(RunnerPlan)
+            .where(RunnerPlan.user_id == user.id)
+            .where(RunnerPlan.is_active == True)
+        )
 
         plan = self.session.exec(statement).first()
         if not plan:
@@ -566,11 +540,20 @@ class PlanService:
             initial_baseline_vol=current_baseline_vol,
         )
 
-        # 6. Save
+        # 6. Save — update the active plan in-place (no new plan created)
         plan_data = [w.model_dump() for w in weeks_schema]
-        self.create_or_update_plan(
-            plan_data,
-            user=user,
-            title=f"Auto-Update {datetime.now().strftime('%Y-%m-%d')}",
-            activate=True,
-        )
+
+        active_plan = self.session.exec(
+            select(RunnerPlan)
+            .where(RunnerPlan.user_id == user.id)
+            .where(RunnerPlan.is_active == True)
+        ).first()
+
+        if not active_plan:
+            return
+
+        active_plan.plan_json = json.dumps(plan_data)
+        self.session.add(active_plan)
+        self.session.commit()
+
+        plan_to_relational(self.session, active_plan, plan_data)

@@ -86,6 +86,12 @@ def _apply(conn, script_path: Path) -> None:
 
 def migrate(engine) -> int:
     """Apply all pending migrations. Returns count of scripts applied."""
+    # Skip SQL migrations for in-memory/SQLite test databases — the test
+    # fixtures set up the schema via SQLModel.metadata.create_all() instead.
+    if engine.dialect.name == "sqlite":
+        log.info("SQLite detected — skipping SQL migrations (test mode).")
+        return 0
+
     scripts = _discover_scripts()
     if not scripts:
         log.warning("No migration scripts found in %s", MIGRATIONS_DIR)

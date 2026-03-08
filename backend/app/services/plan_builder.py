@@ -40,6 +40,112 @@ class PlanBuilderService:
         self.plan_service = PlanService(session)
 
     # ------------------------------------------------------------------
+    # Wizard Defaults
+    # ------------------------------------------------------------------
+
+    def get_wizard_defaults(self, user: User) -> "WizardDefaultsResponse":
+        """
+        Return partial wizard defaults seeded from the stored RunnerProfile and recent
+        activity history. All fields are Optional — only populated fields are returned.
+        The frontend merges these on top of its own hardcoded defaults.
+        """
+        import json
+        import logging
+        from datetime import date as date_type, timedelta
+        from app.core.database import RunnerProfile, ActualActivity
+        from app.schemas import (
+            WizardAthleteProfileDefaults,
+            WizardGoalsFocusDefaults,
+            WizardDefaultsResponse,
+        )
+
+        logger = logging.getLogger(__name__)
+
+        profile = self.session.exec(
+            select(RunnerProfile).where(RunnerProfile.user_id == user.id)
+        ).first()
+
+        athlete_defaults = WizardAthleteProfileDefaults()
+        goals_defaults = WizardGoalsFocusDefaults()
+
+        if profile:
+            # age — compute from birthday if available, else use stored age
+            if profile.birthday:
+                today = date_type.today()
+                bday = profile.birthday
+                age = (
+                    today.year
+                    - bday.year
+                    - ((today.month, today.day) < (bday.month, bday.day))
+                )
+                athlete_defaults.age = age
+            elif profile.age:
+                athlete_defaults.age = profile.age
+
+            if profile.weight_kg:
+                athlete_defaults.weight_kg = profile.weight_kg
+
+            if profile.experience_level:
+                athlete_defaults.experience_level = profile.experience_level
+
+            if profile.events_completed_json:
+                try:
+                    events_map = json.loads(profile.events_completed_json)
+                    # Sum all completed events as a scalar for the wizard's events_completed field
+                    total = sum(int(v) for v in events_map.values() if v)
+                    athlete_defaults.events_completed = total
+                except Exception:
+                    pass
+
+            # Training zones
+            if profile.training_zones_json:
+                try:
+                    zones = json.loads(profile.training_zones_json)
+                    hr_zones = zones.get("hr", [])
+                    if hr_zones:
+                        athlete_defaults.use_calculated_zones = False
+                        athlete_defaults.custom_zones = {"heartRate": hr_zones}
+                except Exception:
+                    pass
+
+            if profile.weekly_availability:
+                goals_defaults.weekly_availability = profile.weekly_availability
+
+            if profile.pain_points_json:
+                try:
+                    goals_defaults.pain_points = json.loads(profile.pain_points_json)
+                except Exception:
+                    pass
+
+            # longest_recent_distance_m — from stored profile value OR from recent activities
+            if profile.longest_recent_distance_m:
+                goals_defaults.longest_recent_distance_m = (
+                    profile.longest_recent_distance_m
+                )
+            else:
+                # Compute from running activities in the last 30 days
+                try:
+                    cutoff = date_type.today() - timedelta(days=30)
+                    recent_runs = self.session.exec(
+                        select(ActualActivity).where(
+                            ActualActivity.user_id == user.id,
+                            ActualActivity.type.in_(["running", "trail_running"]),
+                            ActualActivity.date >= cutoff,
+                        )
+                    ).all()
+                    if recent_runs:
+                        max_dist = max(int(a.distance_m) for a in recent_runs)
+                        if max_dist > 0:
+                            goals_defaults.longest_recent_distance_m = max_dist
+                except Exception as e:
+                    logger.warning(f"Could not compute longest_recent_distance_m: {e}")
+
+        return WizardDefaultsResponse(
+            athlete_profile=athlete_defaults,
+            goals_focus=goals_defaults,
+        )
+
+    # ------------------------------------------------------------------
     # Template lookup
     # ------------------------------------------------------------------
 

@@ -1,19 +1,7 @@
 import pytest
-from sqlmodel import Session, SQLModel, create_engine, select
-from sqlalchemy.pool import StaticPool
+from sqlmodel import Session, select
 from app.core.services import save_plan_to_db
 from app.core.database import User, RunnerPlan, PlanWeek, PlanWorkout
-
-
-# Create an in-memory database for testing
-@pytest.fixture(name="session")
-def session_fixture():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
 
 
 def test_save_plan_to_db_creates_user_and_plan(session):

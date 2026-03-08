@@ -408,7 +408,9 @@ class ProjectContext(BaseModel):
 
 class TrainingZone(BaseModel):
     zone: int
-    lowBoundary_m_s: float
+    lowBoundary_m_s: Optional[float] = None
+    lowBoundary_bpm: Optional[float] = None
+    highBoundary_bpm: Optional[float] = None
     description: Optional[str] = None
 
 
@@ -451,7 +453,9 @@ class ActivitySchema(BaseModel):
     type: str
     distance_m: float
     duration_s: float
-    activityId: int
+    activityId: Optional[int] = None  # Garmin activity ID; null for Strava-only records
+    stravaActivityId: Optional[int] = None  # Strava activity ID; null for Garmin-only
+    source: str = "garmin"  # 'garmin' | 'strava' | 'manual'
     average_pace_m_s: Optional[float] = None
     average_hr: Optional[float] = None
     max_hr: Optional[float] = None
@@ -473,3 +477,94 @@ class GarminLogin(BaseModel):
 
 class GarminToken(BaseModel):
     token: str
+
+
+# Feature Flags
+
+
+class FeatureFlagSchema(BaseModel):
+    """Admin view of a single feature flag."""
+
+    id: Optional[int] = None
+    name: str
+    enabled_for: List[str]  # decoded from enabled_for_json
+    description: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FeatureFlagUpdate(BaseModel):
+    """Payload to create or update a flag."""
+
+    enabled_for: List[str]  # e.g. [] | ["*"] | ["alpha", "beta"]
+    description: Optional[str] = None
+
+
+class UserFlagsResponse(BaseModel):
+    """Resolved flags for the current user: {flagName: bool}."""
+
+    flags: Dict[str, bool]
+
+
+# Strava
+
+
+class StravaAuthUrlResponse(BaseModel):
+    url: str
+
+
+class StravaStatusResponse(BaseModel):
+    connected: bool
+    athlete_id: Optional[int] = None
+    scope: Optional[str] = None
+
+
+class StravaExchangeRequest(BaseModel):
+    code: str
+    state: str
+
+
+class StravaExchangeResponse(BaseModel):
+    ok: bool
+
+
+class StravaSyncRequest(BaseModel):
+    days: int = 7
+
+
+# Wizard defaults — partial WizardInput seeded from stored RunnerProfile.
+# All fields are Optional; the frontend merges these on top of hardcoded defaults.
+
+
+class WizardAthleteProfileDefaults(BaseModel):
+    """Subset of WizardAthleteProfile fields that can be pre-filled from profile."""
+
+    age: Optional[int] = None
+    weight_kg: Optional[float] = None
+    experience_level: Optional[str] = None
+    use_calculated_zones: Optional[bool] = None
+    custom_zones: Optional[Dict[str, Any]] = None
+    events_completed: Optional[int] = None
+
+
+class WizardGoalsFocusDefaults(BaseModel):
+    """Subset of WizardGoalsFocus fields that can be pre-filled from profile."""
+
+    weekly_availability: Optional[int] = None
+    longest_recent_distance_m: Optional[int] = None
+    pain_points: Optional[List[str]] = None
+
+
+class WizardDefaultsResponse(BaseModel):
+    """
+    Partial wizard defaults populated from RunnerProfile + recent activity history.
+    All top-level fields are Optional — only the fields that have stored data are set.
+    The frontend should merge these over its own hardcoded defaults.
+    """
+
+    athlete_profile: WizardAthleteProfileDefaults = Field(
+        default_factory=WizardAthleteProfileDefaults
+    )
+    goals_focus: WizardGoalsFocusDefaults = Field(
+        default_factory=WizardGoalsFocusDefaults
+    )

@@ -23,7 +23,7 @@ When working in this workspace, always refer to the following context to underst
 - **Zone Calculator**: `backend/app/core/zones.py` -- HR zones (Tanaka), pace zones, swim CSS zones.
 - **Scripts**: Automation scripts reside in `backend/scripts/`. Always run them via `cd backend && uv run scripts/<script_name>.py`.
 - **Models**:
-    - `backend/app/core/database.py`: SQLModel database tables (`User`, `RunnerPlan`, `PlanWeek`, `PlanWorkout`, `RunnerProject`, `RunnerProfile`, `ActualActivity`, `PlanTemplate`).
+    - `backend/app/core/database.py`: SQLModel database tables (`User`, `RunnerPlan`, `PlanWeek`, `PlanWorkout`, `RunnerProject`, `RunnerProfile`, `ActualActivity`, `PlanTemplate`, `FeatureFlag`).
     - `backend/app/models/domain.py`: Domain dataclasses and enums (`PlanType`, `ActivityType`, `WorkoutFormat`, `EventType`, `ExperienceLevel`, `PrimaryGoal`, `PainPoint`, `SwimmingEventType`).
     - `backend/app/schemas.py`: Pydantic DTOs for API requests/responses (`WizardInput`, `PlanPreview`, `ClonePlanRequest`, `WorkoutCreate/Update/Schema`, `WeekSchema`, `ContextSchema`, etc.).
 
@@ -34,7 +34,7 @@ When working in this workspace, always refer to the following context to underst
   - **Execution**: Run scripts/migrations inside the container: `docker exec running_app uv run ...`
   - **Changes**: Restart container (`docker restart running_app`) to apply backend code changes if hot-reload isn't active/working.
 - **Timezone**: All automated logic and date-logging MUST use AWST (Perth, UTC+8).
-- **Database**: Data structure changes must be done via SQLModel/Alembic. Do not edit legacy JSON files.
+- **Database**: Data structure changes require both a SQL migration script and a SQLModel model update. Do not edit legacy JSON files.
 - **API Documentation**: Maintain `backend/tests/api_requests.http` as a live reference for all available API endpoints. Update it whenever routes change.
 - **Testing**: Maintain the `backend/tests/` suite. Run with `cd backend && uv run pytest`. Currently 219 tests passing.
 - **Style Rule**: Strictly no emojis in any responses, code, or documentation.
@@ -74,7 +74,33 @@ When working in this workspace, always refer to the following context to underst
   - Returns `ValidationWarningError` (used by UI to show warnings) or blocks saving if configured strictly.
   - Tests simulate these rules (and must mock them if testing simple CRUD).
 
-### Plan Builder Wizard
+### Migration System
+
+- **Runner**: `backend/db/migrate.py` — forward-only, inspired by DbUp
+- **Scripts**: `backend/db/migrations/NNN_description.sql` (3-digit zero-padded prefix)
+- **Tracking**: `__schema_versions` table in Postgres (auto-created)
+- **Run**: `docker exec running_app uv run python -m db.migrate` (or `uv run python -m db.migrate` locally from `backend/`)
+- **Status**: append `--status` flag
+- **Adding a migration**: create the next numbered `.sql` file; use `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` for safety
+- **Current migrations**:
+  - `001_initial_schema.sql` — full schema as of 2026-02-10
+  - `002_add_project_context_to_plan.sql` — `event`, `goal`, `event_date` on `runnerplan`
+  - `003_add_wizard_input_to_plan.sql` — `wizard_input_json` on `runnerplan`
+  - `004_add_feature_flags.sql` — `user_types_json` on `user`; `featureflag` table
+- **Runtime startup** (`db.migrate`): forward-only SQL migration runner that also runs at app startup via lifespan; migrations become no-ops once applied.
+
+### Feature Flag System
+
+- `FeatureFlag` table: `name` (unique), `enabled_for_json` (JSON array), `description`
+- `User.user_types_json`: JSON array of type strings, default `["standard"]`
+- Valid user types: `standard`, `alpha`, `beta`, `premium`
+- `enabled_for_json` semantics: `[]` = off for all, `["*"]` = on for all, `["alpha","beta"]` = specific types only
+- Service: `backend/app/services/feature_flags.py` (`FeatureFlagService`)
+- API endpoints: `GET /api/flags` (resolved bool map for current user), `GET /api/admin/flags`, `PUT /api/admin/flags/{name}`
+- Admin endpoints protected by `require_role("app_admin")` (`backend/app/core/auth.py`); dev bypass via `DEFAULT_USERNAME` + `ENVIRONMENT=development`
+- `isSwimmingEnabled` seeded on startup (off by default); guards `POST /api/plans/generate-preview`, `POST /api/plans/from-wizard`, `PUT /api/plans/{id}/from-wizard`
+
+
 - **Design Document**: `.ai/plan-builder-wizard.md` (Status: Implemented -- Phase 1 complete).
 - **Backend**: `PlanBuilderService` orchestrates wizard inputs -> template selection -> zone calculation -> plan generation -> DB persistence.
 - **Frontend**: 6-step wizard at `/plans/build` route with `useWizard` hook for step navigation and form state.

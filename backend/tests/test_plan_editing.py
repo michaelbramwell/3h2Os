@@ -1,22 +1,11 @@
 import pytest
 from unittest.mock import patch
 from datetime import date, timedelta
-from sqlmodel import Session, SQLModel, create_engine
-from sqlalchemy.pool import StaticPool
+from sqlmodel import Session
 from app.services.plans import PlanService
 from app.core.database import User, RunnerPlan, PlanWeek, PlanWorkout, ActualActivity
 from app.schemas import WorkoutUpdate
 from app.models.domain import ActivityType
-
-
-@pytest.fixture(name="session")
-def session_fixture():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    SQLModel.metadata.create_all(engine)
-    with Session(engine) as session:
-        yield session
 
 
 def create_test_data(session: Session):

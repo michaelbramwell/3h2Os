@@ -1,15 +1,20 @@
 import type { WizardAthleteProfile, ExperienceLevel } from '../../types/wizard';
+import { Sport } from '../../types/wizard';
 import type { StepErrors } from '../../hooks/useWizard';
+import type { IntegrationSources } from './IntegrationBanner';
+import { IntegrationBanner } from './IntegrationBanner';
 
 interface StepAthleteProfileProps {
     data: WizardAthleteProfile;
     onChange: (data: Partial<WizardAthleteProfile>) => void;
-    sport: string;
+    sport: Sport;
     errors: StepErrors;
+    swimmingEnabled?: boolean;
+    integrationSources?: IntegrationSources;
 }
 
 // Default empty custom zones structure matching the zone calculator output
-function defaultCustomZones(sport: string): Record<string, any> {
+function defaultCustomZones(sport: Sport): Record<string, any> {
     const hrZones = [
         { zone: 1, lowBoundary_bpm: 0, highBoundary_bpm: 0, description: 'Recovery' },
         { zone: 2, lowBoundary_bpm: 0, highBoundary_bpm: 0, description: 'Aerobic' },
@@ -18,7 +23,7 @@ function defaultCustomZones(sport: string): Record<string, any> {
         { zone: 5, lowBoundary_bpm: 0, highBoundary_bpm: 0, description: 'VO2max' },
     ];
 
-    if (sport === 'swimming') {
+    if (sport === Sport.SWIMMING) {
         return {
             heartRate: hrZones,
             swimPace: [
@@ -85,13 +90,15 @@ function minPer100mToMs(value: string): number {
     return 100 / totalSecs;
 }
 
-export function StepAthleteProfile({ data, onChange, sport, errors }: StepAthleteProfileProps) {
+export function StepAthleteProfile({ data, onChange, sport, errors, swimmingEnabled = false, integrationSources }: StepAthleteProfileProps) {
+    // If swimming is disabled, treat the sport as running for zone display purposes
+    const effectiveSport = (!swimmingEnabled && sport === Sport.SWIMMING) ? Sport.RUNNING : sport;
     const showZoneToggle = data.experience_level !== 'beginner';
     const showCustomZones = showZoneToggle && !data.use_calculated_zones;
 
-    const customZones = data.custom_zones || defaultCustomZones(sport);
+    const customZones = data.custom_zones || defaultCustomZones(effectiveSport);
     const hrZones: any[] = customZones.heartRate || [];
-    const paceKey = sport === 'swimming' ? 'swimPace' : 'pace';
+    const paceKey = effectiveSport === Sport.SWIMMING ? 'swimPace' : 'pace';
     const paceZones: any[] = customZones[paceKey] || [];
 
     const updateHrZone = (zoneIndex: number, field: 'lowBoundary_bpm' | 'highBoundary_bpm', value: number) => {
@@ -104,7 +111,7 @@ export function StepAthleteProfile({ data, onChange, sport, errors }: StepAthlet
     };
 
     const updatePaceZone = (zoneIndex: number, rawValue: string) => {
-        const ms = sport === 'swimming'
+        const ms = effectiveSport === Sport.SWIMMING
             ? minPer100mToMs(rawValue)
             : minPerKmToMs(rawValue);
         const updated = paceZones.map((z: any, i: number) =>
@@ -121,6 +128,8 @@ export function StepAthleteProfile({ data, onChange, sport, errors }: StepAthlet
                 <h2 className="text-lg font-semibold text-slate-900 mb-1">Athlete Profile</h2>
                 <p className="text-sm text-slate-500">Tell us about yourself so we can tailor your plan.</p>
             </div>
+
+            {integrationSources && <IntegrationBanner sources={integrationSources} />}
 
             {/* Experience level */}
             <div>
@@ -283,7 +292,7 @@ export function StepAthleteProfile({ data, onChange, sport, errors }: StepAthlet
             </div>
 
             {/* Preferred long run day */}
-            {sport === 'running' && (
+            {effectiveSport === Sport.RUNNING && (
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                         Preferred long run day
@@ -341,7 +350,7 @@ export function StepAthleteProfile({ data, onChange, sport, errors }: StepAthlet
                                     // Switching to custom: initialise with empty zones
                                     onChange({
                                         use_calculated_zones: false,
-                                        custom_zones: data.custom_zones || defaultCustomZones(sport),
+                                        custom_zones: data.custom_zones || defaultCustomZones(effectiveSport),
                                     });
                                 } else {
                                     // Switching back to auto-calculated
@@ -415,16 +424,16 @@ export function StepAthleteProfile({ data, onChange, sport, errors }: StepAthlet
                     {/* Pace Zones */}
                     <div>
                         <h3 className="text-sm font-medium text-slate-700 mb-1">
-                            {sport === 'swimming' ? 'Swim Pace Zones (per 100m)' : 'Pace Zones (per km)'}
-                        </h3>
-                        <p className="text-xs text-slate-500 mb-2">
-                            Enter the lower boundary pace for each zone as min:sec
-                            {sport === 'swimming' ? ' per 100m' : ' per km'}.
+                             {effectiveSport === Sport.SWIMMING ? 'Swim Pace Zones (per 100m)' : 'Pace Zones (per km)'}
+                         </h3>
+                         <p className="text-xs text-slate-500 mb-2">
+                             Enter the lower boundary pace for each zone as min:sec
+                             {effectiveSport === Sport.SWIMMING ? ' per 100m' : ' per km'}.
                             Slower paces for lower zones, faster for higher.
                         </p>
                         <div className="space-y-2">
                             {paceZones.map((zone: any, i: number) => {
-                                const displayValue = sport === 'swimming'
+                                const displayValue = effectiveSport === Sport.SWIMMING
                                     ? msToMinPer100m(zone.lowBoundary_m_s)
                                     : msToMinPerKm(zone.lowBoundary_m_s);
                                 return (
@@ -434,14 +443,14 @@ export function StepAthleteProfile({ data, onChange, sport, errors }: StepAthlet
                                         </span>
                                         <input
                                             type="text"
-                                            placeholder={sport === 'swimming' ? '2:00' : '6:00'}
+                                            placeholder={effectiveSport === Sport.SWIMMING ? '2:00' : '6:00'}
                                             defaultValue={displayValue}
                                             onBlur={e => updatePaceZone(i, e.target.value)}
                                             className="w-20 p-1.5 border border-slate-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                         <span className="text-xs text-slate-400">
-                                            {sport === 'swimming' ? '/100m' : '/km'}
-                                        </span>
+                                             {effectiveSport === Sport.SWIMMING ? '/100m' : '/km'}
+                                         </span>
                                     </div>
                                 );
                             })}

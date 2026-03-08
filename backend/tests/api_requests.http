@@ -130,3 +130,38 @@ Content-Type: application/json
 ### Delete Workout (DELETE)
 # Replace {workout_id} with actual ID
 DELETE {{baseUrl}}/api/workouts/999
+
+###
+# Strava Integration
+###
+
+### Get Strava Auth URL (GET)
+# Returns the OAuth authorization URL to redirect the user to
+GET {{baseUrl}}/api/strava/auth-url
+
+### Get Strava Status (GET)
+# Returns { connected: bool, athlete_id: int|null, scope: str|null }
+GET {{baseUrl}}/api/strava/status
+
+### Disconnect Strava (DELETE)
+DELETE {{baseUrl}}/api/strava/disconnect
+
+### Sync Strava Activities (POST)
+# Syncs activities for the last 7 days; use ?days= to override
+POST {{baseUrl}}/api/integrations/strava/sync?days=7
+
+### Feature Flags (GET)
+GET {{baseUrl}}/api/flags
+
+### Admin: List Feature Flags (GET)
+GET {{baseUrl}}/api/admin/flags
+
+### Admin: Update Feature Flag (PUT)
+# Sets isSwimmingEnabled for alpha and beta users
+PUT {{baseUrl}}/api/admin/flags/isSwimmingEnabled
+Content-Type: application/json
+
+{
+    "enabled_for": ["alpha", "beta"],
+    "description": "Enables swimming plan generation"
+}
