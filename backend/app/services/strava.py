@@ -631,6 +631,65 @@ class StravaService:
     # High-level sync
     # ------------------------------------------------------------------
 
+    def handle_webhook_event(self, event: Dict[str, Any]) -> None:
+        """
+        Handle a Strava webhook event.
+        - Deauthorization: Deletes token
+        - Activity update/create: Triggers sync
+        """
+        object_type = event.get("object_type")
+        aspect_type = event.get("aspect_type")
+        owner_id = event.get("owner_id")
+
+        logger.info(
+            f"Strava webhook: object_type={object_type} aspect_type={aspect_type} owner_id={owner_id}"
+        )
+
+        updates = event.get("updates", {})
+        if (
+            object_type == "athlete"
+            and aspect_type == "update"
+            and updates.get("authorized") == "false"
+        ):
+            if owner_id:
+                token = self.session.exec(
+                    select(StravaToken).where(StravaToken.athlete_id == owner_id)
+                ).first()
+                if token:
+                    self.session.delete(token)
+                    self.session.commit()
+                    logger.info(
+                        f"Deleted Strava token for athlete_id={owner_id} (deauthorized via webhook)"
+                    )
+            return
+
+        if object_type == "activity" and aspect_type in ("create", "update"):
+            if owner_id:
+                token = self.session.exec(
+                    select(StravaToken).where(StravaToken.athlete_id == owner_id)
+                ).first()
+                if token:
+                    try:
+                        user = self.session.exec(
+                            select(User).where(User.id == token.user_id)
+                        ).first()
+                        if user:
+                            # Local imports to prevent circular imports
+                            from app.services.activities import ActivityService
+                            from app.services.plans import PlanService
+
+                            activities = self.sync_activities(user=user, days=2)
+                            activity_service = ActivityService(self.session)
+                            activity_service.save_activities(activities, user=user)
+
+                            plan_service = PlanService(self.session)
+                            plan_service.recalculate_plan_progression(user)
+                    except Exception as e:
+                        logger.warning(
+                            f"Webhook-triggered sync failed for athlete_id={owner_id}: {e}"
+                        )
+            return
+
     def sync_activities(
         self,
         user: User,
