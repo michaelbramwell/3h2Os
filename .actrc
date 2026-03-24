@@ -1,3 +1,4 @@
 -a michaelbramwell
 --secret-file .secrets
 --var-file .vars
+--env DOCKER_CONFIG=.docker
