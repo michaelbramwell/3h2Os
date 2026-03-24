@@ -451,6 +451,7 @@ class ActivitySchema(BaseModel):
     id: Optional[int] = None  # ActualActivity database PK; used for share endpoint
     date: str
     name: str
+    custom_name: Optional[str] = None  # User-set title; survives sync overwrites
     type: str
     distance_m: float
     duration_s: float

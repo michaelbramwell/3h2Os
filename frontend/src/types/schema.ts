@@ -140,6 +140,7 @@ export interface Activity {
     id?: number | null;              // ActualActivity database PK; present on actuals, absent on planned
     date: string;
     name: string;
+    custom_name?: string | null;     // User-set title; survives sync overwrites
     type: string;  // Backend returns lowercase ('running', 'swimming'); use isType() for comparisons
     distance_m: number;
     duration_s: number;

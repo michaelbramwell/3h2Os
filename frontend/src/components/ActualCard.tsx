@@ -47,6 +47,16 @@ export function ActualCard({ activity, onClick }: ActualCardProps) {
                 <div className={`font-bold text-[10px] ${textColor} uppercase tracking-wider mb-0.5`}>
                     Actual {isRunning ? '🏃' : (isSwim ? '🏊' : '✓')}
                 </div>
+                {(activity.custom_name ?? activity.name) && (
+                    <div className="text-xs font-semibold text-slate-700 leading-tight truncate">
+                        {activity.custom_name ?? activity.name}
+                    </div>
+                )}
+                {activity.custom_name && activity.custom_name !== activity.name && (
+                    <div className="text-[10px] italic text-slate-400 leading-tight truncate">
+                        {activity.name}
+                    </div>
+                )}
                 <div className="font-bold text-sm text-slate-800 leading-tight">
                     {formatDistance(activity.distance_m, 2)}km
                 </div>

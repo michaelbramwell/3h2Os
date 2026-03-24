@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
 import logging
 from pydantic import BaseModel
 
@@ -78,7 +78,7 @@ async def get_context_markdown():
 
 
 class ActivityNameUpdate(BaseModel):
-    name: str
+    name: Optional[str]  # None = clear custom name
 
 
 @router.patch("/activities/{activity_id}")
@@ -89,7 +89,8 @@ async def update_activity(
     user: User = Depends(get_current_user),
 ):
     """
-    Update fields on an actual activity (currently: name).
+    Update the custom name on an actual activity.
+    Pass name=null to clear the custom name and revert to the source name.
     """
     activity = session.exec(
         select(ActualActivity).where(
@@ -99,8 +100,12 @@ async def update_activity(
     ).first()
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
-    activity.name = body.name
+    activity.custom_name = body.name  # None clears it
     session.add(activity)
     session.commit()
     session.refresh(activity)
-    return {"id": activity.id, "name": activity.name}
+    return {
+        "id": activity.id,
+        "name": activity.name,
+        "custom_name": activity.custom_name,
+    }

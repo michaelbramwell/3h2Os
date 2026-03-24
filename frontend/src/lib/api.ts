@@ -183,8 +183,8 @@ export const createActivityShare = async (activityId: number): Promise<{ token: 
     return response.data;
 };
 
-export const updateActivityName = async (activityId: number, name: string): Promise<{ id: number; name: string }> => {
-    const response = await api.patch<{ id: number; name: string }>(`/api/activities/${activityId}`, { name });
+export const updateActivityName = async (activityId: number, name: string | null): Promise<{ id: number; name: string; custom_name: string | null }> => {
+    const response = await api.patch<{ id: number; name: string; custom_name: string | null }>(`/api/activities/${activityId}`, { name });
     return response.data;
 };
 

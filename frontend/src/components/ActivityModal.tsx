@@ -191,13 +191,16 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
     const queryClient = useQueryClient();
     const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied' | 'error'>('idle');
     const [editingName, setEditingName] = useState(false);
-    const [nameValue, setNameValue] = useState(activity.name);
+    const [nameValue, setNameValue] = useState(activity.custom_name ?? activity.name);
+
+    const displayName = activity.custom_name ?? activity.name;
+    const sourceNameDiffers = !!activity.custom_name && activity.custom_name !== activity.name;
 
     // Collect workout names from the plan on the same day as this activity
     const dayWorkoutNames: string[] = [];
     if (plan) {
         for (const week of plan) {
-            const day = week.days[activity.date];
+            const day = Object.values(week.days).find(d => d.date === activity.date);
             if (day) {
                 for (const workout of day.workouts) {
                     if (workout.name && !dayWorkoutNames.includes(workout.name)) {
@@ -209,11 +212,17 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
     }
 
     const renameMutation = useMutation({
-        mutationFn: (name: string) => updateActivityName(activity.id!, name),
+        mutationFn: (name: string | null) => {
+            if (!activity.id) throw new Error('Activity has no DB id — cannot rename');
+            return updateActivityName(activity.id, name);
+        },
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['actuals'] });
-            setNameValue(data.name);
+            setNameValue(data.custom_name ?? activity.name);
             setEditingName(false);
+        },
+        onError: (err: any) => {
+            console.error('[ActivityModal] rename failed:', err?.response?.data ?? err?.message ?? err);
         },
     });
 
@@ -225,11 +234,16 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
 
     function handleNameSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (nameValue.trim() && nameValue.trim() !== activity.name) {
-            renameMutation.mutate(nameValue.trim());
+        const trimmed = nameValue.trim();
+        if (trimmed && trimmed !== displayName) {
+            renameMutation.mutate(trimmed);
         } else {
             setEditingName(false);
         }
+    }
+
+    function handleClearCustomName() {
+        renameMutation.mutate(null);
     }
 
     async function handleShare() {
@@ -301,29 +315,46 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
                                     value={nameValue}
                                     onChange={e => setNameValue(e.target.value)}
                                     className="text-xl font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-lg px-2 py-0.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    onKeyDown={e => { if (e.key === 'Escape') { setNameValue(activity.name); setEditingName(false); } }}
+                                    onKeyDown={e => { if (e.key === 'Escape') { setNameValue(displayName); setEditingName(false); } }}
                                     disabled={renameMutation.isPending}
                                 />
                                 <button type="submit" disabled={renameMutation.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 shrink-0">
                                     {renameMutation.isPending ? '...' : 'Save'}
                                 </button>
-                                <button type="button" onClick={() => { setNameValue(activity.name); setEditingName(false); }} className="text-xs font-semibold px-3 py-1.5 rounded-full text-slate-500 hover:bg-slate-100 transition shrink-0">
+                                <button type="button" onClick={() => { setNameValue(displayName); setEditingName(false); }} className="text-xs font-semibold px-3 py-1.5 rounded-full text-slate-500 hover:bg-slate-100 transition shrink-0">
                                     Cancel
                                 </button>
                             </form>
                         ) : (
-                            <div className="flex items-center gap-2 group">
-                                <h2 className="text-xl font-bold text-slate-900 truncate">{nameValue}</h2>
-                                {activity.id && (
-                                    <button
-                                        onClick={() => setEditingName(true)}
-                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 shrink-0"
-                                        title="Edit title"
-                                    >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z" />
-                                        </svg>
-                                    </button>
+                            <div>
+                                <div className="flex items-center gap-2 group">
+                                    <h2 className="text-xl font-bold text-slate-900 truncate">{displayName}</h2>
+                                    {activity.id && (
+                                        <button
+                                            onClick={() => setEditingName(true)}
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 shrink-0"
+                                            title="Edit title"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                    {sourceNameDiffers && activity.id && (
+                                        <button
+                                            onClick={handleClearCustomName}
+                                            disabled={renameMutation.isPending}
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 shrink-0 disabled:opacity-30"
+                                            title="Clear custom name"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                                {sourceNameDiffers && (
+                                    <p className="text-xs italic text-slate-400 mt-0.5 truncate">{activity.name}</p>
                                 )}
                             </div>
                         )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Activity, Week } from '../types/schema';
 import { ActivityModal } from './ActivityModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -39,6 +39,15 @@ export function RecentActivities({ activities, plan }: RecentActivitiesProps) {
     const queryClient = useQueryClient();
     const { hasToken: hasGarminToken } = useGarminToken();
     const { connected: stravaConnected } = useStravaStatus();
+
+    // Keep selectedActivity in sync when the actuals prop updates (e.g. after a rename)
+    useEffect(() => {
+        if (!selectedActivity) return;
+        const fresh = activities?.find(a => a.id === selectedActivity.id);
+        if (fresh && (fresh.name !== selectedActivity.name || fresh.custom_name !== selectedActivity.custom_name)) {
+            setSelectedActivity(fresh);
+        }
+    }, [activities]);
 
     const garminSyncMutation = useMutation({
         mutationFn: () => syncActivities(7),
@@ -115,7 +124,7 @@ export function RecentActivities({ activities, plan }: RecentActivitiesProps) {
                                             {date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' })}
                                         </span>
                                         <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
-                                            {activity.name}
+                                            {activity.custom_name ?? activity.name}
                                         </span>
                                         <SourceBadge source={activity.source} />
                                     </div>

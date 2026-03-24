@@ -179,6 +179,7 @@ class ActualActivity(SQLModel, table=True):
 
     date: date
     name: str
+    custom_name: Optional[str] = None  # User-set title; survives sync overwrites
     type: str  # running, cycling, etc.
 
     distance_m: float
