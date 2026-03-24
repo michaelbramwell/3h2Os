@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StravaCallbackRouteImport } from './routes/strava.callback'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as PlansBuildRouteImport } from './routes/plans.build'
 
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -29,6 +30,11 @@ const StravaCallbackRoute = StravaCallbackRouteImport.update({
   path: '/strava/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlansBuildRoute = PlansBuildRouteImport.update({
   id: '/plans/build',
   path: '/plans/build',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
   '/plans/build': typeof PlansBuildRoute
+  '/share/$token': typeof ShareTokenRoute
   '/strava/callback': typeof StravaCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
   '/plans/build': typeof PlansBuildRoute
+  '/share/$token': typeof ShareTokenRoute
   '/strava/callback': typeof StravaCallbackRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,33 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
   '/plans/build': typeof PlansBuildRoute
+  '/share/$token': typeof ShareTokenRoute
   '/strava/callback': typeof StravaCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/privacy' | '/plans/build' | '/strava/callback'
+  fullPaths:
+    | '/'
+    | '/privacy'
+    | '/plans/build'
+    | '/share/$token'
+    | '/strava/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/privacy' | '/plans/build' | '/strava/callback'
-  id: '__root__' | '/' | '/privacy' | '/plans/build' | '/strava/callback'
+  to: '/' | '/privacy' | '/plans/build' | '/share/$token' | '/strava/callback'
+  id:
+    | '__root__'
+    | '/'
+    | '/privacy'
+    | '/plans/build'
+    | '/share/$token'
+    | '/strava/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PrivacyRoute: typeof PrivacyRoute
   PlansBuildRoute: typeof PlansBuildRoute
+  ShareTokenRoute: typeof ShareTokenRoute
   StravaCallbackRoute: typeof StravaCallbackRoute
 }
 
@@ -92,6 +113,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StravaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/plans/build': {
       id: '/plans/build'
       path: '/plans/build'
@@ -106,6 +134,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PrivacyRoute: PrivacyRoute,
   PlansBuildRoute: PlansBuildRoute,
+  ShareTokenRoute: ShareTokenRoute,
   StravaCallbackRoute: StravaCallbackRoute,
 }
 export const routeTree = rootRouteImport

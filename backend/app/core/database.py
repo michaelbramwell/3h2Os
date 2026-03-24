@@ -212,6 +212,20 @@ class PlanTemplate(SQLModel, table=True):
     structure_json: str  # JSON blob defining phases, session patterns, volume curve
 
 
+class ActivityShare(SQLModel, table=True):
+    """
+    Maps a permanent random token to a single activity for public sharing.
+    One token per activity; upserted on repeated share requests.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    activity_id: int = Field(foreign_key="actualactivity.id", index=True)
+    token: str = Field(
+        sa_column=Column(String(64), unique=True, nullable=False, index=True)
+    )
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # --- Database Connection ---
 
 # Environment variables

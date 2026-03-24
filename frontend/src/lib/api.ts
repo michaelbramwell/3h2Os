@@ -178,5 +178,15 @@ export const syncStravaActivities = async (days: number = 7): Promise<{ synced: 
     return response.data;
 };
 
+export const createActivityShare = async (activityId: number): Promise<{ token: string; url: string }> => {
+    const response = await api.post<{ token: string; url: string }>(`/api/activities/${activityId}/share`);
+    return response.data;
+};
+
+export const updateActivityName = async (activityId: number, name: string): Promise<{ id: number; name: string }> => {
+    const response = await api.patch<{ id: number; name: string }>(`/api/activities/${activityId}`, { name });
+    return response.data;
+};
+
 
 export default api;

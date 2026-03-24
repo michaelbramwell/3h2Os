@@ -448,6 +448,7 @@ class HrZone(BaseModel):
 
 
 class ActivitySchema(BaseModel):
+    id: Optional[int] = None  # ActualActivity database PK; used for share endpoint
     date: str
     name: str
     type: str

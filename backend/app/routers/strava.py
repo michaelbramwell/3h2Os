@@ -7,6 +7,7 @@ from typing import Optional
 
 from app.core.database import User, get_session
 from app.routers.deps import get_current_user
+from app.routers.events import push_event
 from app.services.strava import StravaService
 from app.services.sync import SyncService
 from app.core.auth import allow_anonymous
@@ -159,7 +160,10 @@ async def strava_webhook_event(
         raise HTTPException(status_code=400, detail="Invalid JSON body")
 
     strava = StravaService(session)
-    strava.handle_webhook_event(event)
+    synced_user_id = strava.handle_webhook_event(event)
+
+    if synced_user_id is not None:
+        await push_event(synced_user_id, "activities_updated", {})
 
     # All event types — acknowledge
     return {"status": "ok"}

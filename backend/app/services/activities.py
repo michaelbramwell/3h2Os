@@ -287,6 +287,7 @@ class ActivityService:
 
             result.append(
                 ActivitySchema(
+                    id=a.id,
                     date=a.date.isoformat(),
                     name=a.name,
                     type=a.type,

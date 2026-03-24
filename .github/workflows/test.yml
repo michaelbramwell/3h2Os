@@ -20,11 +20,11 @@ jobs:
         uses: astral-sh/setup-uv@v2
         with:
           version: "0.5.24"
+          enable-cache: true
+          cache-dependency-glob: "backend/pyproject.toml"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: "backend/pyproject.toml"
+        run: uv python install 3.13
 
       - name: Install dependencies
         working-directory: ./backend

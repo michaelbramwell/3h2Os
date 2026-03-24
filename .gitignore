@@ -28,3 +28,7 @@ backend/certs/
 certs/
 .opencode/
 debug_routes.py
+.secrets
+.vars
+.docker/
+*.tmp

@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: michaelbramwell/3h2os
 
 jobs:
   build-and-push:
@@ -21,9 +21,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Lowercase Image Name
-        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -73,8 +70,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Lowercase Image Name
-        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
 
       - name: Create .env file
         run: |
@@ -87,6 +82,12 @@ jobs:
           echo "DOMAIN=${{ vars.DOMAIN }}" >> .env
           echo "ACME_EMAIL=${{ vars.ACME_EMAIL }}" >> .env
           echo "VOLUME_PATH=${{ vars.VOLUME_PATH }}" >> .env
+          echo "STRAVA_CLIENT_ID=${{ vars.STRAVA_CLIENT_ID }}" >> .env
+          echo "STRAVA_CLIENT_SECRET=${{ secrets.STRAVA_CLIENT_SECRET }}" >> .env
+          echo "STRAVA_REDIRECT_URI=${{ vars.STRAVA_REDIRECT_URI }}" >> .env
+          echo "STRAVA_STATE_SECRET=${{ secrets.STRAVA_STATE_SECRET }}" >> .env
+          echo "STRAVA_WEBHOOK_VERIFY_TOKEN=${{ secrets.STRAVA_WEBHOOK_VERIFY_TOKEN }}" >> .env
+          echo "STRAVA_WEBHOOK_SECRET=${{ secrets.STRAVA_WEBHOOK_SECRET }}" >> .env
 
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
@@ -95,7 +96,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           # Copy generated .env along with config files
-          source: ".env,docker-compose.prod.yml,Caddyfile,backend/scripts/init_db.sql,keycloak-realm.prod.json"
+          source: ".env,docker-compose.prod.yml,Caddyfile,backend/db/init_keycloak.sql,keycloak-realm.prod.json"
           target: "~/app"
 
       - name: Deploy via SSH

@@ -10,6 +10,7 @@ A multi-sport training plan platform for running and swimming. Create periodised
 - **Template Engine** -- 39 plan templates (15 running + 24 swimming) across beginner/intermediate/advanced levels with auto-calculated training zones
 - **Multi-Plan Support** -- manage multiple concurrent plans (e.g. a marathon plan and a swim plan) with plan switching
 - **Workout Management** -- full CRUD for workouts with validation guardrails (volume progression, intensity ratio, long run cap)
+- **Strava Integration** -- OAuth connect, activity sync with zone distribution, webhook-driven auto-sync on new activity with real-time SSE push to connected browsers
 - **Garmin Connect Integration** -- sync actual activities from Garmin, with zone distribution and telemetry enrichment
 - **Clone Plans** -- duplicate an existing plan with date offsets for reuse
 - **Authentication** -- Keycloak OIDC with JWT (RS256) for multi-user support
@@ -50,7 +51,7 @@ A multi-sport training plan platform for running and swimming. Create periodised
       routes/           # TanStack file-based routes
       components/       # UI components (WeekCard, WorkoutCard, Sidebar, etc.)
         wizard/         # Plan builder wizard (6 step components)
-      hooks/            # Custom hooks (useWizard, useWorkoutForm, useGarminToken)
+      hooks/            # Custom hooks (useWizard, useWorkoutForm, useGarminToken, useSSE)
       lib/              # API client, auth, formatters, calculations
       types/            # TypeScript type definitions
       providers/        # Auth context provider
@@ -129,6 +130,13 @@ npm test
 | `POST` | `/api/plans/{id}/clone` | Clone an existing plan |
 | `POST` | `/api/garmin/token` | Authenticate with Garmin (returns OAuth token) |
 | `POST` | `/api/integrations/garmin/sync` | Sync activities from Garmin Connect |
+| `GET` | `/api/strava/auth-url` | Get Strava OAuth authorization URL |
+| `POST` | `/api/strava/exchange` | Exchange Strava auth code for tokens |
+| `GET` | `/api/strava/status` | Check Strava connection status |
+| `DELETE` | `/api/strava/disconnect` | Disconnect Strava |
+| `POST` | `/api/integrations/strava/sync` | Manual sync from Strava |
+| `GET/POST` | `/strava/webhook/{secret}` | Strava webhook (verify + event receiver) |
+| `GET` | `/api/events` | SSE stream — real-time push events for the current user |
 
 ## Validation Engine
 
@@ -137,6 +145,100 @@ The training guardrails enforce safe progression on every workout save/update:
 - **Volume Progression**: weekly volume increase capped at 15%
 - **Long Run Ratio**: single long run must not exceed 40% of weekly volume
 - **Intensity Ratio**: high intensity work must not exceed 25% of weekly volume
+
+## Environment Configuration
+
+All configuration lives in a single `.env` file at the repo root. Use `.env.example` as the template.
+
+### Local development
+
+```bash
+cp .env.example .env
+# Fill in values — the Strava and database vars are the minimum needed
+```
+
+Key vars for local dev:
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` | Strava OAuth app credentials |
+| `STRAVA_REDIRECT_URI` | `http://localhost:5173/strava/callback` |
+| `STRAVA_STATE_SECRET` | Long random string — `openssl rand -hex 32` |
+| `KEYCLOAK_ADMIN_USER` / `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin credentials |
+
+### Production (deployed via `act`)
+
+Production deployment uses [act](https://github.com/nektos/act) to run the GitHub Actions workflow locally against the production server. The workflow assembles the prod `.env` from GitHub Environment secrets/variables and copies it to the server via SCP.
+
+`.actrc` at the repo root configures `act` automatically — no extra flags needed:
+
+```
+-a michaelbramwell
+--secret-file .secrets
+--var-file .vars
+--env DOCKER_CONFIG=.docker
+```
+
+A `.secrets` file supplies secrets (mirrors GitHub Environment secrets):
+
+```bash
+cp .secrets.example .secrets
+# Fill in real values
+```
+
+A `.vars` file supplies non-secret variables (mirrors GitHub Environment variables):
+
+```bash
+cp .vars.example .vars
+# Fill in real values
+```
+
+Key `.secrets` entries:
+
+| Key | Purpose |
+|-----|---------|
+| `DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_KEY` | SSH access to production server |
+| `POSTGRES_PASSWORD` | Production DB password |
+| `STRAVA_CLIENT_SECRET` | Prod Strava app secret |
+| `STRAVA_STATE_SECRET` | Long random string (prod) |
+| `STRAVA_WEBHOOK_SECRET` | Secret path segment for webhook URL |
+| `STRAVA_WEBHOOK_VERIFY_TOKEN` | Token used during Strava webhook registration |
+| `GITHUB_TOKEN` | For pulling images from GHCR |
+
+Key `.vars` entries:
+
+| Variable | Value |
+|----------|-------|
+| `STRAVA_CLIENT_ID` | Prod Strava app client ID |
+| `STRAVA_REDIRECT_URI` | `https://3h2os.com/strava/callback` |
+| `DOMAIN` | `3h2os.com` |
+| `POSTGRES_USER` / `POSTGRES_DB` | Production DB credentials |
+
+Run deployment:
+
+```bash
+act -j deploy
+```
+
+### Strava webhook registration (one-time, after first deploy)
+
+Once the server is running with `STRAVA_WEBHOOK_SECRET` and `STRAVA_WEBHOOK_VERIFY_TOKEN` set, register the webhook subscription with Strava:
+
+```bash
+curl -X POST https://www.strava.com/api/v3/push_subscriptions \
+  -F client_id=<STRAVA_CLIENT_ID> \
+  -F client_secret=<STRAVA_CLIENT_SECRET> \
+  -F callback_url=https://3h2os.com/strava/webhook/<STRAVA_WEBHOOK_SECRET> \
+  -F verify_token=<STRAVA_WEBHOOK_VERIFY_TOKEN>
+```
+
+Verify the endpoint is reachable before registering:
+
+```bash
+curl "https://3h2os.com/strava/webhook/<STRAVA_WEBHOOK_SECRET>?hub.mode=subscribe&hub.challenge=test&hub.verify_token=<STRAVA_WEBHOOK_VERIFY_TOKEN>"
+# Expected: {"hub.challenge": "test"}
+```
 
 ## Deployment
 
@@ -201,13 +303,13 @@ graph TB
         Routes[Routes<br/>index.tsx, plans.build.tsx]
         Components[Components<br/>WeekCard, WorkoutCard,<br/>Sidebar, PlanSwitcher]
         WizardUI[Wizard Components<br/>StepSportEvent, StepAthleteProfile,<br/>StepGoalsFocus, StepPlanConfig,<br/>StepReview]
-        Hooks[Hooks<br/>useWizard, useWorkoutForm,<br/>useGarminToken]
+        Hooks[Hooks<br/>useWizard, useWorkoutForm,<br/>useGarminToken, useSSE]
         APIClient[API Client<br/>lib/api.ts]
         AuthProv[Auth Provider<br/>OIDC / Keycloak]
     end
 
     subgraph BackendLayer [Backend]
-        Routers[Routers<br/>api.py - thin controllers]
+        Routers[Routers<br/>api.py - thin controllers<br/>events.py - SSE stream]
         Services[Services<br/>PlanService, PlanBuilderService,<br/>ActivityService, ContextService,<br/>GarminService]
         Templates[Template Engine<br/>base.py, running.py,<br/>swimming.py]
         Zones[Zone Calculator<br/>HR, Pace, Swim CSS]

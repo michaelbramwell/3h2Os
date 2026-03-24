@@ -606,6 +606,18 @@ class StravaService:
         start_local = raw.get("start_date_local", "")
         act_date = start_local[:10] if start_local else ""
 
+        normalized_laps = [
+            {
+                "lapIndex": lap.get("lap_index"),
+                "distance": lap.get("distance"),
+                "averageSpeed": lap.get("average_speed"),
+                "averageHR": lap.get("average_heartrate"),
+                "elapsedTime": lap.get("elapsed_time"),
+                "movingTime": lap.get("moving_time"),
+            }
+            for lap in (laps or [])
+        ]
+
         return ActivitySchema(
             date=act_date,
             name=raw.get("name", "Strava Activity"),
@@ -626,18 +638,21 @@ class StravaService:
             hr_zones=hr_zones,
             pace_zones=pace_zones,
             power_zones=power_zones,
-            splits=laps,
+            splits=normalized_laps,
         )
 
     # ------------------------------------------------------------------
     # High-level sync
     # ------------------------------------------------------------------
 
-    def handle_webhook_event(self, event: Dict[str, Any]) -> None:
+    def handle_webhook_event(self, event: Dict[str, Any]) -> Optional[int]:
         """
         Handle a Strava webhook event.
         - Deauthorization: Deletes token
-        - Activity update/create: Triggers sync
+        - Activity create/update: Triggers sync
+
+        Returns the user_id if an activity sync was performed, otherwise None.
+        The caller can use this to push an SSE notification to the affected user.
         """
         object_type = event.get("object_type")
         aspect_type = event.get("aspect_type")
@@ -663,7 +678,7 @@ class StravaService:
                     logger.info(
                         f"Deleted Strava token for athlete_id={owner_id} (deauthorized via webhook)"
                     )
-            return
+            return None
 
         if object_type == "activity" and aspect_type in ("create", "update"):
             if owner_id:
@@ -686,11 +701,14 @@ class StravaService:
 
                             plan_service = PlanService(self.session)
                             plan_service.recalculate_plan_progression(user)
+                            return user.id
                     except Exception as e:
                         logger.warning(
                             f"Webhook-triggered sync failed for athlete_id={owner_id}: {e}"
                         )
-            return
+            return None
+
+        return None
 
     def sync_activities(
         self,

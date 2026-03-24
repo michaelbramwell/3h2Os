@@ -14,6 +14,7 @@ import { PlanSwitcher } from '../components/PlanSwitcher'
 import { PanelLeft, X, Plus } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
 import type { WizardInput } from '../types/wizard'
+import { useSSE } from '../hooks/useSSE'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -50,6 +51,9 @@ function Dashboard() {
         return () => clearTimeout(timer);
     }
   }, [fridgeWeekId]);
+
+  // Keep activities in sync with server-pushed Strava webhook events
+  useSSE(auth.isAuthenticated)
 
   const { data: plan, isLoading: planLoading, error: planError } = useQuery({ 
     queryKey: ['plan'], 
@@ -237,7 +241,7 @@ function Dashboard() {
                     <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-4 pr-2">
                         <Sidebar context={context as ContextData} markdown={markdown} />
                         {/* RecentActivities moved to be a child of Sidebar or separate is fine, but user complained about "under" */}
-                        <RecentActivities activities={(actuals || []) as Activity[]} />
+                        <RecentActivities activities={(actuals || []) as Activity[]} plan={plan} />
                     </div>
                 </div>
             )}
@@ -277,6 +281,7 @@ function Dashboard() {
         <ActivityModal 
             activity={selectedActivity} 
             context={context as ContextData}
+            plan={plan}
             onClose={() => setSelectedActivity(null)} 
         />
       )}

@@ -137,6 +137,7 @@ export interface HrZone {
 }
 
 export interface Activity {
+    id?: number | null;              // ActualActivity database PK; present on actuals, absent on planned
     date: string;
     name: string;
     type: string;  // Backend returns lowercase ('running', 'swimming'); use isType() for comparisons

@@ -1,0 +1,11 @@
+ACME_EMAIL=your_email_here
+DOMAIN=your_domain_here
+KEYCLOAK_ADMIN=running_auth_admin
+POSTGRES_DB=running_db
+POSTGRES_USER=running_user
+VITE_API_URL=https://your_domain_here
+VITE_AUTH_AUTHORITY=https://auth.your_domain_here/realms/running-realm
+VITE_AUTH_CLIENT_ID=running-app
+VOLUME_PATH=/path/to/your/volume
+STRAVA_CLIENT_ID=
+STRAVA_REDIRECT_URI=https://your_domain_here/strava/callback

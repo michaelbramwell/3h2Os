@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Activity, HrZone, ContextData, TrainingZone } from '../types/schema';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Activity, HrZone, ContextData, TrainingZone, Week } from '../types/schema';
 import { ActivityType } from '../types/schema';
 import { formatPace, formatSwimPace, formatDistance } from '../lib/formatters';
+import { createActivityShare, updateActivityName } from '../lib/api';
 
 /** Case-insensitive activity type check (backend stores lowercase, frontend enum is TitleCase). */
 function isType(actual: string | undefined, expected: string): boolean {
@@ -11,6 +14,7 @@ function isType(actual: string | undefined, expected: string): boolean {
 interface ActivityModalProps {
     activity: Activity | null;
     context?: ContextData;
+    plan?: Week[];
     onClose: () => void;
 }
 
@@ -181,8 +185,67 @@ function SplitsList({ splits, activityType }: { splits?: any[], activityType?: s
     );
 }
 
-export function ActivityModal({ activity, context, onClose }: ActivityModalProps) {
+export function ActivityModal({ activity, context, plan, onClose }: ActivityModalProps) {
     if (!activity) return null;
+
+    const queryClient = useQueryClient();
+    const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied' | 'error'>('idle');
+    const [editingName, setEditingName] = useState(false);
+    const [nameValue, setNameValue] = useState(activity.name);
+
+    // Collect workout names from the plan on the same day as this activity
+    const dayWorkoutNames: string[] = [];
+    if (plan) {
+        for (const week of plan) {
+            const day = week.days[activity.date];
+            if (day) {
+                for (const workout of day.workouts) {
+                    if (workout.name && !dayWorkoutNames.includes(workout.name)) {
+                        dayWorkoutNames.push(workout.name);
+                    }
+                }
+            }
+        }
+    }
+
+    const renameMutation = useMutation({
+        mutationFn: (name: string) => updateActivityName(activity.id!, name),
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+            setNameValue(data.name);
+            setEditingName(false);
+        },
+    });
+
+    function handleNameSelect(e: React.ChangeEvent<HTMLSelectElement>) {
+        const val = e.target.value;
+        if (!val) return;
+        renameMutation.mutate(val);
+    }
+
+    function handleNameSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        if (nameValue.trim() && nameValue.trim() !== activity.name) {
+            renameMutation.mutate(nameValue.trim());
+        } else {
+            setEditingName(false);
+        }
+    }
+
+    async function handleShare() {
+        const act = activity;
+        if (!act?.id) return;
+        setShareState('loading');
+        try {
+            const { url } = await createActivityShare(act.id);
+            await navigator.clipboard.writeText(url);
+            setShareState('copied');
+            setTimeout(() => setShareState('idle'), 2000);
+        } catch {
+            setShareState('error');
+            setTimeout(() => setShareState('idle'), 2000);
+        }
+    }
 
     const dateStr = new Date(activity.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
     const distKm = formatDistance(activity.distance_m, 2);
@@ -229,10 +292,72 @@ export function ActivityModal({ activity, context, onClose }: ActivityModalProps
             {/* Modal */}
             <div className="relative bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10 sticky top-0">
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-900">{activity.name}</h2>
-                        <p className="text-sm text-slate-500">{dateStr} • {activity.type}</p>
+                    <div className="min-w-0 flex-1 mr-4">
+                        {editingName ? (
+                            <form onSubmit={handleNameSubmit} className="flex items-center gap-2">
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={nameValue}
+                                    onChange={e => setNameValue(e.target.value)}
+                                    className="text-xl font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-lg px-2 py-0.5 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    onKeyDown={e => { if (e.key === 'Escape') { setNameValue(activity.name); setEditingName(false); } }}
+                                    disabled={renameMutation.isPending}
+                                />
+                                <button type="submit" disabled={renameMutation.isPending} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50 shrink-0">
+                                    {renameMutation.isPending ? '...' : 'Save'}
+                                </button>
+                                <button type="button" onClick={() => { setNameValue(activity.name); setEditingName(false); }} className="text-xs font-semibold px-3 py-1.5 rounded-full text-slate-500 hover:bg-slate-100 transition shrink-0">
+                                    Cancel
+                                </button>
+                            </form>
+                        ) : (
+                            <div className="flex items-center gap-2 group">
+                                <h2 className="text-xl font-bold text-slate-900 truncate">{nameValue}</h2>
+                                {activity.id && (
+                                    <button
+                                        onClick={() => setEditingName(true)}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 shrink-0"
+                                        title="Edit title"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                        {!editingName && dayWorkoutNames.length > 0 && activity.id && (
+                            <div className="mt-1">
+                                <select
+                                    onChange={handleNameSelect}
+                                    defaultValue=""
+                                    disabled={renameMutation.isPending}
+                                    className="text-xs text-slate-400 bg-transparent border-none cursor-pointer hover:text-slate-600 focus:outline-none focus:ring-0 pl-0 pr-4 py-0 appearance-none underline underline-offset-2 decoration-dashed disabled:opacity-50"
+                                    style={{ backgroundImage: 'none' }}
+                                >
+                                    <option value="" disabled>rename from plan...</option>
+                                    {dayWorkoutNames.map(name => (
+                                        <option key={name} value={name}>{name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <p className="text-sm text-slate-500 mt-0.5">{dateStr} • {activity.type}</p>
                     </div>
+                <div className="flex items-center gap-2">
+                    {activity.id && (
+                        <button
+                            onClick={handleShare}
+                            disabled={shareState === 'loading'}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-full transition-colors disabled:opacity-50
+                                text-slate-500 hover:text-slate-800 hover:bg-slate-100
+                                data-[state=copied]:text-emerald-600 data-[state=error]:text-red-500"
+                            data-state={shareState}
+                        >
+                            {shareState === 'copied' ? 'Link copied' : shareState === 'error' ? 'Error' : 'Share'}
+                        </button>
+                    )}
                     <button 
                         onClick={onClose}
                         className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
@@ -241,6 +366,7 @@ export function ActivityModal({ activity, context, onClose }: ActivityModalProps
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
+                </div>
                 </div>
 
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">

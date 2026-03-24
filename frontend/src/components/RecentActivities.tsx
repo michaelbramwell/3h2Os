@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Activity } from '../types/schema';
+import type { Activity, Week } from '../types/schema';
 import { ActivityModal } from './ActivityModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { syncActivities, syncStravaActivities } from '../lib/api';
@@ -10,6 +10,7 @@ import { formatDistance, formatPace } from '../lib/formatters'
 
 interface RecentActivitiesProps {
     activities: Activity[];
+    plan?: Week[];
 }
 
 function SourceBadge({ source }: { source?: string }) {
@@ -33,7 +34,7 @@ function SourceBadge({ source }: { source?: string }) {
     return null;
 }
 
-export function RecentActivities({ activities }: RecentActivitiesProps) {
+export function RecentActivities({ activities, plan }: RecentActivitiesProps) {
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
     const queryClient = useQueryClient();
     const { hasToken: hasGarminToken } = useGarminToken();
@@ -154,6 +155,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
             {selectedActivity && (
                 <ActivityModal
                     activity={selectedActivity}
+                    plan={plan}
                     onClose={() => setSelectedActivity(null)}
                 />
             )}
