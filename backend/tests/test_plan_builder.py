@@ -188,6 +188,31 @@ class TestPaceZones:
         # A 3:00 marathon target is fast -- should produce faster paces
         assert target_easy != default_easy
 
+    def test_race_pace_anchored_zones_match_jack_daniels(self):
+        # 3:20 marathon = VDOT ~47.  Jack Daniels reference paces (±5s/km tolerance):
+        #   Easy:      6:17-6:51/km  (2.436 – 2.648 m/s)
+        #   Threshold: 4:28/km       (3.731 m/s)
+        #   Interval:  4:12/km       (3.968 m/s)
+        zones = calculate_pace_zones("intermediate", "marathon", "3:20:00")
+        z = {zn["zone"]: zn["lowBoundary_m_s"] for zn in zones}
+
+        easy_pace_s_per_km = 1000 / z[2]
+        thresh_pace_s_per_km = 1000 / z[4]
+        interval_pace_s_per_km = 1000 / z[5]
+
+        # Easy: 6:17–6:51/km (377–411 s/km) — 5 s tolerance either side
+        assert 372 <= easy_pace_s_per_km <= 416, (
+            f"Easy pace {easy_pace_s_per_km:.0f}s/km outside expected 6:12-6:56 range"
+        )
+        # Threshold: ~4:28/km (268 s/km) — within 10 s
+        assert 258 <= thresh_pace_s_per_km <= 278, (
+            f"Threshold pace {thresh_pace_s_per_km:.0f}s/km outside expected 4:18-4:38 range"
+        )
+        # Interval: ~4:12/km (252 s/km) — within 10 s
+        assert 242 <= interval_pace_s_per_km <= 262, (
+            f"Interval pace {interval_pace_s_per_km:.0f}s/km outside expected 4:02-4:22 range"
+        )
+
 
 class TestSwimPaceZones:
     def test_returns_five_zones(self):

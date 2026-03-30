@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +16,50 @@ from app.core.database import create_db_and_tables, engine, User, RunnerPlan
 from app.routers import pages, api
 from app.core.auth import verify_jwt_middleware
 from db.migrate import migrate
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Background: daily profile sync
+# ---------------------------------------------------------------------------
+
+_PROFILE_SYNC_INTERVAL_SECS = int(
+    os.environ.get("PROFILE_SYNC_INTERVAL_SECS", 86400)  # 24 hours
+)
+
+
+async def _daily_profile_sync_loop() -> None:
+    """
+    Asyncio background task: runs every PROFILE_SYNC_INTERVAL_SECS seconds.
+    Iterates all users with a connected Strava token and re-syncs their profile.
+    Garmin profile re-sync happens on each manual Garmin activity sync (sync.py),
+    since Garmin tokens are session-scoped and not persisted server-side.
+    """
+    while True:
+        await asyncio.sleep(_PROFILE_SYNC_INTERVAL_SECS)
+        logger.info("Daily profile sync: starting background pass")
+        try:
+            with Session(engine) as session:
+                from sqlmodel import select as _select
+                from app.core.database import StravaToken
+                from app.services.strava import StravaService
+
+                strava_tokens = session.exec(_select(StravaToken)).all()
+                for token in strava_tokens:
+                    try:
+                        svc = StravaService(session)
+                        refreshed = svc.refresh_if_needed(token)
+                        svc.merge_athlete_profile(token.user_id, refreshed.access_token)
+                        logger.debug(
+                            f"Background Strava profile sync done for user {token.user_id}"
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"Background Strava profile sync failed for user {token.user_id}: {e}"
+                        )
+
+        except Exception as e:
+            logger.error(f"Daily profile sync loop error: {e}")
 
 
 # --- Lifecycle ---
@@ -54,7 +101,16 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Startup data init skipped (tables likely missing): {e}")
 
+    # Start the daily profile sync background task
+    sync_task = asyncio.create_task(_daily_profile_sync_loop())
+
     yield
+
+    sync_task.cancel()
+    try:
+        await sync_task
+    except asyncio.CancelledError:
+        pass
 
 
 # Apply global auth middleware
@@ -72,18 +128,11 @@ if cors_env := os.environ.get("CORS_ORIGINS"):
         if o.startswith("http://") or o.startswith("https://"):
             origins.append(o)
         else:
-            # Basic validation/warning but allow it if needed or prepend https://?
-            # For security, strict validation is better.
-            # We will just skip invalid ones and log (print for now).
-            # print(
-            #     f"Skipping invalid CORS origin: {o}. Must start with http:// or https://"
-            # )
             pass
 
 if domain := os.environ.get("DOMAIN"):
     origins.append(f"https://{domain}")
     origins.append(f"https://auth.{domain}")
-    # Allow www as well just in case
     origins.append(f"https://www.{domain}")
 
 app.add_middleware(

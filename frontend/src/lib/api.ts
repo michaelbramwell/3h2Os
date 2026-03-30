@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Week, ContextData, Activity, FeatureFlags } from '../types/schema';
+import type { Week, ContextData, Activity, FeatureFlags, UserProfile, ProfileSyncPrefs } from '../types/schema';
 import type { WizardInput, PlanPreview, ClonePlanRequest, WizardDefaultsResponse } from '../types/wizard';
 import { userManager } from './auth';
 
@@ -185,6 +185,30 @@ export const createActivityShare = async (activityId: number): Promise<{ token: 
 
 export const updateActivityName = async (activityId: number, name: string | null): Promise<{ id: number; name: string; custom_name: string | null }> => {
     const response = await api.patch<{ id: number; name: string; custom_name: string | null }>(`/api/activities/${activityId}`, { name });
+    return response.data;
+};
+
+
+// --- Profile ---
+
+export const getProfile = async (): Promise<UserProfile> => {
+    const response = await api.get<UserProfile>('/api/profile');
+    return response.data;
+};
+
+export const patchProfile = async (data: Partial<Omit<UserProfile, 'sync_prefs' | 'profile_last_synced_at' | 'birthday'>>): Promise<UserProfile> => {
+    const response = await api.patch<UserProfile>('/api/profile', data);
+    return response.data;
+};
+
+export const patchSyncPrefs = async (source: 'garmin' | 'strava', field: string, enabled: boolean): Promise<ProfileSyncPrefs> => {
+    const response = await api.patch<ProfileSyncPrefs>('/api/profile/sync-prefs', { source, field, enabled });
+    return response.data;
+};
+
+export const syncProfileNow = async (garminToken?: string): Promise<{ synced: boolean; message: string }> => {
+    const headers = garminToken ? { 'X-Garmin-Token': garminToken } : {};
+    const response = await api.post<{ synced: boolean; message: string }>('/api/profile/sync-now', {}, { headers });
     return response.data;
 };
 

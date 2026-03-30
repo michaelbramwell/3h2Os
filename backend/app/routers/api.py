@@ -1,5 +1,15 @@
 from fastapi import APIRouter
-from app.routers import plans, strava, garmin, wizard, flags, activities, events, share
+from app.routers import (
+    plans,
+    strava,
+    garmin,
+    wizard,
+    flags,
+    activities,
+    events,
+    share,
+    profile,
+)
 
 router = APIRouter()
 
@@ -11,3 +21,4 @@ router.include_router(flags.router)
 router.include_router(activities.router)
 router.include_router(events.router)
 router.include_router(share.router)
+router.include_router(profile.router)

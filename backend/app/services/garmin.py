@@ -6,7 +6,7 @@ import io
 import tempfile
 import shutil
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 
 from garminconnect import Garmin
@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 
 from app.models.domain import ActualActivity
 from app.services.context import ContextService
+from app.core.profile_sync import load_prefs, dump_prefs, can_write
 
 logger = logging.getLogger(__name__)
 
@@ -141,12 +142,16 @@ class GarminService:
     def fetch_user_profile(self, user_id: int) -> None:
         """
         Fetch the Garmin user profile and merge into RunnerProfile.
-        Only writes fields that are not already set (Strava takes precedence).
 
-        Fields populated (Garmin → RunnerProfile):
-          - birthday / age  (from userData.birthDate "YYYY-MM-DD")
-          - weight_kg       (from userData.weight in grams → kg)
-          - gender          (from userData.gender "MALE"/"FEMALE")
+        Fields written (all gated by profile_sync_prefs):
+          - birthday / age          userData.birthDate   (always, when unset)
+          - gender                  userData.gender      (always, when unset)
+          - weight_kg               userData.weight      pref: garmin.weight
+          - height_cm               userData.height      pref: garmin.height
+          - resting_hr              get_rhr_day()        pref: garmin.resting_hr
+          - vo2max                  get_max_metrics()    pref: garmin.vo2max
+          - lactate_threshold_hr/   get_lactate_threshold()
+            lactate_threshold_pace                       pref: garmin.lactate_threshold
 
         Silently no-ops if the Garmin client is unavailable or the profile is missing.
         """
@@ -162,50 +167,126 @@ class GarminService:
             if not profile:
                 return
 
-            raw = self.client.get_user_profile()
-            if not raw:
-                return
-
-            user_data = raw.get("userData", raw)  # some versions nest under userData
+            prefs = load_prefs(profile.profile_sync_prefs_json)
             changed = False
 
-            # birthday / age — only set if not already populated by Strava
-            birth_str = user_data.get("birthDate")  # "YYYY-MM-DD"
-            if birth_str and not profile.birthday:
+            # ------------------------------------------------------------------
+            # Basic user data (get_user_profile)
+            # ------------------------------------------------------------------
+            raw = self.client.get_user_profile()
+            if raw:
+                user_data = raw.get("userData", raw)
+
+                # birthday / age — always write when unset (factual, no toggle)
+                birth_str = user_data.get("birthDate")
+                if birth_str and not profile.birthday:
+                    try:
+                        bday = date.fromisoformat(birth_str)
+                        profile.birthday = bday
+                        today = date.today()
+                        profile.age = (
+                            today.year
+                            - bday.year
+                            - ((today.month, today.day) < (bday.month, bday.day))
+                        )
+                        changed = True
+                    except ValueError:
+                        logger.warning(
+                            f"Garmin unparseable birthDate '{birth_str}' for user {user_id}"
+                        )
+
+                # gender — always write when unset
+                gender_raw = user_data.get("gender", "")
+                if gender_raw and (not profile.gender or profile.gender == "unknown"):
+                    gender_lower = gender_raw.lower()
+                    if gender_lower in ("male", "female"):
+                        profile.gender = gender_lower
+                        changed = True
+
+                # weight — pref-gated
+                if can_write(prefs, "garmin", "weight"):
+                    weight_g = user_data.get("weight")
+                    if weight_g:
+                        profile.weight_kg = round(float(weight_g) / 1000.0, 1)
+                        changed = True
+
+                # height — pref-gated; already in userData, just wasn't extracted before
+                if can_write(prefs, "garmin", "height"):
+                    height_raw = user_data.get("height")
+                    if height_raw:
+                        try:
+                            profile.height_cm = int(height_raw)
+                            changed = True
+                        except (ValueError, TypeError):
+                            pass
+
+            # ------------------------------------------------------------------
+            # Resting HR
+            # ------------------------------------------------------------------
+            if can_write(prefs, "garmin", "resting_hr"):
                 try:
-                    bday = date.fromisoformat(birth_str)
-                    profile.birthday = bday
-                    today = date.today()
-                    age = (
-                        today.year
-                        - bday.year
-                        - ((today.month, today.day) < (bday.month, bday.day))
+                    today_str = date.today().isoformat()
+                    rhr_data = self.client.get_rhr_day(today_str)
+                    # {"allMetrics": {"metricsMap": {"WELLNESS_RESTING_HEART_RATE": [{"value": N}]}}}
+                    if rhr_data:
+                        metrics_map = rhr_data.get("allMetrics", {}).get(
+                            "metricsMap", {}
+                        )
+                        rhr_list = metrics_map.get("WELLNESS_RESTING_HEART_RATE", [])
+                        if rhr_list:
+                            rhr_val = rhr_list[0].get("value")
+                            if rhr_val and int(rhr_val) > 0:
+                                profile.resting_hr = int(rhr_val)
+                                changed = True
+                except Exception as e:
+                    logger.debug(f"Garmin resting HR fetch failed (non-fatal): {e}")
+
+            # ------------------------------------------------------------------
+            # VO2Max
+            # ------------------------------------------------------------------
+            if can_write(prefs, "garmin", "vo2max"):
+                try:
+                    today_str = date.today().isoformat()
+                    max_metrics = self.client.get_max_metrics(today_str)
+                    if isinstance(max_metrics, list):
+                        for entry in reversed(max_metrics):
+                            vo2 = entry.get("generic", {}).get("vo2MaxValue")
+                            if vo2 is not None:
+                                profile.vo2max = float(vo2)
+                                changed = True
+                                break
+                except Exception as e:
+                    logger.debug(f"Garmin VO2Max fetch failed (non-fatal): {e}")
+
+            # ------------------------------------------------------------------
+            # Lactate threshold
+            # ------------------------------------------------------------------
+            if can_write(prefs, "garmin", "lactate_threshold"):
+                try:
+                    lt_data = self.client.get_lactate_threshold()
+                    # {"lactateThresholdHeartRate": N, "lactateThresholdSpeed": N (m/s)}
+                    if lt_data:
+                        lt_hr = lt_data.get("lactateThresholdHeartRate")
+                        lt_speed = lt_data.get("lactateThresholdSpeed")
+                        if lt_hr and int(lt_hr) > 0:
+                            profile.lactate_threshold_hr = int(lt_hr)
+                            changed = True
+                        if lt_speed and float(lt_speed) > 0:
+                            profile.lactate_threshold_pace = float(lt_speed)
+                            changed = True
+                except Exception as e:
+                    logger.debug(
+                        f"Garmin lactate threshold fetch failed (non-fatal): {e}"
                     )
-                    profile.age = age
-                    changed = True
-                except ValueError:
-                    logger.warning(
-                        f"Garmin returned unparseable birthDate '{birth_str}' for user {user_id}"
-                    )
 
-            # weight — only set if not already populated by Strava (Strava always wins)
-            weight_g = user_data.get("weight")  # Garmin stores weight in grams
-            if weight_g and not profile.weight_kg:
-                profile.weight_kg = round(float(weight_g) / 1000.0, 1)
-                changed = True
-
-            # gender — only set if not already populated
-            gender_raw = user_data.get("gender", "")
-            if gender_raw and (not profile.gender or profile.gender == "unknown"):
-                gender_lower = gender_raw.lower()
-                if gender_lower in ("male", "female"):
-                    profile.gender = gender_lower
-                    changed = True
-
+            # ------------------------------------------------------------------
+            # Persist
+            # ------------------------------------------------------------------
             if changed:
+                profile.profile_last_synced_at = datetime.utcnow()
                 self.session.add(profile)
                 self.session.commit()
-                logger.info(f"Garmin profile imported for user_id={user_id}")
+                logger.info(f"Garmin profile synced for user_id={user_id}")
 
         except Exception as e:
             logger.warning(

@@ -109,12 +109,17 @@
 - [x] **Data Persistence:** Migrate PostgreSQL data storage from VM local disk to attached Block Storage volume for durability across instance rebuilds.
 
 ## Phase 4.5: Code Cleanup (Planned)
-- [ ] **Implementation Plan:** `.ai/code-cleanup.md` — prioritised list of security fixes, type safety improvements, duplication removal, and test gaps identified during PR #45 review.
+- [x] **Implementation Plan:** `.ai/code-cleanup.md` — prioritised list of security fixes, type safety improvements, duplication removal, and test gaps identified during PR #45 review.
+
+## Phase 4.6: Data-Driven Zone & Progression Improvements (Planned)
+- [ ] **Lactate Threshold Zone Anchoring:** Use Garmin lactate threshold HR as the primary anchor for HR zone calculation, replacing the Tanaka estimated max HR formula. All 5 HR zones derive from LT HR when available.
+- [ ] **Karvonen HR Zones:** When resting HR (Garmin) is available, apply the Karvonen formula (heart rate reserve) for more physiologically accurate HR zone boundaries.
+- [ ] **Lactate Threshold Pace Zones:** Use Garmin lactate threshold pace as the direct pace zone anchor when no target time is provided, replacing the coarse experience-level fallback paces.
+- [ ] **Strava HR Zone Passthrough:** Feed Strava-imported HR zone boundaries into zone calculation as an override path when no Garmin fitness metrics are present.
+- [ ] **Load-Aware Plan Progression:** Replace pure-distance recalculation (`plans.py`) with stress-based progression using Garmin `aerobic_te`, `anaerobic_te`, and `training_load`, so plan adaptation reflects training intensity not just volume.
+- [ ] **VO2max Volume Ceiling:** Use Garmin VO2max to inform per-athlete peak volume ceilings in template selection, rather than relying solely on `experience_level`.
 
 ## Phase 5: Performance Analytics (Planned)
-- [ ] **Efficiency Tracking:** Monitor Pace/HR decoupling for Wednesday Steady runs.
-- [ ] **Cramp Correlation:** Log muscle fatigue levels and correlate with hydration/fueling data.
-- [ ] **Shoe Tracker:** Monitor mileage on race-day shoes to ensure they are "broken in but not broken".
 - [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals and fueling to suggest plan adjustments for the following week.
 
 ## Phase 6: AI-Assisted Plan Generation (Planned)

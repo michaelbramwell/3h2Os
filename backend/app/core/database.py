@@ -161,6 +161,22 @@ class RunnerProfile(SQLModel, table=True):
     swim_zones_json: Optional[str] = Field(default=None)
     fueling_json: Optional[str] = Field(default=None)
 
+    # Fitness metrics sourced from integrations
+    resting_hr: Optional[int] = Field(default=None)  # bpm
+    vo2max: Optional[float] = Field(default=None)  # ml/kg/min
+    lactate_threshold_hr: Optional[int] = Field(default=None)  # bpm
+    lactate_threshold_pace: Optional[float] = Field(default=None)  # m/s
+
+    # Per-source per-field sync preferences.
+    # JSON: { "garmin": { "weight": false, "height": true, "resting_hr": true,
+    #                      "vo2max": true, "lactate_threshold": true },
+    #         "strava": { "weight": true, "ftp": true, "hr_zones": true } }
+    # NULL = use defaults (all enabled; Strava wins for shared fields).
+    profile_sync_prefs_json: Optional[str] = Field(default=None)
+
+    # ISO timestamp of last successful profile sync from any source.
+    profile_last_synced_at: Optional[datetime] = Field(default=None)
+
     user: "User" = Relationship(back_populates="profile")
 
 

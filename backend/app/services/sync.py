@@ -90,6 +90,15 @@ class SyncService:
             power_thresholds=power_thresholds,
         )
 
+        # Re-sync Strava athlete profile on every activity sync (not just at OAuth connect)
+        try:
+            token = strava.get_token(user.id)
+            if token:
+                token = strava.refresh_if_needed(token)
+                strava.merge_athlete_profile(user.id, token.access_token)
+        except Exception as e:
+            logger.warning(f"Strava profile re-sync failed (non-fatal): {e}")
+
         saved_count = self.activity_service.save_activities(activities, user=user)
 
         try:

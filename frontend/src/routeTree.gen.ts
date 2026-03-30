@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StravaCallbackRouteImport } from './routes/strava.callback'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as PlansBuildRouteImport } from './routes/plans.build'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -44,6 +50,7 @@ const PlansBuildRoute = PlansBuildRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
   '/plans/build': typeof PlansBuildRoute
   '/share/$token': typeof ShareTokenRoute
   '/strava/callback': typeof StravaCallbackRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
   '/plans/build': typeof PlansBuildRoute
   '/share/$token': typeof ShareTokenRoute
   '/strava/callback': typeof StravaCallbackRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
+  '/settings': typeof SettingsRoute
   '/plans/build': typeof PlansBuildRoute
   '/share/$token': typeof ShareTokenRoute
   '/strava/callback': typeof StravaCallbackRoute
@@ -68,15 +77,23 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/privacy'
+    | '/settings'
     | '/plans/build'
     | '/share/$token'
     | '/strava/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/privacy' | '/plans/build' | '/share/$token' | '/strava/callback'
+  to:
+    | '/'
+    | '/privacy'
+    | '/settings'
+    | '/plans/build'
+    | '/share/$token'
+    | '/strava/callback'
   id:
     | '__root__'
     | '/'
     | '/privacy'
+    | '/settings'
     | '/plans/build'
     | '/share/$token'
     | '/strava/callback'
@@ -85,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PrivacyRoute: typeof PrivacyRoute
+  SettingsRoute: typeof SettingsRoute
   PlansBuildRoute: typeof PlansBuildRoute
   ShareTokenRoute: typeof ShareTokenRoute
   StravaCallbackRoute: typeof StravaCallbackRoute
@@ -92,6 +110,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -133,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PrivacyRoute: PrivacyRoute,
+  SettingsRoute: SettingsRoute,
   PlansBuildRoute: PlansBuildRoute,
   ShareTokenRoute: ShareTokenRoute,
   StravaCallbackRoute: StravaCallbackRoute,

@@ -296,20 +296,23 @@ class StravaService:
         """
         Fetch athlete data from Strava and merge into RunnerProfile.
         Merge rules:
-        - gender: only set if current value is 'unknown' or None
-        - weight_kg: always update (factual, changes over time)
-        - ftp: always update (no wizard field; Strava is authoritative)
-        - birthday: always update from Strava (YYYY-MM-DD); also update age
-        If GET /athlete/zones returns custom_zones=True, import HR zone boundaries.
+        - gender/birthday/age: written only when unset (bio fields, no toggle)
+        - weight_kg: written only when strava is the active source (pref-gated)
+        - ftp: written only when strava is the active source (pref-gated)
+        - hr_zones: imported only when strava is the active source (pref-gated)
+        Sets profile_last_synced_at on any change.
         """
         import json
         from datetime import date as date_type
+        from app.core.profile_sync import load_prefs, dump_prefs, can_write
 
         profile = self.session.exec(
             select(RunnerProfile).where(RunnerProfile.user_id == user_id)
         ).first()
         if not profile:
             return
+
+        prefs = load_prefs(profile.profile_sync_prefs_json)
 
         try:
             athlete = self.fetch_athlete(access_token)
@@ -319,25 +322,25 @@ class StravaService:
 
         changed = False
 
-        # gender — only if not manually set
+        # gender — bio field: only if not manually set (no toggle)
         sex = athlete.get("sex")
         if sex and (not profile.gender or profile.gender == "unknown"):
             profile.gender = "male" if sex == "M" else "female"
             changed = True
 
-        # weight_kg — always update
+        # weight_kg — pref-gated
         weight = athlete.get("weight")
-        if weight:
+        if weight and can_write(prefs, "strava", "weight"):
             profile.weight_kg = float(weight)
             changed = True
 
-        # ftp — always update
+        # ftp — pref-gated
         ftp = athlete.get("ftp")
-        if ftp:
+        if ftp and can_write(prefs, "strava", "ftp"):
             profile.ftp = int(ftp)
             changed = True
 
-        # birthday — always update; recompute age from it
+        # birthday — bio field: always update when provided; recompute age
         birthday_str = athlete.get("birthday")  # "YYYY-MM-DD" or None
         if birthday_str:
             try:
@@ -357,31 +360,38 @@ class StravaService:
                 )
 
         if changed:
+            profile.profile_last_synced_at = datetime.utcnow()
             self.session.add(profile)
             self.session.commit()
 
-        # HR zone boundaries — import if athlete has custom zones set
-        try:
-            zones_data = self.fetch_athlete_zones(access_token)
-            hr_zones = zones_data.get("heart_rate", {})
-            if hr_zones.get("custom_zones") and not profile.training_zones_json:
-                # Convert Strava zones to our zone schema
-                strava_zone_list = hr_zones.get("zones", [])
-                if strava_zone_list:
-                    converted = [
-                        {
-                            "zone": idx + 1,
-                            "lowBoundary_bpm": z.get("min", 0),
-                            "highBoundary_bpm": z.get("max", 0),
-                            "description": z.get("name", f"Zone {idx + 1}"),
-                        }
-                        for idx, z in enumerate(strava_zone_list)
-                    ]
-                    profile.training_zones_json = json.dumps({"heartRate": converted})
-                    self.session.add(profile)
-                    self.session.commit()
-        except Exception as e:
-            logger.warning(f"Could not import Strava HR zones for user {user_id}: {e}")
+        # HR zone boundaries — pref-gated; import if athlete has custom zones set
+        if can_write(prefs, "strava", "hr_zones"):
+            try:
+                zones_data = self.fetch_athlete_zones(access_token)
+                hr_zones = zones_data.get("heart_rate", {})
+                if hr_zones.get("custom_zones") and not profile.training_zones_json:
+                    # Convert Strava zones to our zone schema
+                    strava_zone_list = hr_zones.get("zones", [])
+                    if strava_zone_list:
+                        converted = [
+                            {
+                                "zone": idx + 1,
+                                "lowBoundary_bpm": z.get("min", 0),
+                                "highBoundary_bpm": z.get("max", 0),
+                                "description": z.get("name", f"Zone {idx + 1}"),
+                            }
+                            for idx, z in enumerate(strava_zone_list)
+                        ]
+                        profile.training_zones_json = json.dumps(
+                            {"heartRate": converted}
+                        )
+                        profile.profile_last_synced_at = datetime.utcnow()
+                        self.session.add(profile)
+                        self.session.commit()
+            except Exception as e:
+                logger.warning(
+                    f"Could not import Strava HR zones for user {user_id}: {e}"
+                )
 
     # ------------------------------------------------------------------
     # Activity fetching and mapping

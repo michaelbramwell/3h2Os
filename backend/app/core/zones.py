@@ -74,20 +74,27 @@ def calculate_pace_zones(
 ) -> List[Dict[str, Any]]:
     """
     Calculate running pace zones in m/s.
-    If target_time is provided and event distance is known, derives from that.
-    Otherwise uses experience-level estimates.
 
-    Zone 1: Recovery (easy + 20%)
-    Zone 2: Easy
-    Zone 3: Tempo (easy pace * 1.15)
-    Zone 4: Threshold (easy pace * 1.25)
-    Zone 5: Interval (easy pace * 1.40)
+    When a target_time is provided and the event distance is known, zones are
+    derived directly from race pace using standard training-zone fractions
+    (Jack Daniels / Pfitzinger conventions):
+
+      Zone 1: Recovery  — race_pace * 0.70  (~E-pace lower bound)
+      Zone 2: Easy      — race_pace * 0.75  (~E-pace)
+      Zone 3: Tempo     — race_pace * 0.96  (~marathon/M-pace)
+      Zone 4: Threshold — race_pace * 1.05  (~T-pace, ~1-hour race pace)
+      Zone 5: VO2 Max   — race_pace * 1.14  (~I-pace)
+
+    Without a target time the zones fall back to experience-level estimates
+    using the same multipliers anchored off the estimated easy pace.
     """
     from app.models.domain import EVENT_DISTANCES_M, EventType as ET
 
     easy_pace = estimate_easy_pace_m_s(experience_level, event_type)
+    race_pace: Optional[float] = None
 
-    # If we have a target time and can map the event to a distance, refine the estimate
+    # If we have a target time and can map the event to a distance, derive
+    # zones from race pace directly for much better accuracy.
     if target_time:
         try:
             et = ET(event_type)
@@ -105,35 +112,68 @@ def calculate_pace_zones(
 
                 if total_seconds and total_seconds > 0:
                     race_pace = distance_m / total_seconds
-                    # Easy pace is roughly 70-75% of race pace for marathon,
-                    # but varies by distance. Use a simple factor.
                     easy_pace = race_pace * 0.75
         except (ValueError, KeyError):
-            pass  # Invalid target_time format -- fall back to age-based easy pace
+            pass  # Invalid target_time format -- fall back to experience-level estimate
 
-    zones = [
-        {
-            "zone": 1,
-            "lowBoundary_m_s": round(easy_pace * 0.80, 3),
-            "description": "Recovery",
-        },
-        {"zone": 2, "lowBoundary_m_s": round(easy_pace, 3), "description": "Easy"},
-        {
-            "zone": 3,
-            "lowBoundary_m_s": round(easy_pace * 1.15, 3),
-            "description": "Tempo",
-        },
-        {
-            "zone": 4,
-            "lowBoundary_m_s": round(easy_pace * 1.25, 3),
-            "description": "Threshold",
-        },
-        {
-            "zone": 5,
-            "lowBoundary_m_s": round(easy_pace * 1.40, 3),
-            "description": "Interval",
-        },
-    ]
+    if race_pace is not None:
+        # Race-pace-anchored zones (accurate when target time is known)
+        zones = [
+            {
+                "zone": 1,
+                "lowBoundary_m_s": round(race_pace * 0.70, 3),
+                "description": "Recovery",
+            },
+            {
+                "zone": 2,
+                "lowBoundary_m_s": round(race_pace * 0.75, 3),
+                "description": "Easy",
+            },
+            {
+                "zone": 3,
+                "lowBoundary_m_s": round(race_pace * 0.96, 3),
+                "description": "Tempo",
+            },
+            {
+                "zone": 4,
+                "lowBoundary_m_s": round(race_pace * 1.05, 3),
+                "description": "Threshold",
+            },
+            {
+                "zone": 5,
+                "lowBoundary_m_s": round(race_pace * 1.14, 3),
+                "description": "Interval",
+            },
+        ]
+    else:
+        # Fallback: experience-level-anchored zones
+        zones = [
+            {
+                "zone": 1,
+                "lowBoundary_m_s": round(easy_pace * 0.80, 3),
+                "description": "Recovery",
+            },
+            {
+                "zone": 2,
+                "lowBoundary_m_s": round(easy_pace, 3),
+                "description": "Easy",
+            },
+            {
+                "zone": 3,
+                "lowBoundary_m_s": round(easy_pace * 1.15, 3),
+                "description": "Tempo",
+            },
+            {
+                "zone": 4,
+                "lowBoundary_m_s": round(easy_pace * 1.25, 3),
+                "description": "Threshold",
+            },
+            {
+                "zone": 5,
+                "lowBoundary_m_s": round(easy_pace * 1.40, 3),
+                "description": "Interval",
+            },
+        ]
 
     return zones
 
