@@ -251,7 +251,7 @@ defaults arrive after mount (e.g., user connects Strava), the inputs show stale 
 
 **Fix:** Switch to controlled inputs with `value` and `onChange`.
 
-### 3.7 Fix `isPool` evaluation for "No Event" **[OPEN]**
+### 3.7 Fix `isPool` evaluation for "No Event" **[DONE]**
 
 `frontend/src/components/wizard/StepSportEvent.tsx:26`
 
