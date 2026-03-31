@@ -25,17 +25,17 @@ Before implementation, register an app at https://www.strava.com/settings/api.
 
 Required settings:
 - **Authorization Callback Domain**: your app domain (e.g. `yourdomain.com`)
-- **Authorization Callback URL**: `https://yourdomain.com/api/strava/callback`
+- **Authorization Callback URL**: `https://yourdomain.com/strava/callback` (frontend route — NOT a backend endpoint)
 
 This produces a `client_id` (integer) and `client_secret` (string). Add to Docker Compose env:
 
 ```
 STRAVA_CLIENT_ID=<integer>
 STRAVA_CLIENT_SECRET=<string>
-STRAVA_REDIRECT_URI=https://yourdomain.com/api/strava/callback
+STRAVA_REDIRECT_URI=https://yourdomain.com/strava/callback
 ```
 
-OAuth scopes required: `activity:read_all` (reads private activities).
+OAuth scopes required: `activity:read_all,profile:read_all`.
 
 ---
 
@@ -53,7 +53,7 @@ One row per user. Stores the OAuth token bundle so the backend can refresh it au
 | `access_token` | VARCHAR | Expires after 6 hours |
 | `refresh_token` | VARCHAR | Long-lived; used to get new access token |
 | `expires_at` | BIGINT | Unix epoch seconds |
-| `scope` | VARCHAR | Default `activity:read_all` |
+| `scope` | VARCHAR | Default `activity:read_all,profile:read_all` |
 | `created_at` | TIMESTAMP | |
 | `updated_at` | TIMESTAMP | Updated on every token refresh |
 
@@ -111,7 +111,7 @@ class StravaToken(SQLModel, table=True):
     access_token: str
     refresh_token: str
     expires_at: int          # Unix epoch seconds
-    scope: str = Field(default="activity:read_all")
+    scope: str = Field(default="activity:read_all,profile:read_all")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 ```
@@ -158,19 +158,19 @@ strava_activity_id: Optional[int] = Field(default=None, sa_column=Column(BigInte
 
 `aerobic_te` and `anaerobic_te` have no Strava equivalent — stored as `None`.
 
-### New API endpoints (routers/api.py)
+### New API endpoints (routers/strava.py)
+
+Note: The OAuth callback is handled entirely by the **frontend** (`/strava/callback` route), not the backend. The frontend extracts the `code` and `state` params from the redirect URL and POSTs them to the backend exchange endpoint.
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `GET` | `/api/strava/auth-url` | user | Returns `{ url: str }` — the Strava OAuth URL |
-| `GET` | `/api/strava/callback` | none (redirect) | Exchanges `?code=`, saves token, redirects browser to `/` |
+| `POST` | `/api/strava/exchange` | user | Receives `{ code, state }` JSON body from frontend; exchanges code for token, saves it |
 | `GET` | `/api/strava/status` | user | Returns `{ connected: bool, athlete_id: int \| null }` |
 | `DELETE` | `/api/strava/disconnect` | user | Deletes StravaToken row |
 | `POST` | `/api/integrations/strava/sync` | user | Syncs last N days; query param `?days=7` |
 
-The `/api/strava/callback` endpoint is a `GET` (browser redirect). It exchanges the code,
-saves the token, then issues an HTTP 302 redirect to the frontend root `/`. Any error
-redirects to `/?strava_error=<reason>` so the frontend can show a toast.
+The frontend `/strava/callback` route receives the OAuth redirect, reads `?code=` and `?state=` from the URL, then calls `POST /api/strava/exchange` with a JSON body. On error, the frontend shows a toast. There is no server-side redirect.
 
 ### Token auto-refresh
 
@@ -442,7 +442,7 @@ original Garmin row (if not `None`).
 
 ## Resolved Decisions
 
-- `STRAVA_REDIRECT_URI`: Use placeholder `https://yourdomain.com/api/strava/callback` for now; override via env var before deploying. No code change needed — already sourced from `STRAVA_REDIRECT_URI` env var.
+- `STRAVA_REDIRECT_URI`: Points to the **frontend** `/strava/callback` route (e.g. `https://3h2os.com/strava/callback`). The frontend handles the redirect and POSTs the code to `POST /api/strava/exchange`.
 - Strava sync triggers `recalculate_plan_progression`: **yes**, same as Garmin sync.
 - `STRAVA_STREAMS_MAX_AGE_DAYS`: **90 days** (default). Skip stream fetches for activities older than 90 days to protect the daily API quota.
-- `weight_kg` already exists on `RunnerProfile`. Add `ftp` (INT, nullable) via migration `006_add_profile_strava_fields.sql`.
+- `weight_kg` already exists on `RunnerProfile`. `ftp` added via migration `006_add_profile_strava_fields.sql`. Note: `strava_athlete_id` was planned but **not implemented** — it does not exist on `RunnerProfile` or in any migration.

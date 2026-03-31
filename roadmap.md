@@ -61,8 +61,8 @@
 - [x] **Plan Preview:** Non-destructive preview endpoint showing phase breakdown and volume curve before committing.
 - [x] **Clone Plan:** Duplicate existing plans with date offsets via `POST /api/plans/{id}/clone`.
 - [x] **Data Model Expansion:** `RunnerProfile`, `RunnerProject`, and `PlanTemplate` tables with Alembic migration.
-- [x] **Frontend Wizard:** 6 step components with `useWizard` hook for state management. Dedicated `/plans/build` route.
-- [x] **Tests:** 219 passing tests including 35 for plan builder template validation.
+- [x] **Frontend Wizard:** Multi-step wizard components with `useWizard` hook for state management. Dedicated `/plans/build` route.
+- [x] **Tests:** Plan builder template generation and validation compliance.
 
 ## Phase 4: Strava & Garmin Integration (Complete)
 - [x] **Strava OAuth2 Integration:** Full authorization code flow with HMAC-signed state tokens. Token auto-refresh (5-min expiry buffer). Disconnect/reconnect support.
@@ -105,7 +105,7 @@
   - [x] `007_add_profile_birthday.sql` — `birthday` on `runnerprofile` for dynamic age calculation.
   - [x] `008_seed_feature_flags.sql` — seed `isSwimmingEnabled` flag.
 - [x] **Cleanup:** Removed 10 legacy scripts (`fetch_actuals.py`, `sync_to_garmin.py`, `generate_garmin_tokens.py`, etc.) and static TypeScript build artifacts. Deleted obsolete test files (`test_sync_logic.py`, `test_zone_logic.py`, `test_timezone.py`).
-- [x] **Tests:** 336 passing tests (up from 219). New coverage: feature flag API (547 lines), feature flag service (235 lines), wizard defaults (241 lines), Strava callback, formatters, calculations.
+- [x] **Tests:** New coverage for feature flag API, feature flag service, wizard defaults, Strava callback, formatters, and calculations.
 - [x] **Data Persistence:** Migrate PostgreSQL data storage from VM local disk to attached Block Storage volume for durability across instance rebuilds.
 
 ## Phase 4.5: Code Cleanup (Planned)
