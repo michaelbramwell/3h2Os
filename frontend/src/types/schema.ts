@@ -218,5 +218,6 @@ export type UserType = 'standard' | 'alpha' | 'beta' | 'premium';
 
 export interface FeatureFlags {
     isSwimmingEnabled: boolean;
+    isGarminEnabled: boolean;
     [key: string]: boolean;
 }

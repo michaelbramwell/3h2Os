@@ -167,6 +167,11 @@ class RunnerProfile(SQLModel, table=True):
     lactate_threshold_hr: Optional[int] = Field(default=None)  # bpm
     lactate_threshold_pace: Optional[float] = Field(default=None)  # m/s
 
+    # Running pace zones fetched directly from Garmin Connect (highest priority source).
+    # JSON: list of {zone, lowBoundary_m_s, description} — same shape as training_zones_json pace array.
+    # NULL until a Garmin sync populates it.
+    garmin_running_zones_json: Optional[str] = Field(default=None)
+
     # Per-source per-field sync preferences.
     # JSON: { "garmin": { "weight": false, "height": true, "resting_hr": true,
     #                      "vo2max": true, "lactate_threshold": true },

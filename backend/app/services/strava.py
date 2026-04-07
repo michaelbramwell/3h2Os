@@ -458,6 +458,29 @@ class StravaService:
             )
             return []
 
+    def fetch_activity_detail(
+        self, access_token: str, activity_id: int
+    ) -> Dict[str, Any]:
+        """
+        GET /activities/{id} — full detailed activity.
+        Returns the detailed activity dict (includes best_efforts, segment_efforts, etc).
+        Returns empty dict on failure.
+        """
+        try:
+            response = httpx.get(
+                f"{STRAVA_API_BASE}/activities/{activity_id}",
+                headers={"Authorization": f"Bearer {access_token}"},
+                params={"include_all_efforts": "true"},
+                timeout=15,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.warning(
+                f"Could not fetch detail for Strava activity {activity_id}: {e}"
+            )
+            return {}
+
     def fetch_activity_zones(
         self, access_token: str, activity_id: int
     ) -> List[Dict[str, Any]]:
@@ -529,7 +552,7 @@ class StravaService:
             sorted_t = sorted(thresholds, key=lambda x: x[low_key])
             for i, t in enumerate(sorted_t):
                 z = t[zone_key]
-                high = sorted_t[i + 1][low_key] if i + 1 < len(sorted_t) else 99999.0
+                high = sorted_t[i + 1][low_key] if i + 1 < len(sorted_t) else 0.0
                 buckets[z] = {
                     "low": t[low_key],
                     "high": high,
@@ -570,10 +593,16 @@ class StravaService:
             # Pace (velocity_smooth is in m/s)
             if pace_buckets and i < len(velocity_data) and velocity_data[i] is not None:
                 val = velocity_data[i]
+                matched = False
                 for z, b in sorted(pace_buckets.items(), reverse=True):
                     if val >= b["low"]:
                         b["secs"] += dt
+                        matched = True
                         break
+                # Speed below Z1 lower bound (e.g. hiking on trails) — attribute to Z1
+                if not matched:
+                    min_z = min(pace_buckets)
+                    pace_buckets[min_z]["secs"] += dt
 
             # Power
             if power_buckets and i < len(watts_data) and watts_data[i] is not None:
@@ -733,9 +762,10 @@ class StravaService:
         Returns list of ActivitySchema ready for ActivityService.save_activities.
 
         Zone computation strategy:
-        1. For each activity, try GET /activities/{id}/zones (Summit users).
-        2. If empty, fall back to Streams API (for activities within streams_max_age_days).
-        3. If streams not available, zones remain empty.
+        1. For each activity, try GET /activities/{id}/zones (Summit users) for HR + power.
+        2. Always compute pace zones from Streams API (Summit doesn't provide pace zones).
+        3. Also use streams as fallback for HR/power when Summit zones are absent.
+        4. Streams are only fetched for activities within streams_max_age_days.
         """
         token = self.get_token(user.id)
         if not token:
@@ -757,11 +787,30 @@ class StravaService:
 
             laps = self.fetch_activity_laps(token.access_token, activity_id)
 
+            # Fetch detailed activity to get best_efforts (not present on list endpoint).
+            # Only bother for run-type activities to save API quota.
+            sport = raw.get("sport_type", raw.get("type", ""))
+            if sport in ("Run", "TrailRun", "VirtualRun", "running") and not raw.get(
+                "best_efforts"
+            ):
+                detail = self.fetch_activity_detail(token.access_token, activity_id)
+                if detail.get("best_efforts"):
+                    raw["best_efforts"] = detail["best_efforts"]
+
             hr_zones_out: List[Dict] = []
             pace_zones_out: List[Dict] = []
             power_zones_out: List[Dict] = []
 
-            # Try Summit zones first
+            # Determine whether this activity is within the streams age window
+            start_local = raw.get("start_date_local", "")
+            act_date_str = start_local[:10] if start_local else ""
+            try:
+                act_date_val = date.fromisoformat(act_date_str)
+                within_age = act_date_val >= streams_cutoff
+            except ValueError:
+                within_age = False
+
+            # Try Summit zones first for HR and power
             zones_raw = self.fetch_activity_zones(token.access_token, activity_id)
             if zones_raw:
                 for zone_set in zones_raw:
@@ -792,35 +841,102 @@ class StravaService:
                             }
                             for i, b in enumerate(valid_buckets)
                         ]
-            else:
-                # Fall back to streams for recent activities
-                start_local = raw.get("start_date_local", "")
-                act_date_str = start_local[:10] if start_local else ""
-                try:
-                    act_date_val = date.fromisoformat(act_date_str)
-                    within_age = act_date_val >= streams_cutoff
-                except ValueError:
-                    within_age = False
 
-                if within_age and (
-                    hr_thresholds or pace_thresholds or power_thresholds
-                ):
-                    streams = self.fetch_activity_streams(
-                        token.access_token, activity_id
+            # Always compute pace zones from streams — Summit zones don't include pace.
+            # Also use streams as fallback for HR/power if Summit zones were absent.
+            needs_streams = (pace_thresholds and within_age) or (
+                not zones_raw and within_age and (hr_thresholds or power_thresholds)
+            )
+            if needs_streams:
+                streams = self.fetch_activity_streams(token.access_token, activity_id)
+                if streams:
+                    hr_str, pace_zones_out, power_str = self.compute_zones_from_streams(
+                        streams,
+                        hr_thresholds or [],
+                        pace_thresholds or [],
+                        power_thresholds or [],
                     )
-                    if streams:
-                        hr_zones_out, pace_zones_out, power_zones_out = (
-                            self.compute_zones_from_streams(
-                                streams,
-                                hr_thresholds or [],
-                                pace_thresholds or [],
-                                power_thresholds or [],
-                            )
-                        )
+                    # Only use stream-derived HR/power if Summit didn't provide them
+                    if not hr_zones_out:
+                        hr_zones_out = hr_str
+                    if not power_zones_out:
+                        power_zones_out = power_str
 
             activity_schema = self.map_activity(
                 raw, laps, hr_zones_out, pace_zones_out, power_zones_out
             )
             results.append(activity_schema)
 
+        # Update LT pace from best efforts seen in this batch (Strava rolling best)
+        try:
+            self.update_lt_from_best_efforts(user, raw_activities)
+        except Exception as e:
+            logger.warning(f"LT pace update from best efforts failed (non-fatal): {e}")
+
         return results
+
+    def update_lt_from_best_efforts(
+        self, user: User, raw_activities: List[Dict[str, Any]]
+    ) -> bool:
+        """
+        Scan best_efforts from a batch of raw Strava activity dicts and update
+        profile.lactate_threshold_pace with the fastest 5K effort seen, if it
+        beats what is already stored.
+
+        Only updates if the profile does not already have a Garmin-sourced LT pace
+        stored via the Garmin sync pref (we don't want to overwrite a real device
+        measurement with an estimate).
+
+        The 5K best-effort pace is a reliable proxy for threshold/VO2max fitness
+        because Strava computes it as the fastest continuous 5K within any run —
+        it naturally reflects sustained aerobic capacity built up over time.
+
+        Returns True if the profile was updated.
+        """
+        _5K_NAMES = {"5K", "5k", "5,000m"}
+        _5K_DIST = 5000.0
+
+        profile = self.session.exec(
+            select(RunnerProfile).where(RunnerProfile.user_id == user.id)
+        ).first()
+        if not profile:
+            return False
+
+        best_5k_pace: Optional[float] = None  # m/s — higher is faster
+
+        for raw in raw_activities:
+            sport = raw.get("sport_type", raw.get("type", ""))
+            if sport not in ("Run", "TrailRun", "VirtualRun", "running"):
+                continue
+            for effort in raw.get("best_efforts", []):
+                name = effort.get("name", "")
+                dist = float(effort.get("distance", 0))
+                elapsed = float(effort.get("elapsed_time", 0))
+                if (name in _5K_NAMES or abs(dist - _5K_DIST) < 50) and elapsed > 0:
+                    pace_m_s = dist / elapsed
+                    if best_5k_pace is None or pace_m_s > best_5k_pace:
+                        best_5k_pace = pace_m_s
+
+        if best_5k_pace is None:
+            return False
+
+        # 5K race pace ≈ VO2max pace; LT pace is roughly 5K pace * 0.93
+        # (Jack Daniels: T-pace ≈ 88-92% of VO2max pace; 0.93 is a conservative midpoint)
+        derived_lt = round(best_5k_pace * 0.93, 4)
+
+        # Only skip update if the stored value is already faster (better fitness signal).
+        # Do not let a stale Garmin LT block a legitimate Strava 5K derivation.
+        current = profile.lactate_threshold_pace or 0.0
+        if derived_lt <= current:
+            return False
+        # (If derived_lt > current, fall through and update regardless of source)
+
+        profile.lactate_threshold_pace = derived_lt
+        self.session.add(profile)
+        self.session.commit()
+        logger.info(
+            f"Updated LT pace from Strava 5K best effort: "
+            f"5K pace {best_5k_pace:.3f} m/s → LT {derived_lt:.3f} m/s "
+            f"(user_id={user.id})"
+        )
+        return True

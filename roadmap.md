@@ -119,6 +119,17 @@
 - [ ] **Load-Aware Plan Progression:** Replace pure-distance recalculation (`plans.py`) with stress-based progression using Garmin `aerobic_te`, `anaerobic_te`, and `training_load`, so plan adaptation reflects training intensity not just volume.
 - [ ] **VO2max Volume Ceiling:** Use Garmin VO2max to inform per-athlete peak volume ceilings in template selection, rather than relying solely on `experience_level`.
 
+## Phase 4.7: Comprehensive Test Suite (Planned)
+- [ ] **Parameterised zone tests:** `calculate_zones()` across ages 18–70, both sexes, all experience levels (beginner/intermediate/advanced), all event types (5k/10k/half/marathon/swim), with and without `target_time`.
+- [ ] **HR zone correctness:** Tanaka formula verified at age boundaries; zone boundaries sequential and non-overlapping for every combination.
+- [ ] **Pace zone anchoring:** Target-time-anchored zones verified against expected m/s values; ordering invariant (Recovery < Easy < Tempo < Threshold < Interval) holds across all inputs.
+- [ ] **`_pace_zones_from_lt_pace()`:** Zone boundary correctness across a representative range of LT pace values (3:30–6:30/km).
+- [ ] **`refresh_training_zones()` — all 3 priority paths:** Strava HR zones path, Garmin LT pace path, and default `calculate_zones()` path; edge cases: no sources connected, `lactate_threshold_pace = null`, missing `RunnerProject`.
+- [ ] **`ContextService` zones path:** `trainingZones` populated correctly from `training_zones_json`; swim zones merged from `swim_zones_json`; malformed JSON handled gracefully without raising.
+- [ ] **`SyncService`:** `sync_garmin` and `sync_strava` trigger zone refresh; zone not overwritten if sync pref disabled.
+- [ ] **Shared fixtures:** Rebuild `conftest.py` with reusable `make_user`, `make_profile`, `make_project`, and `app_client` factories to eliminate per-file duplication.
+- [ ] **Mock user matrix:** Extensive parameterised tests covering users of varying sex, age, ability, weight, and experience level across all plan types.
+
 ## Phase 5: Performance Analytics (Planned)
 - [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals and fueling to suggest plan adjustments for the following week.
 

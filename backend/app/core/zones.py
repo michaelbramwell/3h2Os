@@ -10,7 +10,11 @@ Uses standard, evidence-based formulas:
 All calculations use generic sports science principles, no proprietary methodology.
 """
 
+import json
+import logging
 from typing import Dict, Any, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_max_hr(age: int) -> int:
@@ -238,3 +242,221 @@ def calculate_zones(
         zones["pace"] = calculate_pace_zones(experience_level, event_type, target_time)
 
     return zones
+
+
+def _pace_zones_from_lt_pace(lt_pace_m_s: float) -> List[Dict[str, Any]]:
+    """
+    Derive 5 running pace zones from a lactate-threshold pace (m/s).
+
+    Fractions anchored at LT (Zone 4) using Jack Daniels / Pfitzinger speed ratios.
+    All values are *speed* fractions (m/s), so a fraction < 1.0 means slower than LT.
+
+    Verified against VDOT tables:
+      Z1 Recovery  = lt_pace * 0.760  (~lower E-pace bound, ~25% slower than LT)
+      Z2 Easy      = lt_pace * 0.835  (~E-pace, ~20% slower than LT)
+      Z3 Tempo     = lt_pace * 0.915  (~M-pace, ~9% slower than LT)
+      Z4 Threshold = lt_pace * 1.000  (LT pace itself)
+      Z5 VO2 Max   = lt_pace * 1.090  (~I-pace, ~9% faster than LT)
+    """
+    return [
+        {
+            "zone": 1,
+            "lowBoundary_m_s": round(lt_pace_m_s * 0.760, 3),
+            "description": "Recovery",
+        },
+        {
+            "zone": 2,
+            "lowBoundary_m_s": round(lt_pace_m_s * 0.835, 3),
+            "description": "Easy",
+        },
+        {
+            "zone": 3,
+            "lowBoundary_m_s": round(lt_pace_m_s * 0.915, 3),
+            "description": "Tempo",
+        },
+        {
+            "zone": 4,
+            "lowBoundary_m_s": round(lt_pace_m_s * 1.000, 3),
+            "description": "Threshold",
+        },
+        {
+            "zone": 5,
+            "lowBoundary_m_s": round(lt_pace_m_s * 1.090, 3),
+            "description": "Interval",
+        },
+    ]
+
+
+def _best_5k_lt_from_activities(user_id: int, session) -> Optional[float]:
+    """
+    Derive an LT pace (m/s) from the fastest near-5K activity in actualactivity.
+
+    Scans all running activities between 4900m and 5200m and returns
+    LT = best_5k_pace * 0.93 (Jack Daniels T-pace fraction).
+
+    Returns None if no qualifying activities exist.
+    """
+    from sqlmodel import select as _select
+    from app.core.database import ActualActivity
+
+    rows = session.exec(
+        _select(ActualActivity.average_pace_m_s)
+        .where(ActualActivity.user_id == user_id)
+        .where(
+            ActualActivity.type.in_(
+                ["Run", "running", "TrailRun", "run", "trail_running"]
+            )
+        )
+        .where(ActualActivity.distance_m >= 4900)
+        .where(ActualActivity.distance_m <= 5200)
+        .where(ActualActivity.average_pace_m_s.isnot(None))
+        .where(ActualActivity.average_pace_m_s > 0)
+        .order_by(ActualActivity.average_pace_m_s.desc())
+        .limit(1)
+    ).first()
+
+    if not rows:
+        return None
+
+    best_5k_pace_m_s = float(rows)
+    derived_lt = round(best_5k_pace_m_s * 0.93, 4)
+    logger.debug(
+        f"Best 5K pace from activities: {best_5k_pace_m_s:.3f} m/s "
+        f"→ LT {derived_lt:.3f} m/s (user_id={user_id})"
+    )
+    return derived_lt
+
+
+def refresh_training_zones(profile, session) -> bool:
+    """
+    Recalculate and persist training_zones_json for *profile* using the best
+    available data source, in priority order:
+
+    For HR zones:
+      1. Strava /athlete/zones  → custom or Strava-calculated HR zone boundaries
+      2. Formula                → Tanaka age-based max HR formula
+
+    For pace zones, the best available anchor is used:
+      1. Garmin running zones   → pace zones fetched directly from Garmin Connect
+                                   user-settings (profile.garmin_running_zones_json).
+                                   These are the exact zones the user sees in Garmin/Strava.
+      2. Best 5K from activities → fastest near-5K (4900–5200m) run in actualactivity,
+                                   LT = 5K pace * 0.93 (Jack Daniels T-pace).
+                                   Most reliable signal — always uses the fastest effort
+                                   on record regardless of source (Garmin or Strava).
+      3. Garmin LT pace         → device-measured lactate threshold (m/s) stored on profile.
+                                   Used only when no 5K efforts exist in the activity log.
+      4. Project target_time    → race-pace-anchored zones from user's goal time.
+      5. Experience level       → coarse 3-tier fallback (beginner/intermediate/advanced).
+
+    Returns True if training_zones_json was updated, False otherwise.
+    """
+    from sqlmodel import select as _select
+    from app.core.database import StravaToken, RunnerProject
+
+    if not profile:
+        return False
+
+    try:
+        # ------------------------------------------------------------------
+        # Supporting data
+        # ------------------------------------------------------------------
+        project = session.exec(
+            _select(RunnerProject).where(RunnerProject.user_id == profile.user_id)
+        ).first()
+        event_type = (project.event_type or "marathon") if project else "marathon"
+        target_time = project.target_time if project else None
+        experience_level = profile.experience_level or "intermediate"
+
+        # ------------------------------------------------------------------
+        # HR zones: Strava if connected, else formula
+        # ------------------------------------------------------------------
+        strava_token = session.exec(
+            _select(StravaToken).where(StravaToken.user_id == profile.user_id)
+        ).first()
+
+        hr_zones: List[Dict[str, Any]] = []
+        if strava_token:
+            try:
+                from app.services.strava import StravaService
+
+                svc = StravaService(session)
+                token = svc.refresh_if_needed(strava_token)
+                zones_data = svc.fetch_athlete_zones(token.access_token)
+                strava_zone_list = zones_data.get("heart_rate", {}).get("zones", [])
+                if strava_zone_list:
+                    hr_zones = [
+                        {
+                            "zone": idx + 1,
+                            "lowBoundary_bpm": z.get("min", 0),
+                            "highBoundary_bpm": z.get("max", 0),
+                            "description": z.get("name", f"Zone {idx + 1}"),
+                        }
+                        for idx, z in enumerate(strava_zone_list)
+                    ]
+            except Exception as e:
+                logger.warning(f"Could not fetch Strava HR zones for refresh: {e}")
+
+        if not hr_zones:
+            hr_zones = calculate_hr_zones(profile.age)
+
+        # ------------------------------------------------------------------
+        # Pace zones — priority ladder
+        # ------------------------------------------------------------------
+        pace_zones: Optional[List[Dict[str, Any]]] = None
+
+        # Priority 1: Garmin running zones (direct from Garmin Connect settings)
+        if profile.garmin_running_zones_json:
+            try:
+                garmin_zones = json.loads(profile.garmin_running_zones_json)
+                if (
+                    garmin_zones
+                    and isinstance(garmin_zones, list)
+                    and len(garmin_zones) >= 3
+                ):
+                    pace_zones = garmin_zones
+                    logger.info(
+                        f"Training zones refreshed via Garmin running zones for user_id={profile.user_id}"
+                    )
+            except Exception:
+                pass
+
+        # Priority 2: Best 5K from activity log (most reliable — always uses fastest effort)
+        if pace_zones is None:
+            lt_from_5k = _best_5k_lt_from_activities(profile.user_id, session)
+            if lt_from_5k:
+                pace_zones = _pace_zones_from_lt_pace(lt_from_5k)
+                logger.info(
+                    f"Training zones refreshed via best 5K activity (LT={lt_from_5k:.3f} m/s) "
+                    f"for user_id={profile.user_id}"
+                )
+
+        # Priority 3: Garmin device LT pace (fallback when no 5K efforts on record)
+        if (
+            pace_zones is None
+            and profile.lactate_threshold_pace
+            and profile.lactate_threshold_pace > 0
+        ):
+            pace_zones = _pace_zones_from_lt_pace(profile.lactate_threshold_pace)
+            logger.info(
+                f"Training zones refreshed via Garmin LT pace for user_id={profile.user_id}"
+            )
+
+        # Priority 4 & 5: target_time / experience level fallback
+        if pace_zones is None:
+            pace_zones = calculate_pace_zones(experience_level, event_type, target_time)
+            logger.info(
+                f"Training zones refreshed via defaults for user_id={profile.user_id}"
+            )
+
+        zones_dict: Dict[str, Any] = {"heartRate": hr_zones, "pace": pace_zones}
+        profile.training_zones_json = json.dumps(zones_dict)
+        session.add(profile)
+        session.commit()
+        return True
+
+    except Exception as e:
+        logger.error(
+            f"refresh_training_zones failed for user_id={profile.user_id}: {e}"
+        )
+        return False

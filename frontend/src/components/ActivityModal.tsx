@@ -5,6 +5,7 @@ import type { Activity, HrZone, ContextData, TrainingZone, Week } from '../types
 import { ActivityType } from '../types/schema';
 import { formatPace, formatSwimPace, formatDistance } from '../lib/formatters';
 import { createActivityShare, updateActivityName } from '../lib/api';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 /** Case-insensitive activity type check (backend stores lowercase, frontend enum is TitleCase). */
 function isType(actual: string | undefined, expected: string): boolean {
@@ -111,30 +112,35 @@ function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], ty
                 
                 if (type === 'pace') {
                      const isSwim = isType(activityType, ActivityType.SWIMMING);
+                     const highIsOpen = high <= 0 || high >= 99999;
                      
                      if (z.avgValue && z.avgValue > 0) {
                         valStr = isSwim 
                             ? formatSwimPace(z.avgValue)
                             : formatPace(1000 / z.avgValue);
-                     } else if (low > 0 || high > 0) {
+                     } else if (low > 0 || !highIsOpen) {
                         const lowPace = low > 0 
                             ? (isSwim ? formatSwimPace(low) : formatPace(1000 / low)) 
                             : ''; 
-                        const highPace = high > 0 
+                        const highPace = !highIsOpen
                             ? (isSwim ? formatSwimPace(high) : formatPace(1000 / high)) 
                             : '';
 
                         // Fallback: Use zone boundaries
                         if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
                         else if (highPace) valStr = `< ${highPace}`;
-                        else if (lowPace) valStr = `< ${lowPace}`; // Top zone: faster than this pace
+                        else if (lowPace) valStr = `> ${lowPace}`;
                      }
                 } else if (z.avgValue && z.avgValue > 0) {
                      valStr = Math.round(z.avgValue) + (type === 'hr' ? 'bpm' : (type === 'power' ? 'W' : ''));
                 } else if (type === 'hr') {
-                    valStr = `${Math.round(low)}-${Math.round(high)}`;
+                    if (low > 0 || high > 0) {
+                        valStr = high > 0 ? `${Math.round(low)}-${Math.round(high)}` : `${Math.round(low)}+`;
+                    }
                 } else if (type === 'power') {
-                    valStr = `${Math.round(low)}-${Math.round(high)} W`;
+                    if (low > 0 || high > 0) {
+                        valStr = high > 0 ? `${Math.round(low)}-${Math.round(high)} W` : `${Math.round(low)}+ W`;
+                    }
                 }
 
                 return (
@@ -189,6 +195,7 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
     if (!activity) return null;
 
     const queryClient = useQueryClient();
+    const flags = useFeatureFlags();
     const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied' | 'error'>('idle');
     const [editingName, setEditingName] = useState(false);
     const [nameValue, setNameValue] = useState(activity.custom_name ?? activity.name);
@@ -277,11 +284,12 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
         }
     }
     
-    // Training Effect
-    const aeScore = activity.aerobic_te || 0;
-    const anScore = activity.anaerobic_te || 0;
-    const aeData = getTEData(aeScore);
-    const anData = getTEData(anScore);
+    // Training Effect — only available from Garmin; null when Garmin is disabled or Strava-only
+    const aeScore = activity.aerobic_te ?? null;
+    const anScore = activity.anaerobic_te ?? null;
+    const hasTE = flags.isGarminEnabled && (aeScore !== null || anScore !== null);
+    const aeData = aeScore !== null ? getTEData(aeScore) : null;
+    const anData = anScore !== null ? getTEData(anScore) : null;
 
     // Resolve pace zones: prefer telemetry-enriched zones, fall back to split-derived zones.
     const isRunning = isType(activity.type, ActivityType.RUN) || isType(activity.type, ActivityType.TRAIL);
@@ -423,9 +431,11 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
                             <div className="text-[10px] font-bold text-slate-400 uppercase">Training Load</div>
                             <div className="text-lg font-black text-slate-900">{Math.round(activity.training_load || 0)}</div>
                         </div>
+                        {hasTE && (
                         <div className="bg-slate-50 p-3 rounded-lg">
                             <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Training Effect</div>
                             <div className="grid grid-cols-1 gap-2">
+                                {aeScore !== null && aeData && (
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-1.5">
                                         <span className="text-xs font-black text-slate-700 w-8">Ae</span>
@@ -435,6 +445,8 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
                                         {aeData.label}
                                     </span>
                                 </div>
+                                )}
+                                {anScore !== null && anData && (
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-1.5">
                                         <span className="text-xs font-black text-slate-700 w-8">An</span>
@@ -444,8 +456,10 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
                                         {anData.label}
                                     </span>
                                 </div>
+                                )}
                             </div>
                         </div>
+                        )}
                     </div>
 
                     {/* Zones Sections */}

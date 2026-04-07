@@ -5,6 +5,7 @@ import { useAuth } from 'react-oidc-context'
 import { ArrowLeft, RefreshCw, Check, Lock } from 'lucide-react'
 import { getProfile, patchProfile, patchSyncPrefs, syncProfileNow } from '../lib/api'
 import type { UserProfile, ProfileSyncPrefs } from '../types/schema'
+import { useFeatureFlags } from '../hooks/useFeatureFlags'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
@@ -177,6 +178,7 @@ function SettingsPage() {
   const auth = useAuth()
   const queryClient = useQueryClient()
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const flags = useFeatureFlags()
 
   const { data: profile, isLoading, error } = useQuery<UserProfile>({
     queryKey: ['profile'],
@@ -197,7 +199,9 @@ function SettingsPage() {
 
   const syncMutation = useMutation({
     mutationFn: () => {
-      const garminToken = localStorage.getItem('garmin_token') ?? undefined
+      const garminToken = flags.isGarminEnabled
+        ? (localStorage.getItem('garmin_token') ?? undefined)
+        : undefined
       return syncProfileNow(garminToken)
     },
     onSuccess: (data) => {
@@ -415,7 +419,8 @@ function SettingsPage() {
         <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Data Sources</h2>
 
-          {/* Garmin */}
+          {/* Garmin — only shown when the feature flag is enabled */}
+          {flags.isGarminEnabled && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
@@ -451,6 +456,7 @@ function SettingsPage() {
               />
             </div>
           </div>
+          )}
 
           {/* Strava */}
           <div>
@@ -480,7 +486,7 @@ function SettingsPage() {
 
           <p className="mt-4 text-xs text-slate-400 leading-relaxed">
             When a source toggle is ON, that field is managed automatically and cannot be edited manually.
-            Weight can only be managed by one source at a time — enabling Strava disables Garmin automatically.
+            {flags.isGarminEnabled && ' Weight can only be managed by one source at a time — enabling Strava disables Garmin automatically.'}
           </p>
         </section>
 

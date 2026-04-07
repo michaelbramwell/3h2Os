@@ -50,6 +50,17 @@ async def _daily_profile_sync_loop() -> None:
                         svc = StravaService(session)
                         refreshed = svc.refresh_if_needed(token)
                         svc.merge_athlete_profile(token.user_id, refreshed.access_token)
+                        # Refresh training zones after profile sync
+                        from sqlmodel import select as _sel
+                        from app.core.database import RunnerProfile
+                        from app.core.zones import refresh_training_zones
+
+                        profile = session.exec(
+                            _sel(RunnerProfile).where(
+                                RunnerProfile.user_id == token.user_id
+                            )
+                        ).first()
+                        refresh_training_zones(profile, session)
                         logger.debug(
                             f"Background Strava profile sync done for user {token.user_id}"
                         )

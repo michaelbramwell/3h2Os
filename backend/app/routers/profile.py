@@ -236,6 +236,15 @@ def sync_profile_now(
     except Exception as e:
         logger.warning(f"sync-now Strava failed for user {user.id}: {e}")
 
+    # Refresh training zones from best available source
+    try:
+        from app.core.zones import refresh_training_zones
+
+        profile_for_zones = _get_or_404(session, user)
+        refresh_training_zones(profile_for_zones, session)
+    except Exception as e:
+        logger.warning(f"sync-now zone refresh failed for user {user.id}: {e}")
+
     # Garmin requires the client to pass the token; we can't trigger it server-side
     # without the session token. The response hints that Garmin sync requires a manual
     # activity sync with the X-Garmin-Token header.

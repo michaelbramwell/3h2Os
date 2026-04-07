@@ -273,7 +273,7 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
         setPreviewLoading(true);
         setPreviewError(null);
         try {
-            const result = await wizardPreview(wizardInput);
+            const result = await wizardPreview(wizardInput, editPlanId ?? undefined);
             setPreview(result);
         } catch (err: any) {
             const msg = err?.response?.data?.detail || err?.message || 'Failed to generate preview';
@@ -281,7 +281,7 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
         } finally {
             setPreviewLoading(false);
         }
-    }, [wizardInput]);
+    }, [wizardInput, editPlanId]);
 
     // Submit -- create or update depending on mode
     const submitPlan = useCallback(async () => {

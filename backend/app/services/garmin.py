@@ -9,7 +9,7 @@ import uuid
 from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 
-from garminconnect import Garmin
+from garminconnect import Garmin, GarminConnectTooManyRequestsError
 from sqlmodel import Session, select
 
 from app.models.domain import ActualActivity
@@ -132,9 +132,91 @@ class GarminService:
                         zf.write(file_path, arcname)
 
             return base64.b64encode(bio.getvalue()).decode("utf-8")
+        except GarminConnectTooManyRequestsError:
+            raise ValueError(
+                "Garmin is temporarily rate-limiting login attempts from this server. "
+                "Please wait 15–30 minutes and try again."
+            )
         except Exception as e:
             logger.error(f"Login failed: {e}")
             raise ValueError(f"Garmin login failed: {str(e)}")
+        finally:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+
+    @staticmethod
+    def refresh_tokens(tokens_b64: str) -> str:
+        """
+        Refresh an existing Garmin token archive without going through SSO.
+
+        Garth's OAuth2 tokens expire after ~1 hour but the OAuth1 token is valid
+        for ~1 year. This method loads the stored token archive, lets garth
+        transparently refresh the OAuth2 token via the OAuth1 token exchange
+        (no SSO / no Garmin credentials required), then re-packages and returns
+        the updated archive.
+
+        Raises ValueError if the OAuth1 token itself has expired and a full
+        re-login with credentials is required.
+        """
+        session_id = str(uuid.uuid4())
+        temp_dir = os.path.join(tempfile.gettempdir(), f"garth_refresh_{session_id}")
+        os.makedirs(temp_dir, exist_ok=True)
+
+        try:
+            # Decode and extract stored tokens
+            tokens_b64 = tokens_b64.strip()
+            zip_data = base64.b64decode(tokens_b64)
+            with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
+                zf.extractall(temp_dir)
+
+            # Load tokens into a garminconnect client
+            client = Garmin()
+            client.login(temp_dir)
+
+            # Access the underlying garth client
+            garth_client = getattr(client, "garth", None) or getattr(
+                client, "client", None
+            )
+            if garth_client is None:
+                raise ValueError("Cannot access garth client for token refresh")
+
+            oauth1 = getattr(garth_client, "oauth1_token", None)
+            oauth2 = getattr(garth_client, "oauth2_token", None)
+
+            if oauth1 is None:
+                raise ValueError(
+                    "Garmin session has fully expired. Please reconnect with your credentials."
+                )
+
+            # Force an OAuth2 refresh via the OAuth1 token (no SSO)
+            if oauth2 is None or getattr(oauth2, "expired", True):
+                logger.info("OAuth2 token expired — refreshing via OAuth1 (no SSO)")
+                garth_client.refresh_oauth2()
+                logger.info("OAuth2 token refreshed successfully")
+            else:
+                logger.info("OAuth2 token still valid — re-packaging as-is")
+
+            # Dump updated tokens back to temp dir and re-package
+            garth_client.dump(temp_dir)
+
+            bio = io.BytesIO()
+            with zipfile.ZipFile(bio, "w", zipfile.ZIP_DEFLATED) as zf:
+                for root, _, files in os.walk(temp_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, temp_dir)
+                        zf.write(file_path, arcname)
+
+            logger.info("Garmin token archive refreshed and re-packaged")
+            return base64.b64encode(bio.getvalue()).decode("utf-8")
+
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.warning(f"Token refresh failed: {e}")
+            raise ValueError(
+                "Garmin session has expired. Please reconnect with your credentials."
+            )
         finally:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
@@ -221,6 +303,66 @@ class GarminService:
                             pass
 
             # ------------------------------------------------------------------
+            # Running pace zones (from Garmin userprofile settings)
+            # Garmin stores the user's custom or calculated pace zones in
+            # /userprofile-service/userprofile/user-settings under the key
+            # "runningZones": [{"zoneNumber": N, "zoneLowBoundary": sec_per_km}, ...]
+            # zoneLowBoundary == 0 means "no lower limit" (zone 1).
+            # We convert to m/s and store as garmin_running_zones_json.
+            # ------------------------------------------------------------------
+            try:
+                settings = self.client.get_userprofile_settings()
+                if settings:
+                    # The endpoint may nest under 'userData' or return flat
+                    settings_data = settings.get("userData", settings)
+                    raw_zones = settings_data.get("runningZones") or []
+                    if raw_zones and isinstance(raw_zones, list):
+                        import json as _json
+
+                        _ZONE_LABELS = {
+                            1: "Recovery",
+                            2: "Easy",
+                            3: "Tempo",
+                            4: "Threshold",
+                            5: "Interval",
+                        }
+                        parsed = []
+                        for z in raw_zones:
+                            zone_num = z.get("zoneNumber") or z.get("zone")
+                            boundary_secs = z.get("zoneLowBoundary") or z.get(
+                                "lowBoundary"
+                            )
+                            if zone_num is None or boundary_secs is None:
+                                continue
+                            zone_num = int(zone_num)
+                            boundary_secs = float(boundary_secs)
+                            # 0 means "no lower bound" — treat as 0 m/s
+                            if boundary_secs > 0:
+                                # sec/km → m/s: 1000 / sec_per_km
+                                low_m_s = round(1000.0 / boundary_secs, 4)
+                            else:
+                                low_m_s = 0.0
+                            parsed.append(
+                                {
+                                    "zone": zone_num,
+                                    "lowBoundary_m_s": low_m_s,
+                                    "description": _ZONE_LABELS.get(
+                                        zone_num, f"Zone {zone_num}"
+                                    ),
+                                }
+                            )
+                        if parsed:
+                            parsed.sort(key=lambda x: x["zone"])
+                            profile.garmin_running_zones_json = _json.dumps(parsed)
+                            changed = True
+                            logger.info(
+                                f"Garmin running zones updated for user_id={user_id}: "
+                                f"{len(parsed)} zones"
+                            )
+            except Exception as e:
+                logger.debug(f"Garmin running zones fetch failed (non-fatal): {e}")
+
+            # ------------------------------------------------------------------
             # Resting HR
             # ------------------------------------------------------------------
             if can_write(prefs, "garmin", "resting_hr"):
@@ -264,19 +406,68 @@ class GarminService:
             if can_write(prefs, "garmin", "lactate_threshold"):
                 try:
                     lt_data = self.client.get_lactate_threshold()
-                    # {"lactateThresholdHeartRate": N, "lactateThresholdSpeed": N (m/s)}
+                    # Garmin returns {"speed_and_heart_rate": {"speed": sec/m, "heartRate": bpm, ...}, "power": {...}}
+                    # Note: despite the field name "speed", Garmin's API returns pace in sec/m (not m/s).
+                    # We must invert to get m/s: speed_m_s = 1.0 / sec_per_m
                     if lt_data:
-                        lt_hr = lt_data.get("lactateThresholdHeartRate")
-                        lt_speed = lt_data.get("lactateThresholdSpeed")
+                        shr = lt_data.get("speed_and_heart_rate", {})
+                        lt_hr = shr.get("heartRate")
+                        lt_speed_raw = shr.get("speed")  # sec/m from Garmin
                         if lt_hr and int(lt_hr) > 0:
                             profile.lactate_threshold_hr = int(lt_hr)
                             changed = True
-                        if lt_speed and float(lt_speed) > 0:
-                            profile.lactate_threshold_pace = float(lt_speed)
+                        if lt_speed_raw and float(lt_speed_raw) > 0:
+                            # Convert sec/m → m/s
+                            profile.lactate_threshold_pace = round(
+                                1.0 / float(lt_speed_raw), 6
+                            )
                             changed = True
                 except Exception as e:
                     logger.debug(
                         f"Garmin lactate threshold fetch failed (non-fatal): {e}"
+                    )
+
+            # ------------------------------------------------------------------
+            # Race predictions (marathon predicted time → pace anchor for zones)
+            # Only used if we didn't get a direct LT pace above.
+            # ------------------------------------------------------------------
+            if not profile.lactate_threshold_pace:
+                try:
+                    preds = self.client.get_race_predictions()
+                    # Response is a list of dicts or a dict with race distance keys.
+                    # Garmin returns predicted times in seconds for various distances.
+                    marathon_secs = None
+                    if isinstance(preds, list):
+                        for p in preds:
+                            if p.get("raceDistance", "").lower() in (
+                                "marathon",
+                                "42195",
+                            ):
+                                marathon_secs = p.get("predictedTime")
+                                break
+                    elif isinstance(preds, dict):
+                        # Some library versions return a flat dict keyed by distance
+                        for key in ("marathon", "42195", "MARATHON"):
+                            val = preds.get(key)
+                            if val:
+                                marathon_secs = val
+                                break
+                    if marathon_secs and float(marathon_secs) > 0:
+                        # Convert predicted marathon time to m/s pace
+                        # Use as a proxy LT pace: marathon pace ≈ 95% of LT
+                        # So LT pace ≈ marathon pace / 0.95
+                        marathon_pace_m_s = 42195.0 / float(marathon_secs)
+                        profile.lactate_threshold_pace = round(
+                            marathon_pace_m_s / 0.95, 4
+                        )
+                        logger.info(
+                            f"Derived LT pace from Garmin race prediction: "
+                            f"marathon {marathon_secs}s → LT {profile.lactate_threshold_pace:.3f} m/s"
+                        )
+                        changed = True
+                except Exception as e:
+                    logger.debug(
+                        f"Garmin race predictions fetch failed (non-fatal): {e}"
                     )
 
             # ------------------------------------------------------------------
@@ -572,6 +763,9 @@ class GarminService:
                     if val >= t["lowBoundary"]:
                         zone = t["zone"]
                         break
+                # Speed below Z1 lower bound (e.g. hiking on trails) — attribute to Z1
+                if zone == 0 and pace_proc:
+                    zone = min(t["zone"] for t in pace_proc)
                 if zone > 0:
                     pace_acc[zone]["secs"] += duration
                     pace_acc[zone]["sum"] += val * duration

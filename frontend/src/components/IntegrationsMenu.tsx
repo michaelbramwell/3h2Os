@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { getStravaAuthUrl, disconnectStrava, getGarminToken } from '../lib/api'
 import { useStravaStatus } from '../hooks/useStravaStatus'
 import { useGarminToken } from '../hooks/useGarminToken'
+import { useFeatureFlags } from '../hooks/useFeatureFlags'
 
 /**
  * Single "Integrations" dropdown in the header.
@@ -22,11 +23,22 @@ export function IntegrationsMenu() {
     const queryClient = useQueryClient();
     const { connected: stravaConnected, athleteId, isLoading: stravaLoading } = useStravaStatus();
     const { token: garminToken, saveToken, removeToken } = useGarminToken();
+    const flags = useFeatureFlags();
 
     const [garminEmail, setGarminEmail] = useState('');
     const [garminPassword, setGarminPassword] = useState('');
     const [garminLoading, setGarminLoading] = useState(false);
     const [showGarminForm, setShowGarminForm] = useState(false);
+    const prevGarminTokenRef = useRef<string | null>(garminToken);
+
+    // Detect when the token is cleared externally (e.g. by the auto-refresh interceptor
+    // after the OAuth1 token has also expired) and notify the user.
+    useEffect(() => {
+        if (prevGarminTokenRef.current && !garminToken) {
+            toast.error('Garmin session expired. Please reconnect.');
+        }
+        prevGarminTokenRef.current = garminToken;
+    }, [garminToken]);
 
     // Close on outside click
     useEffect(() => {
@@ -103,7 +115,7 @@ export function IntegrationsMenu() {
     };
 
     // Pill indicator: green if anything connected, grey otherwise
-    const anyConnected = stravaConnected || !!garminToken;
+    const anyConnected = stravaConnected || (flags.isGarminEnabled && !!garminToken);
 
     return (
         <div className="relative" ref={menuRef}>
@@ -163,7 +175,8 @@ export function IntegrationsMenu() {
                         <p className="text-[11px] text-slate-400">Used for activity sync when connected</p>
                     </div>
 
-                    {/* Garmin row */}
+                    {/* Garmin row — only shown when the feature flag is enabled */}
+                    {flags.isGarminEnabled && (
                     <div className="px-4 py-3">
                         <div className="flex items-center justify-between mb-1.5">
                             <span className="text-sm font-semibold text-slate-800">Garmin</span>
@@ -228,6 +241,7 @@ export function IntegrationsMenu() {
                             </form>
                         )}
                     </div>
+                    )}
 
                     {/* Powered by Strava attribution — required by Strava API agreement */}
                     <div className="px-4 py-2.5 border-t border-slate-100 flex justify-end">

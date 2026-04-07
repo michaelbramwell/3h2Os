@@ -128,10 +128,11 @@ class ActivityService:
 
     def _save_garmin_activity(self, act, act_date, user, dump_zones) -> bool:
         """
-        Upsert a Garmin activity. Returns False (skip) if a Strava record already
-        covers this date + distance.
+        Upsert a Garmin activity. If a Strava record already covers this date +
+        distance, patch Garmin-only fields (aerobic_te, anaerobic_te, training_load)
+        onto it rather than skipping entirely.
         """
-        # Skip if Strava already has this activity
+        # If Strava already has this activity, enrich it with Garmin-only metrics
         strava_match = self._find_matching_activity(
             user_id=user.id,
             act_date=act_date,
@@ -139,6 +140,18 @@ class ActivityService:
             require_source="strava",
         )
         if strava_match:
+            updated = False
+            if act.aerobic_te is not None and strava_match.aerobic_te is None:
+                strava_match.aerobic_te = act.aerobic_te
+                updated = True
+            if act.anaerobic_te is not None and strava_match.anaerobic_te is None:
+                strava_match.anaerobic_te = act.anaerobic_te
+                updated = True
+            if act.training_load is not None and strava_match.training_load is None:
+                strava_match.training_load = act.training_load
+                updated = True
+            if updated:
+                self.session.add(strava_match)
             return False
 
         # Check for existing Garmin record by activity_id

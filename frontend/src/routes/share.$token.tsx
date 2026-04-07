@@ -49,23 +49,28 @@ function ZoneList({ zones, type, activityType, derived }: {
                 let valStr = '';
                 if (type === 'pace') {
                     const isSwim = isType(activityType, ActivityType.SWIMMING);
+                    const highIsOpen = high <= 0 || high >= 99999;
                     if (z.avgValue && z.avgValue > 0) {
                         valStr = isSwim
                             ? formatSwimPace(z.avgValue)
                             : formatPace(1000 / z.avgValue);
-                    } else if (low > 0 || high > 0) {
+                    } else if (low > 0 || !highIsOpen) {
                         const lowPace = low > 0 ? (isSwim ? formatSwimPace(low) : formatPace(1000 / low)) : '';
-                        const highPace = high > 0 ? (isSwim ? formatSwimPace(high) : formatPace(1000 / high)) : '';
+                        const highPace = !highIsOpen ? (isSwim ? formatSwimPace(high) : formatPace(1000 / high)) : '';
                         if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
                         else if (highPace) valStr = `< ${highPace}`;
-                        else if (lowPace) valStr = `< ${lowPace}`;
+                        else if (lowPace) valStr = `> ${lowPace}`;
                     }
                 } else if (z.avgValue && z.avgValue > 0) {
                     valStr = Math.round(z.avgValue) + (type === 'hr' ? 'bpm' : type === 'power' ? 'W' : '');
                 } else if (type === 'hr') {
-                    valStr = `${Math.round(low)}-${Math.round(high)}`;
+                    if (low > 0 || high > 0) {
+                        valStr = high > 0 ? `${Math.round(low)}-${Math.round(high)}` : `${Math.round(low)}+`;
+                    }
                 } else if (type === 'power') {
-                    valStr = `${Math.round(low)}-${Math.round(high)} W`;
+                    if (low > 0 || high > 0) {
+                        valStr = high > 0 ? `${Math.round(low)}-${Math.round(high)} W` : `${Math.round(low)}+ W`;
+                    }
                 }
 
                 return (
@@ -239,10 +244,11 @@ function ActivityDetail({ activity }: { activity: Activity }) {
         }
     }
 
-    const aeScore = activity.aerobic_te || 0;
-    const anScore = activity.anaerobic_te || 0;
-    const aeData = getTEData(aeScore);
-    const anData = getTEData(anScore);
+    const aeScore = activity.aerobic_te ?? null;
+    const anScore = activity.anaerobic_te ?? null;
+    const hasTE = aeScore !== null || anScore !== null;
+    const aeData = aeScore !== null ? getTEData(aeScore) : null;
+    const anData = anScore !== null ? getTEData(anScore) : null;
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -280,9 +286,11 @@ function ActivityDetail({ activity }: { activity: Activity }) {
                         <div className="text-[10px] font-bold text-slate-400 uppercase">Training Load</div>
                         <div className="text-lg font-black text-slate-900">{Math.round(activity.training_load || 0)}</div>
                     </div>
+                    {hasTE && (
                     <div className="bg-slate-50 p-3 rounded-lg">
                         <div className="text-[10px] font-bold text-slate-400 uppercase mb-2">Training Effect</div>
                         <div className="grid grid-cols-1 gap-2">
+                            {aeScore !== null && aeData && (
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5">
                                     <span className="text-xs font-black text-slate-700 w-8">Ae</span>
@@ -292,6 +300,8 @@ function ActivityDetail({ activity }: { activity: Activity }) {
                                     {aeData.label}
                                 </span>
                             </div>
+                            )}
+                            {anScore !== null && anData && (
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5">
                                     <span className="text-xs font-black text-slate-700 w-8">An</span>
@@ -301,8 +311,10 @@ function ActivityDetail({ activity }: { activity: Activity }) {
                                     {anData.label}
                                 </span>
                             </div>
+                            )}
                         </div>
                     </div>
+                    )}
                 </div>
 
                 {/* Zones & splits */}
