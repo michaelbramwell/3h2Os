@@ -12,8 +12,11 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from sqlalchemy.pool import StaticPool
 from datetime import date
 
+from starlette.requests import Request
+
 from app.main import app
 from app.core.database import get_session, User, ActualActivity, ActivityShare
+from app.core.auth import verify_jwt_middleware
 from app.routers.deps import get_current_user
 from app.services.share import ShareService
 
@@ -84,8 +87,18 @@ def client_fixture():
                 session.refresh(user)
             return user
 
+    async def jwt_override(request: Request):
+        payload = {
+            "sub": "test-user-id",
+            "preferred_username": "test_runner",
+            "realm_access": {"roles": []},
+        }
+        request.state.user = payload
+        return payload
+
     app.dependency_overrides[get_session] = get_session_override
     app.dependency_overrides[get_current_user] = get_current_user_override
+    app.dependency_overrides[verify_jwt_middleware] = jwt_override
 
     with TestClient(app) as client:
         yield client
@@ -213,7 +226,7 @@ class TestShareEndpoints:
         data = resp.json()
         assert "token" in data
         assert "url" in data
-        assert data["url"].startswith("https://3h2os.com/share/")
+        assert f"/share/{data['token']}" in data["url"]
         assert len(data["token"]) == 64
 
     def test_create_share_endpoint_idempotent(self, client):
