@@ -1,6 +1,6 @@
 # Project Roadmap: 3h2Os
 
-## Current Version: v0.10.0 (Strava & Garmin Integration)
+## Current Version: v0.11.0 (Profile, Activity Editing & Zone Improvements)
 
 ## Phase 1: Foundation (Complete)
 - [x] Structured 14-week training plan in Markdown.
@@ -108,10 +108,41 @@
 - [x] **Tests:** New coverage for feature flag API, feature flag service, wizard defaults, Strava callback, formatters, and calculations.
 - [x] **Data Persistence:** Migrate PostgreSQL data storage from VM local disk to attached Block Storage volume for durability across instance rebuilds.
 
-## Phase 4.5: Code Cleanup (Planned)
+## Phase 4.5: Profile, Activity Editing & Zone Improvements (Complete)
+
+### User Profile & Sync Preferences
+- [x] **`GET/PATCH /api/profile`:** Read and manually edit runner profile fields (weight, height, resting HR, VO2max, lactate threshold, FTP).
+- [x] **`PATCH /api/profile/sync-prefs`:** Per-source, per-field toggle controlling whether Garmin or Strava may write each field. Mutual-exclusion enforced for shared fields (weight).
+- [x] **`POST /api/profile/sync-now`:** On-demand profile re-sync from all connected sources.
+- [x] **`profile_sync.py`:** Shared helper module with `load_prefs`, `dump_prefs`, `can_write`, and `apply_toggle` — source-priority logic isolated from routers and services.
+- [x] **Settings page (`/settings`):** Full React UI displaying all profile fields with source-ownership badges (Garmin/Strava), inline edit for unowned fields, sync-pref toggles, and "Sync Now" action.
+
+### Fitness Metrics & Migrations
+- [x] **Migration 011:** `resting_hr`, `vo2max`, `lactate_threshold_hr`, `lactate_threshold_pace`, `profile_sync_prefs_json`, `profile_last_synced_at` columns on `runnerprofile`.
+- [x] **Migration 012:** `garmin_running_zones_json` on `runnerprofile` — stores user's custom Garmin pace zones for highest-priority zone anchoring.
+- [x] **Garmin fitness pull:** `GarminService` fetches lactate threshold (HR + pace), VO2max, resting HR, and running pace zones from Garmin Connect on sync; respects `can_write` prefs.
+
+### Activity Custom Names
+- [x] **Migration 010:** `custom_name TEXT` column on `actualactivity`.
+- [x] **`ActivityModal`:** Inline rename UI — editable name field written back via `PATCH /api/activities/{id}`.
+- [x] **`ActualCard`:** Displays `custom_name` when set, falling back to source name.
+
+### Zone Calculation Improvements
+- [x] **Race-pace–anchored zones:** `calculate_pace_zones()` now derives zones directly from race pace using Jack Daniels / Pfitzinger fractions (Recovery 70%, Easy 75%, Tempo 96%, Threshold 105%, VO2 Max 114%) when a target time is provided, replacing the cruder experience-level multiplier approach.
+
+### Garmin Feature Flag
+- [x] **Migration 013:** Seeds `isGarminEnabled` feature flag defaulting to `[]` (disabled), gating Garmin UI due to IP rate-limiting issues with the unofficial API.
+- [x] **`useFeatureFlags`:** `isGarminEnabled` wired into `IntegrationsMenu` to hide/show Garmin connect and sync controls.
+
+### Tests
+- [x] **`test_profile.py`:** Coverage for `GET /profile`, `PATCH /profile`, `PATCH /profile/sync-prefs`, `POST /profile/sync-now`, and `profile_sync` unit helpers.
+
+---
+
+## Phase 4.6: Code Cleanup (In Progress)
 - [x] **Implementation Plan:** `.ai/code-cleanup.md` — prioritised list of security fixes, type safety improvements, duplication removal, and test gaps identified during PR #45 review.
 
-## Phase 4.6: Data-Driven Zone & Progression Improvements (Planned)
+## Phase 4.7: Data-Driven Zone & Progression Improvements (Planned)
 - [ ] **Lactate Threshold Zone Anchoring:** Use Garmin lactate threshold HR as the primary anchor for HR zone calculation, replacing the Tanaka estimated max HR formula. All 5 HR zones derive from LT HR when available.
 - [ ] **Karvonen HR Zones:** When resting HR (Garmin) is available, apply the Karvonen formula (heart rate reserve) for more physiologically accurate HR zone boundaries.
 - [ ] **Lactate Threshold Pace Zones:** Use Garmin lactate threshold pace as the direct pace zone anchor when no target time is provided, replacing the coarse experience-level fallback paces.
