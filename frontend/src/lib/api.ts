@@ -43,10 +43,15 @@ api.interceptors.response.use(
         const originalRequest = error.config;
         const hadGarminToken = !!originalRequest.headers?.['X-Garmin-Token'];
 
+        // Never attempt a refresh for the refresh endpoint itself — doing so would
+        // recurse infinitely if that endpoint also returns 401.
+        const isRefreshEndpoint = originalRequest.url?.includes('/api/garmin/token/refresh');
+
         if (
             error.response?.status === 401 &&
             hadGarminToken &&
-            !originalRequest._garminRetried
+            !originalRequest._garminRetried &&
+            !isRefreshEndpoint
         ) {
             originalRequest._garminRetried = true;
             const currentToken = localStorage.getItem(GARMIN_TOKEN_KEY);

@@ -78,6 +78,7 @@ class ShareService:
             id=a.id,
             date=a.date.isoformat(),
             name=a.name,
+            custom_name=a.custom_name,
             type=a.type,
             distance_m=a.distance_m,
             duration_s=a.duration_s,

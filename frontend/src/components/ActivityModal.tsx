@@ -129,7 +129,9 @@ function ZoneList({ zones, type, activityType, derived }: { zones?: HrZone[], ty
                         // Fallback: Use zone boundaries
                         if (lowPace && highPace) valStr = `${lowPace} - ${highPace}`;
                         else if (highPace) valStr = `< ${highPace}`;
-                        else if (lowPace) valStr = `> ${lowPace}`;
+                        // Top (fastest) zone: only a low-speed boundary exists; paces
+                        // faster than this boundary have lower min/km values, so < not >
+                        else if (lowPace) valStr = `< ${lowPace}`;
                      }
                 } else if (z.avgValue && z.avgValue > 0) {
                      valStr = Math.round(z.avgValue) + (type === 'hr' ? 'bpm' : (type === 'power' ? 'W' : ''));

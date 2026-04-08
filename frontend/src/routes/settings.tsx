@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from 'react-oidc-context'
@@ -126,6 +126,15 @@ function EditableNumber({ value, onSave, placeholder, min, max }: EditableNumber
   const [draft, setDraft] = useState<string>(value !== null ? String(value) : '')
   const [saved, setSaved] = useState(false)
 
+  // Keep draft in sync when the underlying profile value changes (e.g. after a
+  // sync-now refetch), but only when the field is not being actively edited.
+  const [isFocused, setIsFocused] = useState(false)
+  useEffect(() => {
+    if (!isFocused) {
+      setDraft(value !== null ? String(value) : '')
+    }
+  }, [value, isFocused])
+
   const commit = () => {
     const parsed = draft === '' ? null : parseFloat(draft)
     onSave(parsed)
@@ -143,7 +152,8 @@ function EditableNumber({ value, onSave, placeholder, min, max }: EditableNumber
         max={max}
         placeholder={placeholder}
         onChange={e => setDraft(e.target.value)}
-        onBlur={commit}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => { setIsFocused(false); commit(); }}
         onKeyDown={e => e.key === 'Enter' && commit()}
       />
       {saved && <Check size={14} className="text-green-500" />}

@@ -893,6 +893,8 @@ class StravaService:
 
         Returns True if the profile was updated.
         """
+        from app.core.profile_sync import load_prefs, can_write
+
         _5K_NAMES = {"5K", "5k", "5,000m"}
         _5K_DIST = 5000.0
 
@@ -900,6 +902,15 @@ class StravaService:
             select(RunnerProfile).where(RunnerProfile.user_id == user.id)
         ).first()
         if not profile:
+            return False
+
+        # Respect sync prefs: if Garmin owns lactate_threshold, do not overwrite it
+        # with a Strava-derived estimate, even if the estimate is faster.
+        prefs = load_prefs(profile.profile_sync_prefs_json)
+        if not can_write(prefs, "strava", "lactate_threshold"):
+            logger.debug(
+                f"Skipping LT pace update — Garmin owns lactate_threshold (user_id={user.id})"
+            )
             return False
 
         best_5k_pace: Optional[float] = None  # m/s — higher is faster
@@ -924,12 +935,10 @@ class StravaService:
         # (Jack Daniels: T-pace ≈ 88-92% of VO2max pace; 0.93 is a conservative midpoint)
         derived_lt = round(best_5k_pace * 0.93, 4)
 
-        # Only skip update if the stored value is already faster (better fitness signal).
-        # Do not let a stale Garmin LT block a legitimate Strava 5K derivation.
+        # Only update if the derived value is faster than what is already stored.
         current = profile.lactate_threshold_pace or 0.0
         if derived_lt <= current:
             return False
-        # (If derived_lt > current, fall through and update regardless of source)
 
         profile.lactate_threshold_pace = derived_lt
         self.session.add(profile)

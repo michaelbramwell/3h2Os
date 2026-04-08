@@ -52,7 +52,7 @@ export function RecentActivities({ activities, plan }: RecentActivitiesProps) {
         if (fresh && (fresh.name !== selectedActivity.name || fresh.custom_name !== selectedActivity.custom_name)) {
             setSelectedActivity(fresh);
         }
-    }, [activities]);
+    }, [activities, selectedActivity]);
 
     const garminSyncMutation = useMutation({
         mutationFn: () => syncActivities(7),

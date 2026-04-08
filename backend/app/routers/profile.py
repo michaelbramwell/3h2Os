@@ -11,7 +11,7 @@ Endpoints:
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 
 from app.core.database import RunnerProfile, User, get_session
@@ -208,6 +208,7 @@ def patch_sync_prefs(
 
 @router.post("/profile/sync-now")
 def sync_profile_now(
+    request: Request,
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> dict:
@@ -216,8 +217,6 @@ def sync_profile_now(
     Garmin sync requires the X-Garmin-Token header — if absent, it is skipped.
     Strava sync runs if a token is present in the database.
     """
-    from fastapi import Request  # inline to avoid polluting module namespace
-
     synced_sources: list[str] = []
 
     # --- Strava ---
@@ -236,6 +235,18 @@ def sync_profile_now(
     except Exception as e:
         logger.warning(f"sync-now Strava failed for user {user.id}: {e}")
 
+    # --- Garmin ---
+    garmin_token = request.headers.get("X-Garmin-Token")
+    if garmin_token:
+        try:
+            from app.services.garmin import GarminService
+
+            garmin_svc = GarminService(session=session, token_b64=garmin_token)
+            garmin_svc.fetch_user_profile(user.id)
+            synced_sources.append("garmin")
+        except Exception as e:
+            logger.warning(f"sync-now Garmin failed for user {user.id}: {e}")
+
     # Refresh training zones from best available source
     try:
         from app.core.zones import refresh_training_zones
@@ -245,15 +256,18 @@ def sync_profile_now(
     except Exception as e:
         logger.warning(f"sync-now zone refresh failed for user {user.id}: {e}")
 
-    # Garmin requires the client to pass the token; we can't trigger it server-side
-    # without the session token. The response hints that Garmin sync requires a manual
-    # activity sync with the X-Garmin-Token header.
-
     profile = _get_or_404(session, user)
+    synced_at = (
+        profile.profile_last_synced_at.isoformat()
+        if profile.profile_last_synced_at
+        else None
+    )
     return {
         "ok": True,
+        "synced": bool(synced_sources),
         "synced_sources": synced_sources,
-        "synced_at": profile.profile_last_synced_at.isoformat()
-        if profile.profile_last_synced_at
-        else None,
+        "synced_at": synced_at,
+        "message": f"Synced from: {', '.join(synced_sources)}"
+        if synced_sources
+        else "No sources synced",
     }

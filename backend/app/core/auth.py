@@ -129,12 +129,14 @@ async def verify_jwt_middleware(request: Request):
     is_public = _is_public_path(request) or getattr(endpoint, "is_public", False)
 
     # Extract Token — prefer Authorization header, fall back to ?token= query param
-    # (query param fallback is used by EventSource which cannot set headers)
+    # (query param fallback is used only for /api/events because EventSource cannot
+    # set custom headers; tokens in query strings are captured by proxy logs so we
+    # restrict this fallback to that path only)
     auth_header = request.headers.get("Authorization")
     token = None
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header.split(" ")[1]
-    if not token:
+    if not token and request.url.path == "/api/events":
         token = request.query_params.get("token") or None
 
     if not token:
