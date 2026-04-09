@@ -29,7 +29,7 @@ function formatDate(iso: string | null): string {
 }
 
 // Which source (if any) owns a given field
-function ownerOf(prefs: ProfileSyncPrefs, field: keyof UserProfile): 'garmin' | 'strava' | null {
+function ownerOf(prefs: ProfileSyncPrefs, field: keyof UserProfile, garminEnabled: boolean): 'garmin' | 'strava' | null {
   const garminFields: Array<keyof ProfileSyncPrefs['garmin']> = [
     'weight', 'height', 'resting_hr', 'vo2max', 'lactate_threshold',
   ]
@@ -42,7 +42,7 @@ function ownerOf(prefs: ProfileSyncPrefs, field: keyof UserProfile): 'garmin' | 
 
   const stravaKey = field as keyof ProfileSyncPrefs['strava']
 
-  if (garminFields.includes(garminKey) && prefs.garmin[garminKey]) return 'garmin'
+  if (garminEnabled && garminFields.includes(garminKey) && prefs.garmin[garminKey]) return 'garmin'
   if (stravaFields.includes(stravaKey) && prefs.strava[stravaKey]) return 'strava'
   return null
 }
@@ -308,7 +308,7 @@ function SettingsPage() {
           <FieldRow
             label="Height (cm)"
             value={profile.height_cm}
-            owner={ownerOf(prefs, 'height_cm')}
+            owner={ownerOf(prefs, 'height_cm', flags.isGarminEnabled)}
             editNode={
               <EditableNumber
                 value={profile.height_cm}
@@ -321,7 +321,7 @@ function SettingsPage() {
           <FieldRow
             label="Weight (kg)"
             value={profile.weight_kg !== null ? `${profile.weight_kg} kg` : null}
-            owner={ownerOf(prefs, 'weight_kg')}
+            owner={ownerOf(prefs, 'weight_kg', flags.isGarminEnabled)}
             editNode={
               <EditableNumber
                 value={profile.weight_kg}
@@ -369,7 +369,7 @@ function SettingsPage() {
           <FieldRow
             label="Resting HR (bpm)"
             value={profile.resting_hr}
-            owner={ownerOf(prefs, 'resting_hr')}
+            owner={ownerOf(prefs, 'resting_hr', flags.isGarminEnabled)}
             editNode={
               <EditableNumber
                 value={profile.resting_hr}
@@ -382,7 +382,7 @@ function SettingsPage() {
           <FieldRow
             label="FTP (watts)"
             value={profile.ftp}
-            owner={ownerOf(prefs, 'ftp')}
+            owner={ownerOf(prefs, 'ftp', flags.isGarminEnabled)}
             editNode={
               <EditableNumber
                 value={profile.ftp}
@@ -395,7 +395,7 @@ function SettingsPage() {
           <FieldRow
             label="VO2max (ml/kg/min)"
             value={profile.vo2max !== null ? profile.vo2max?.toFixed(1) : null}
-            owner={ownerOf(prefs, 'vo2max')}
+            owner={ownerOf(prefs, 'vo2max', flags.isGarminEnabled)}
             editNode={
               <EditableNumber
                 value={profile.vo2max}
@@ -408,7 +408,7 @@ function SettingsPage() {
           <FieldRow
             label="Lactate threshold HR"
             value={profile.lactate_threshold_hr !== null ? `${profile.lactate_threshold_hr} bpm` : null}
-            owner={ownerOf(prefs, 'lactate_threshold_hr')}
+            owner={ownerOf(prefs, 'lactate_threshold_hr', flags.isGarminEnabled)}
             editNode={
               <EditableNumber
                 value={profile.lactate_threshold_hr}
@@ -421,7 +421,7 @@ function SettingsPage() {
           <FieldRow
             label="Lactate threshold pace"
             value={formatPace(profile.lactate_threshold_pace)}
-            owner={ownerOf(prefs, 'lactate_threshold_pace')}
+            owner={ownerOf(prefs, 'lactate_threshold_pace', flags.isGarminEnabled)}
           />
         </section>
 
