@@ -304,7 +304,7 @@ class StravaService:
         """
         import json
         from datetime import date as date_type
-        from app.core.profile_sync import load_prefs, dump_prefs, can_write
+        from app.core.profile_sync import load_prefs, can_write
 
         profile = self.session.exec(
             select(RunnerProfile).where(RunnerProfile.user_id == user_id)
@@ -907,7 +907,7 @@ class StravaService:
         # Respect sync prefs: if Garmin owns lactate_threshold, do not overwrite it
         # with a Strava-derived estimate, even if the estimate is faster.
         prefs = load_prefs(profile.profile_sync_prefs_json)
-        if not can_write(prefs, "strava", "lactate_threshold"):
+        if not can_write(prefs, "garmin", "lactate_threshold"):
             logger.debug(
                 f"Skipping LT pace update — Garmin owns lactate_threshold (user_id={user.id})"
             )

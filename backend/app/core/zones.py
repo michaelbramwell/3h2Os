@@ -12,6 +12,7 @@ All calculations use generic sports science principles, no proprietary methodolo
 
 import json
 import logging
+from datetime import date
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -398,7 +399,12 @@ def refresh_training_zones(profile, session) -> bool:
                 logger.warning(f"Could not fetch Strava HR zones for refresh: {e}")
 
         if not hr_zones:
-            hr_zones = calculate_hr_zones(profile.age)
+            age = profile.age
+            if age is None and profile.birthday:
+                age = (date.today() - profile.birthday).days // 365
+            if age is None:
+                age = 30  # Default fallback
+            hr_zones = calculate_hr_zones(age)
 
         # ------------------------------------------------------------------
         # Pace zones — priority ladder

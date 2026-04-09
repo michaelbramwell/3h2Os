@@ -36,7 +36,7 @@ function ownerOf(prefs: ProfileSyncPrefs, field: keyof UserProfile): 'garmin' | 
   const stravaFields: Array<keyof ProfileSyncPrefs['strava']> = ['weight', 'ftp', 'hr_zones']
 
   // Map profile field name → sync pref key
-  const garminKey = field === 'height_cm' ? 'height'
+  const garminKey = field === 'height_cm' || field === 'weight_kg' ? 'height'
     : field === 'lactate_threshold_hr' || field === 'lactate_threshold_pace' ? 'lactate_threshold'
     : field as keyof ProfileSyncPrefs['garmin']
 

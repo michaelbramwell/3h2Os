@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
 from sqlalchemy import BigInteger, Column, String
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import os
 from app.models.domain import ActivityType, WorkoutFormat
 
@@ -245,7 +245,7 @@ class ActivityShare(SQLModel, table=True):
     token: str = Field(
         sa_column=Column(String(64), unique=True, nullable=False, index=True)
     )
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # --- Database Connection ---

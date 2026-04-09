@@ -9,7 +9,6 @@ Endpoints:
 """
 
 import logging
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
@@ -142,11 +141,12 @@ def patch_profile(
     ]
 
     changed = False
+    sent_fields = getattr(body, "model_fields_set", set())
     for patch_attr, pref_field, profile_attr in scalar_map:
-        value = getattr(body, patch_attr, None)
-        if value is None:
+        if patch_attr not in sent_fields:
             continue
-        # Skip if a source owns this field
+        value = getattr(body, patch_attr, None)
+        # Skip if a source owns this field (but still allow explicit null to clear it)
         if pref_field and _is_source_owned(pref_field):
             logger.debug(
                 f"Skipping manual edit of '{patch_attr}' — owned by a sync source"

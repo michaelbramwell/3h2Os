@@ -252,12 +252,20 @@ function ActivityDetail({ activity }: { activity: Activity }) {
     const aeData = aeScore !== null ? getTEData(aeScore) : null;
     const anData = anScore !== null ? getTEData(anScore) : null;
 
+    const displayName = activity.custom_name ?? activity.name
+    const sourceNameDiffers = !!activity.custom_name && activity.custom_name !== activity.name
+
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             {/* Activity header */}
             <div className="p-6 border-b border-slate-100">
-                <h1 className="text-xl font-bold text-slate-900">{activity.name}</h1>
-                <p className="text-sm text-slate-500 mt-0.5">{dateStr} &bull; {activity.type}</p>
+                <h1 className="text-xl font-bold text-slate-900">{displayName}</h1>
+                <p className="text-sm text-slate-500 mt-0.5">
+                    {dateStr} &bull; {activity.type}
+                    {sourceNameDiffers && activity.name && (
+                        <span className="text-slate-400"> &bull; originally "{activity.name}"</span>
+                    )}
+                </p>
             </div>
 
             <div className="p-6 space-y-6">

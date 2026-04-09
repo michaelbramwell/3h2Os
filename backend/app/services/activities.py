@@ -1,7 +1,6 @@
 from sqlmodel import Session, select
 from typing import List
 import json
-import os
 from datetime import date
 
 from app.core.database import ActualActivity, User
@@ -152,7 +151,7 @@ class ActivityService:
                 updated = True
             if updated:
                 self.session.add(strava_match)
-            return False
+            return updated  # Return True if enrichment was applied
 
         # Check for existing Garmin record by activity_id
         existing = None

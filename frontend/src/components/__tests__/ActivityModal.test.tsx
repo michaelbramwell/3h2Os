@@ -2,6 +2,21 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ActivityModal } from '../ActivityModal';
 import { describe, it, expect, vi } from 'vitest';
 import type { Activity } from '../../types/schema';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+vi.mock('../../hooks/useFeatureFlags', () => ({
+    useFeatureFlags: () => ({ isSwimmingEnabled: false, isGarminEnabled: false }),
+}));
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: { retry: false },
+    },
+});
+
+const renderWithClient = (ui: React.ReactElement) => {
+    return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 const mockActivityWithSplits: Activity = {
     activityId: 101,
@@ -29,19 +44,19 @@ const mockActivityNoSplits: Activity = {
 
 describe('ActivityModal', () => {
     it('does not render when activity is null', () => {
-        render(<ActivityModal activity={null} onClose={() => {}} />);
+        renderWithClient(<ActivityModal activity={null} onClose={() => {}} />);
         expect(screen.queryByText('Splits Test Run')).not.toBeInTheDocument();
     });
 
     it('renders basic details correctly', () => {
-        render(<ActivityModal activity={mockActivityNoSplits} onClose={() => {}} />);
+        renderWithClient(<ActivityModal activity={mockActivityNoSplits} onClose={() => {}} />);
         expect(screen.getByText('Simple Run')).toBeInTheDocument();
         // Distance 3000m -> 3.00 km. Use regex to be flexible with 'k' suffix
         expect(screen.getByText(/3\.00/)).toBeInTheDocument();
     });
 
     it('renders splits section when splits are present', () => {
-        render(<ActivityModal activity={mockActivityWithSplits} onClose={() => {}} />);
+        renderWithClient(<ActivityModal activity={mockActivityWithSplits} onClose={() => {}} />);
         
         expect(screen.getByText('Splits Test Run')).toBeInTheDocument();
         expect(screen.getByText('Splits')).toBeInTheDocument(); // Header
@@ -59,7 +74,7 @@ describe('ActivityModal', () => {
 
     it('invokes onClose when close button is clicked', () => {
         const onCloseMock = vi.fn();
-        render(<ActivityModal activity={mockActivityNoSplits} onClose={onCloseMock} />);
+        renderWithClient(<ActivityModal activity={mockActivityNoSplits} onClose={onCloseMock} />);
         
         // Find close button - usually an SVG icon button or similar. 
         // Based on typical modal designs, searching by role 'button' might find multiple.

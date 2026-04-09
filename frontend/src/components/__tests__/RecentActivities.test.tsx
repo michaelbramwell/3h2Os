@@ -1,8 +1,20 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RecentActivities } from '../RecentActivities';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { Activity } from '../../types/schema';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+vi.mock('../../hooks/useFeatureFlags', () => ({
+    useFeatureFlags: () => ({ isSwimmingEnabled: false, isGarminEnabled: false }),
+}));
+
+vi.mock('../../hooks/useGarminToken', () => ({
+    useGarminToken: () => ({ token: null, hasToken: false, saveToken: vi.fn(), removeToken: vi.fn() }),
+}));
+
+vi.mock('../../hooks/useStravaStatus', () => ({
+    useStravaStatus: () => ({ isConnected: false, stravaToken: null }),
+}));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -72,6 +84,6 @@ describe('RecentActivities', () => {
 
     it('renders empty state correctly', () => {
         renderWithClient(<RecentActivities activities={[]} />);
-        expect(screen.getByText('No recent activities found. Click scan to sync from Garmin or Strava.')).toBeInTheDocument();
+        expect(screen.getByText(/Click scan to sync from Strava/)).toBeInTheDocument();
     });
 });
