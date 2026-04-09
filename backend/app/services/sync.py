@@ -1,10 +1,11 @@
 import logging
 from typing import List, Dict, Any
-from sqlmodel import Session
+from sqlmodel import Session, select
 from datetime import datetime, timedelta
 from dataclasses import asdict
 
-from app.core.database import User
+from app.core.database import User, RunnerProfile
+from app.core.zones import refresh_training_zones
 from app.services.garmin import GarminService
 from app.services.strava import StravaService
 from app.services.activities import ActivityService
@@ -44,6 +45,17 @@ class SyncService:
                 garmin_service.fetch_user_profile(user.id)
             except Exception as gpe:
                 logger.warning(f"Garmin profile import failed (non-fatal): {gpe}")
+
+            # Refresh training zones now that Garmin LT pace may have been updated
+            try:
+                profile = self.session.exec(
+                    select(RunnerProfile).where(RunnerProfile.user_id == user.id)
+                ).first()
+                refresh_training_zones(profile, self.session)
+            except Exception as ze:
+                logger.warning(
+                    f"Zone refresh after Garmin sync failed (non-fatal): {ze}"
+                )
 
             schema_activities = [ActivitySchema(**asdict(a)) for a in activities]
 
@@ -90,6 +102,24 @@ class SyncService:
             power_thresholds=power_thresholds,
         )
 
+        # Re-sync Strava athlete profile on every activity sync (not just at OAuth connect)
+        try:
+            token = strava.get_token(user.id)
+            if token:
+                token = strava.refresh_if_needed(token)
+                strava.merge_athlete_profile(user.id, token.access_token)
+        except Exception as e:
+            logger.warning(f"Strava profile re-sync failed (non-fatal): {e}")
+
+        # Refresh training zones using best available source
+        try:
+            profile = self.session.exec(
+                select(RunnerProfile).where(RunnerProfile.user_id == user.id)
+            ).first()
+            refresh_training_zones(profile, self.session)
+        except Exception as ze:
+            logger.warning(f"Zone refresh after Strava sync failed (non-fatal): {ze}")
+
         saved_count = self.activity_service.save_activities(activities, user=user)
 
         try:
@@ -100,3 +130,23 @@ class SyncService:
             )
 
         return saved_count
+
+    def sync_both(self, user: User, garmin_token: str, days: int = 7) -> dict:
+        """
+        Sync from both Strava and Garmin when both are connected.
+        Strava runs first (primary source for activity data), then Garmin runs
+        to enrich Strava records with Garmin-only fields (aerobic_te,
+        anaerobic_te, training_load) and pull any Garmin-only activities.
+        Returns counts for each source.
+        """
+        strava_count = self.sync_strava(user, days)
+
+        garmin_count = 0
+        try:
+            garmin_count = self.sync_garmin(user, garmin_token, days)
+        except Exception as e:
+            logger.warning(
+                f"Garmin enrichment during combined sync failed (non-fatal): {e}"
+            )
+
+        return {"strava": strava_count, "garmin": garmin_count}

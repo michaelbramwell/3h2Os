@@ -137,8 +137,10 @@ export interface HrZone {
 }
 
 export interface Activity {
+    id?: number | null;              // ActualActivity database PK; present on actuals, absent on planned
     date: string;
     name: string;
+    custom_name?: string | null;     // User-set title; survives sync overwrites
     type: string;  // Backend returns lowercase ('running', 'swimming'); use isType() for comparisons
     distance_m: number;
     duration_s: number;
@@ -165,11 +167,57 @@ export interface Activity {
     actual?: true;
 }
 
+// Profile / Settings
+
+export interface GarminSyncPrefs {
+  weight: boolean;
+  height: boolean;
+  resting_hr: boolean;
+  vo2max: boolean;
+  lactate_threshold: boolean;
+}
+
+export interface StravaSyncPrefs {
+  weight: boolean;
+  ftp: boolean;
+  hr_zones: boolean;
+}
+
+export interface ProfileSyncPrefs {
+  garmin: GarminSyncPrefs;
+  strava: StravaSyncPrefs;
+}
+
+export interface UserProfile {
+  // Bio
+  age: number | null;
+  gender: string | null;
+  height_cm: number | null;
+  birthday: string | null;
+  weight_kg: number | null;
+
+  // Performance
+  ftp: number | null;
+  resting_hr: number | null;
+  vo2max: number | null;
+  lactate_threshold_hr: number | null;
+  lactate_threshold_pace: number | null;
+
+  // Training preferences
+  experience_level: string | null;
+  weekly_availability: number | null;
+
+  // Sync metadata
+  sync_prefs: ProfileSyncPrefs;
+  profile_last_synced_at: string | null;
+}
+
 // Feature Flags
 
 export type UserType = 'standard' | 'alpha' | 'beta' | 'premium';
 
 export interface FeatureFlags {
     isSwimmingEnabled: boolean;
+    isGarminEnabled: boolean;
     [key: string]: boolean;
 }

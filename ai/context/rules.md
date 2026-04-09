@@ -10,11 +10,11 @@
 
 ## Architecture
 - **Auth:** All API endpoints are protected via `verify_jwt_middleware`.
-  - **Verification:** Validates Keycloak JWTs using RS256 public keys.
-  - **Configuration:** Uses `JWT_PUBLIC_KEY_PATH` (pointing to `certs/public_key.pem`) or fetches from IdP (future).
+  - **Verification:** Validates Keycloak JWTs using RS256. Public keys are fetched dynamically from the Keycloak JWKS endpoint at runtime — no static key file.
+  - **Dev bypass:** `DEFAULT_USERNAME` env var + `ENVIRONMENT=development` allows unauthenticated local requests to resolve to a known user. Both conditions must be true.
 - **Database:** Uses PostgreSQL for all environments. Schema changes are managed via custom forward-only SQL migrations in `db/migrations/` using `db/migrate.py`.
-- **API:** RESTful API with Pydantic schemas. 
-- **Validation:** "Guardrails" logic in `reflect_and_validate.py` ensures training safety.
+- **API:** RESTful API with Pydantic schemas.
+- **Validation:** Guardrails logic in `backend/app/core/validation.py` (`ValidationEngine` class) runs inline on every workout save/update. The legacy script `backend/scripts/reflect_and_validate.py` exists as a CLI tool but is not the canonical path.
 
 ## Development Workflow
 1. **Backend:**
@@ -30,7 +30,7 @@
 
 ## Key Files
 - `backend/app/main.py`: App entry point.
-- `backend/app/core/auth.py`: JWT validation logic.
+- `backend/app/core/auth.py`: JWT validation logic (dynamic JWKS from Keycloak).
 - `backend/app/core/database.py`: SQLModel models.
 - `frontend/src/lib/auth.ts`: Frontend auth logic (if applicable).
 

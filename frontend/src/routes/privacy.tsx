@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuth } from 'react-oidc-context'
 import { AppBrand, AppDescription, AppFooter } from '../components/AppShell'
+import { useFeatureFlags } from '../hooks/useFeatureFlags'
 
 export const Route = createFileRoute('/privacy')({
   component: PrivacyPolicy,
@@ -8,6 +9,7 @@ export const Route = createFileRoute('/privacy')({
 
 function PrivacyPolicy() {
   const auth = useAuth()
+  const flags = useFeatureFlags()
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center px-6 py-16">
@@ -24,7 +26,7 @@ function PrivacyPolicy() {
           <p>
             We collect only what is needed to run the service: your name and email (via SSO),
             athlete profile data you enter, your training plans, and activity data synced from
-            Strava or Garmin with your explicit consent.
+            Strava{flags.isGarminEnabled ? ' or Garmin' : ''} with your explicit consent.
           </p>
 
           <div>
@@ -38,13 +40,15 @@ function PrivacyPolicy() {
             </p>
           </div>
 
-          <div>
-            <h2 className="font-semibold text-slate-800 mb-1">Garmin</h2>
-            <p>
-              Garmin credentials are never stored — a session token is returned to your browser
-              and used only for the duration of each sync.
-            </p>
-          </div>
+          {flags.isGarminEnabled && (
+            <div>
+              <h2 className="font-semibold text-slate-800 mb-1">Garmin</h2>
+              <p>
+                Garmin credentials are never stored — a session token is returned to your browser
+                and used only for the duration of each sync.
+              </p>
+            </div>
+          )}
 
           <div>
             <h2 className="font-semibold text-slate-800 mb-1">Storage</h2>

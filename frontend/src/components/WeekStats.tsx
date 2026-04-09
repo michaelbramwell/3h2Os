@@ -1,8 +1,9 @@
 import { Printer, RefreshCw, Loader2, Edit2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { syncActivities, syncStravaActivities } from '../lib/api'
+import { syncActivities, syncStravaActivities, syncBothActivities } from '../lib/api'
 import { useGarminToken } from '../hooks/useGarminToken'
 import { useStravaStatus } from '../hooks/useStravaStatus'
+import { useFeatureFlags } from '../hooks/useFeatureFlags'
 
 import { formatDistance } from '../lib/formatters'
 
@@ -34,6 +35,10 @@ export function WeekStats({
     const queryClient = useQueryClient();
     const { hasToken: hasGarminToken } = useGarminToken();
     const { connected: stravaConnected } = useStravaStatus();
+    const flags = useFeatureFlags();
+
+    // Only consider Garmin connected when the feature is enabled
+    const garminActive = flags.isGarminEnabled && hasGarminToken;
 
     const garminSyncMutation = useMutation({
         mutationFn: () => syncActivities(7),
@@ -49,8 +54,17 @@ export function WeekStats({
         }
     });
 
-    const showStravaSyncButton = isCurrentWeek && stravaConnected;
-    const showGarminSyncButton = isCurrentWeek && !stravaConnected && hasGarminToken;
+    const bothSyncMutation = useMutation({
+        mutationFn: () => syncBothActivities(7),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+        }
+    });
+
+    const bothConnected = stravaConnected && garminActive;
+    const showBothSyncButton = isCurrentWeek && bothConnected;
+    const showStravaSyncButton = isCurrentWeek && !bothConnected && stravaConnected;
+    const showGarminSyncButton = isCurrentWeek && !bothConnected && !stravaConnected && garminActive;
 
     return (
         <div className="sticky top-0 z-10 flex flex-col md:flex-row justify-between items-start md:items-center -mx-5 -mt-5 pt-5 px-5 pb-3 mb-4 border-b border-slate-100/50 gap-4 rounded-t-xl backdrop-blur-md bg-white/30">
@@ -62,6 +76,16 @@ export function WeekStats({
                         {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
                         {status === 'peak' && <span className="ml-2 text-rose-600">⛰️</span>}
                     </h3>
+                    {showBothSyncButton && (
+                        <button
+                            onClick={() => bothSyncMutation.mutate()}
+                            disabled={bothSyncMutation.isPending}
+                            className="p-1 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
+                            title="Scan for new runs via Strava + Garmin"
+                        >
+                            {bothSyncMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                        </button>
+                    )}
                     {showStravaSyncButton && (
                         <button
                             onClick={() => stravaSyncMutation.mutate()}

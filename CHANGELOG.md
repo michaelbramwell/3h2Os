@@ -1,5 +1,23 @@
 # Release Notes
 
+## [v1.2.0] - 2026-04-07
+
+### Features & Enhancements
+- **User Profile & Settings Page**: New `/settings` route showing all runner profile fields (weight, height, resting HR, VO2max, lactate threshold, FTP) with source-ownership badges (Garmin/Strava), inline editing for unowned fields, and a "Sync Now" action.
+- **Per-Source Sync Preferences**: Fine-grained control over which source (Garmin or Strava) may write each profile field. Mutual exclusion enforced for shared fields (weight defaults to Strava).
+- **Fitness Metrics Sync**: Garmin sync now pulls lactate threshold (HR + pace), VO2max, resting HR, and running pace zones from Garmin Connect, respecting user sync-pref toggles.
+- **Activity Custom Names**: Users can rename any synced activity inline; stored in new `custom_name` column on `actualactivity`.
+- **Race-Pace–Anchored Pace Zones**: `calculate_pace_zones()` now derives zones directly from race pace using Jack Daniels / Pfitzinger fractions (Recovery 70%, Easy 75%, Tempo 96%, Threshold 105%, VO2 Max 114%) when a target time is provided.
+- **Garmin Feature Flag**: `isGarminEnabled` flag (disabled by default) gates all Garmin UI due to IP rate-limiting issues with the unofficial Garmin API.
+
+### Backend & Architecture
+- **`/api/profile` Router**: `GET`, `PATCH`, `PATCH /sync-prefs`, and `POST /sync-now` endpoints for profile management.
+- **`profile_sync.py`**: Isolated helper module with `load_prefs`, `dump_prefs`, `can_write`, and `apply_toggle` — source-priority logic decoupled from routers and services.
+- **Migrations 010–013**: Custom activity name, fitness metrics + sync prefs columns, Garmin running zones, Garmin feature flag seed.
+
+### Testing
+- **`test_profile.py`**: Coverage for all profile endpoints and `profile_sync` unit helpers.
+
 ## [v1.1.0] - 2026-03-08
 
 ### Features & Enhancements

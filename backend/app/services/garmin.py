@@ -6,14 +6,15 @@ import io
 import tempfile
 import shutil
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 
-from garminconnect import Garmin
+from garminconnect import Garmin, GarminConnectTooManyRequestsError
 from sqlmodel import Session, select
 
 from app.models.domain import ActualActivity
 from app.services.context import ContextService
+from app.core.profile_sync import load_prefs, dump_prefs, can_write
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,11 @@ class GarminService:
                         zf.write(file_path, arcname)
 
             return base64.b64encode(bio.getvalue()).decode("utf-8")
+        except GarminConnectTooManyRequestsError:
+            raise ValueError(
+                "Garmin is temporarily rate-limiting login attempts from this server. "
+                "Please wait 15–30 minutes and try again."
+            )
         except Exception as e:
             logger.error(f"Login failed: {e}")
             raise ValueError(f"Garmin login failed: {str(e)}")
@@ -138,15 +144,96 @@ class GarminService:
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
 
+    @staticmethod
+    def refresh_tokens(tokens_b64: str) -> str:
+        """
+        Refresh an existing Garmin token archive without going through SSO.
+
+        Garth's OAuth2 tokens expire after ~1 hour but the OAuth1 token is valid
+        for ~1 year. This method loads the stored token archive, lets garth
+        transparently refresh the OAuth2 token via the OAuth1 token exchange
+        (no SSO / no Garmin credentials required), then re-packages and returns
+        the updated archive.
+
+        Raises ValueError if the OAuth1 token itself has expired and a full
+        re-login with credentials is required.
+        """
+        session_id = str(uuid.uuid4())
+        temp_dir = os.path.join(tempfile.gettempdir(), f"garth_refresh_{session_id}")
+        os.makedirs(temp_dir, exist_ok=True)
+
+        try:
+            # Decode and extract stored tokens
+            tokens_b64 = tokens_b64.strip()
+            zip_data = base64.b64decode(tokens_b64)
+            with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
+                zf.extractall(temp_dir)
+
+            # Load tokens into a garminconnect client
+            client = Garmin()
+            client.login(temp_dir)
+
+            # Access the underlying garth client
+            garth_client = getattr(client, "garth", None) or getattr(
+                client, "client", None
+            )
+            if garth_client is None:
+                raise ValueError("Cannot access garth client for token refresh")
+
+            oauth1 = getattr(garth_client, "oauth1_token", None)
+            oauth2 = getattr(garth_client, "oauth2_token", None)
+
+            if oauth1 is None:
+                raise ValueError(
+                    "Garmin session has fully expired. Please reconnect with your credentials."
+                )
+
+            # Force an OAuth2 refresh via the OAuth1 token (no SSO)
+            if oauth2 is None or getattr(oauth2, "expired", True):
+                logger.info("OAuth2 token expired — refreshing via OAuth1 (no SSO)")
+                garth_client.refresh_oauth2()
+                logger.info("OAuth2 token refreshed successfully")
+            else:
+                logger.info("OAuth2 token still valid — re-packaging as-is")
+
+            # Dump updated tokens back to temp dir and re-package
+            garth_client.dump(temp_dir)
+
+            bio = io.BytesIO()
+            with zipfile.ZipFile(bio, "w", zipfile.ZIP_DEFLATED) as zf:
+                for root, _, files in os.walk(temp_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, temp_dir)
+                        zf.write(file_path, arcname)
+
+            logger.info("Garmin token archive refreshed and re-packaged")
+            return base64.b64encode(bio.getvalue()).decode("utf-8")
+
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.warning(f"Token refresh failed: {e}")
+            raise ValueError(
+                "Garmin session has expired. Please reconnect with your credentials."
+            )
+        finally:
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+
     def fetch_user_profile(self, user_id: int) -> None:
         """
         Fetch the Garmin user profile and merge into RunnerProfile.
-        Only writes fields that are not already set (Strava takes precedence).
 
-        Fields populated (Garmin → RunnerProfile):
-          - birthday / age  (from userData.birthDate "YYYY-MM-DD")
-          - weight_kg       (from userData.weight in grams → kg)
-          - gender          (from userData.gender "MALE"/"FEMALE")
+        Fields written (all gated by profile_sync_prefs):
+          - birthday / age          userData.birthDate   (always, when unset)
+          - gender                  userData.gender      (always, when unset)
+          - weight_kg               userData.weight      pref: garmin.weight
+          - height_cm               userData.height      pref: garmin.height
+          - resting_hr              get_rhr_day()        pref: garmin.resting_hr
+          - vo2max                  get_max_metrics()    pref: garmin.vo2max
+          - lactate_threshold_hr/   get_lactate_threshold()
+            lactate_threshold_pace                       pref: garmin.lactate_threshold
 
         Silently no-ops if the Garmin client is unavailable or the profile is missing.
         """
@@ -162,50 +249,235 @@ class GarminService:
             if not profile:
                 return
 
-            raw = self.client.get_user_profile()
-            if not raw:
-                return
-
-            user_data = raw.get("userData", raw)  # some versions nest under userData
+            prefs = load_prefs(profile.profile_sync_prefs_json)
             changed = False
 
-            # birthday / age — only set if not already populated by Strava
-            birth_str = user_data.get("birthDate")  # "YYYY-MM-DD"
-            if birth_str and not profile.birthday:
+            # ------------------------------------------------------------------
+            # Basic user data (get_user_profile)
+            # ------------------------------------------------------------------
+            raw = self.client.get_user_profile()
+            if raw:
+                user_data = raw.get("userData", raw)
+
+                # birthday / age — always write when unset (factual, no toggle)
+                birth_str = user_data.get("birthDate")
+                if birth_str and not profile.birthday:
+                    try:
+                        bday = date.fromisoformat(birth_str)
+                        profile.birthday = bday
+                        today = date.today()
+                        profile.age = (
+                            today.year
+                            - bday.year
+                            - ((today.month, today.day) < (bday.month, bday.day))
+                        )
+                        changed = True
+                    except ValueError:
+                        logger.warning(
+                            f"Garmin unparseable birthDate '{birth_str}' for user {user_id}"
+                        )
+
+                # gender — always write when unset
+                gender_raw = user_data.get("gender", "")
+                if gender_raw and (not profile.gender or profile.gender == "unknown"):
+                    gender_lower = gender_raw.lower()
+                    if gender_lower in ("male", "female"):
+                        profile.gender = gender_lower
+                        changed = True
+
+                # weight — pref-gated
+                if can_write(prefs, "garmin", "weight"):
+                    weight_g = user_data.get("weight")
+                    if weight_g:
+                        profile.weight_kg = round(float(weight_g) / 1000.0, 1)
+                        changed = True
+
+                # height — pref-gated; already in userData, just wasn't extracted before
+                if can_write(prefs, "garmin", "height"):
+                    height_raw = user_data.get("height")
+                    if height_raw:
+                        try:
+                            profile.height_cm = int(height_raw)
+                            changed = True
+                        except (ValueError, TypeError):
+                            pass
+
+            # ------------------------------------------------------------------
+            # Running pace zones (from Garmin userprofile settings)
+            # Garmin stores the user's custom or calculated pace zones in
+            # /userprofile-service/userprofile/user-settings under the key
+            # "runningZones": [{"zoneNumber": N, "zoneLowBoundary": sec_per_km}, ...]
+            # zoneLowBoundary == 0 means "no lower limit" (zone 1).
+            # We convert to m/s and store as garmin_running_zones_json.
+            # ------------------------------------------------------------------
+            try:
+                settings = self.client.get_userprofile_settings()
+                if settings:
+                    # The endpoint may nest under 'userData' or return flat
+                    settings_data = settings.get("userData", settings)
+                    raw_zones = settings_data.get("runningZones") or []
+                    if raw_zones and isinstance(raw_zones, list):
+                        import json as _json
+
+                        _ZONE_LABELS = {
+                            1: "Recovery",
+                            2: "Easy",
+                            3: "Tempo",
+                            4: "Threshold",
+                            5: "Interval",
+                        }
+                        parsed = []
+                        for z in raw_zones:
+                            zone_num = z.get("zoneNumber") or z.get("zone")
+                            boundary_secs = z.get("zoneLowBoundary") or z.get(
+                                "lowBoundary"
+                            )
+                            if zone_num is None or boundary_secs is None:
+                                continue
+                            zone_num = int(zone_num)
+                            boundary_secs = float(boundary_secs)
+                            # 0 means "no lower bound" — treat as 0 m/s
+                            if boundary_secs > 0:
+                                # sec/km → m/s: 1000 / sec_per_km
+                                low_m_s = round(1000.0 / boundary_secs, 4)
+                            else:
+                                low_m_s = 0.0
+                            parsed.append(
+                                {
+                                    "zone": zone_num,
+                                    "lowBoundary_m_s": low_m_s,
+                                    "description": _ZONE_LABELS.get(
+                                        zone_num, f"Zone {zone_num}"
+                                    ),
+                                }
+                            )
+                        if parsed:
+                            parsed.sort(key=lambda x: x["zone"])
+                            profile.garmin_running_zones_json = _json.dumps(parsed)
+                            changed = True
+                            logger.info(
+                                f"Garmin running zones updated for user_id={user_id}: "
+                                f"{len(parsed)} zones"
+                            )
+            except Exception as e:
+                logger.debug(f"Garmin running zones fetch failed (non-fatal): {e}")
+
+            # ------------------------------------------------------------------
+            # Resting HR
+            # ------------------------------------------------------------------
+            if can_write(prefs, "garmin", "resting_hr"):
                 try:
-                    bday = date.fromisoformat(birth_str)
-                    profile.birthday = bday
-                    today = date.today()
-                    age = (
-                        today.year
-                        - bday.year
-                        - ((today.month, today.day) < (bday.month, bday.day))
+                    today_str = date.today().isoformat()
+                    rhr_data = self.client.get_rhr_day(today_str)
+                    # {"allMetrics": {"metricsMap": {"WELLNESS_RESTING_HEART_RATE": [{"value": N}]}}}
+                    if rhr_data:
+                        metrics_map = rhr_data.get("allMetrics", {}).get(
+                            "metricsMap", {}
+                        )
+                        rhr_list = metrics_map.get("WELLNESS_RESTING_HEART_RATE", [])
+                        if rhr_list:
+                            rhr_val = rhr_list[0].get("value")
+                            if rhr_val and int(rhr_val) > 0:
+                                profile.resting_hr = int(rhr_val)
+                                changed = True
+                except Exception as e:
+                    logger.debug(f"Garmin resting HR fetch failed (non-fatal): {e}")
+
+            # ------------------------------------------------------------------
+            # VO2Max
+            # ------------------------------------------------------------------
+            if can_write(prefs, "garmin", "vo2max"):
+                try:
+                    today_str = date.today().isoformat()
+                    max_metrics = self.client.get_max_metrics(today_str)
+                    if isinstance(max_metrics, list):
+                        for entry in reversed(max_metrics):
+                            vo2 = entry.get("generic", {}).get("vo2MaxValue")
+                            if vo2 is not None:
+                                profile.vo2max = float(vo2)
+                                changed = True
+                                break
+                except Exception as e:
+                    logger.debug(f"Garmin VO2Max fetch failed (non-fatal): {e}")
+
+            # ------------------------------------------------------------------
+            # Lactate threshold
+            # ------------------------------------------------------------------
+            if can_write(prefs, "garmin", "lactate_threshold"):
+                try:
+                    lt_data = self.client.get_lactate_threshold()
+                    # Garmin returns {"speed_and_heart_rate": {"speed": sec/m, "heartRate": bpm, ...}, "power": {...}}
+                    # Note: despite the field name "speed", Garmin's API returns pace in sec/m (not m/s).
+                    # We must invert to get m/s: speed_m_s = 1.0 / sec_per_m
+                    if lt_data:
+                        shr = lt_data.get("speed_and_heart_rate", {})
+                        lt_hr = shr.get("heartRate")
+                        lt_speed_raw = shr.get("speed")  # sec/m from Garmin
+                        if lt_hr and int(lt_hr) > 0:
+                            profile.lactate_threshold_hr = int(lt_hr)
+                            changed = True
+                        if lt_speed_raw and float(lt_speed_raw) > 0:
+                            # Convert sec/m → m/s
+                            profile.lactate_threshold_pace = round(
+                                1.0 / float(lt_speed_raw), 6
+                            )
+                            changed = True
+                except Exception as e:
+                    logger.debug(
+                        f"Garmin lactate threshold fetch failed (non-fatal): {e}"
                     )
-                    profile.age = age
-                    changed = True
-                except ValueError:
-                    logger.warning(
-                        f"Garmin returned unparseable birthDate '{birth_str}' for user {user_id}"
+
+            # ------------------------------------------------------------------
+            # Race predictions (marathon predicted time → pace anchor for zones)
+            # Only used if we didn't get a direct LT pace above.
+            # ------------------------------------------------------------------
+            if not profile.lactate_threshold_pace:
+                try:
+                    preds = self.client.get_race_predictions()
+                    # Response is a list of dicts or a dict with race distance keys.
+                    # Garmin returns predicted times in seconds for various distances.
+                    marathon_secs = None
+                    if isinstance(preds, list):
+                        for p in preds:
+                            if p.get("raceDistance", "").lower() in (
+                                "marathon",
+                                "42195",
+                            ):
+                                marathon_secs = p.get("predictedTime")
+                                break
+                    elif isinstance(preds, dict):
+                        # Some library versions return a flat dict keyed by distance
+                        for key in ("marathon", "42195", "MARATHON"):
+                            val = preds.get(key)
+                            if val:
+                                marathon_secs = val
+                                break
+                    if marathon_secs and float(marathon_secs) > 0:
+                        # Convert predicted marathon time to m/s pace
+                        # Use as a proxy LT pace: marathon pace ≈ 95% of LT
+                        # So LT pace ≈ marathon pace / 0.95
+                        marathon_pace_m_s = 42195.0 / float(marathon_secs)
+                        profile.lactate_threshold_pace = round(
+                            marathon_pace_m_s / 0.95, 4
+                        )
+                        logger.info(
+                            f"Derived LT pace from Garmin race prediction: "
+                            f"marathon {marathon_secs}s → LT {profile.lactate_threshold_pace:.3f} m/s"
+                        )
+                        changed = True
+                except Exception as e:
+                    logger.debug(
+                        f"Garmin race predictions fetch failed (non-fatal): {e}"
                     )
 
-            # weight — only set if not already populated by Strava (Strava always wins)
-            weight_g = user_data.get("weight")  # Garmin stores weight in grams
-            if weight_g and not profile.weight_kg:
-                profile.weight_kg = round(float(weight_g) / 1000.0, 1)
-                changed = True
-
-            # gender — only set if not already populated
-            gender_raw = user_data.get("gender", "")
-            if gender_raw and (not profile.gender or profile.gender == "unknown"):
-                gender_lower = gender_raw.lower()
-                if gender_lower in ("male", "female"):
-                    profile.gender = gender_lower
-                    changed = True
-
+            # ------------------------------------------------------------------
+            # Persist
+            # ------------------------------------------------------------------
             if changed:
+                profile.profile_last_synced_at = datetime.utcnow()
                 self.session.add(profile)
                 self.session.commit()
-                logger.info(f"Garmin profile imported for user_id={user_id}")
+                logger.info(f"Garmin profile synced for user_id={user_id}")
 
         except Exception as e:
             logger.warning(
@@ -491,6 +763,9 @@ class GarminService:
                     if val >= t["lowBoundary"]:
                         zone = t["zone"]
                         break
+                # Speed below Z1 lower bound (e.g. hiking on trails) — attribute to Z1
+                if zone == 0 and pace_proc:
+                    zone = min(t["zone"] for t in pace_proc)
                 if zone > 0:
                     pace_acc[zone]["secs"] += duration
                     pace_acc[zone]["sum"] += val * duration

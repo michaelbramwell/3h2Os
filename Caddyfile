@@ -8,11 +8,18 @@ auth.{$DOMAIN} {
 }
 
 {$DOMAIN} {
-    # Frontend
-    reverse_proxy frontend:80
-
-    # Backend API (adjust path if needed, assuming /api prefix or similar)
-    handle /api* {
+    # Backend API — match /api/ prefix but not static assets that start with /api
+    handle /api/* {
         reverse_proxy backend:8000
+    }
+
+    # Strava webhook (no /api prefix)
+    handle /strava/webhook* {
+        reverse_proxy backend:8000
+    }
+
+    # Frontend — catch-all
+    handle {
+        reverse_proxy frontend:80
     }
 }

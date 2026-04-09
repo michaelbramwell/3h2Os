@@ -19,6 +19,7 @@ from sqlmodel import Session, select
 from app.core.database import (
     User,
     RunnerPlan,
+    PlanWeek,
     RunnerProfile,
     RunnerProject,
 )
@@ -232,15 +233,18 @@ class PlanBuilderService:
     # Preview (no DB write)
     # ------------------------------------------------------------------
 
-    def generate_preview(self, wizard: WizardInput) -> PlanPreview:
+    def generate_preview(
+        self, wizard: WizardInput, is_edit: bool = False
+    ) -> PlanPreview:
         """Generate a plan preview without saving to the database."""
         sport = wizard.sport_event.sport
         event_type = wizard.sport_event.event_type
         level = wizard.athlete_profile.experience_level
         total_weeks = wizard.plan_config.total_weeks
 
-        # Reject plans that would start in the past
-        if wizard.sport_event.event_date:
+        # Reject plans that would start in the past — skip this check in edit mode
+        # because an in-progress plan's calculated start will always be in the past.
+        if not is_edit and wizard.sport_event.event_date:
             preview_start = self._calculate_start_date(
                 wizard.sport_event.event_date, total_weeks
             )
@@ -311,7 +315,12 @@ class PlanBuilderService:
     # Full generation (creates plan + updates profile/project)
     # ------------------------------------------------------------------
 
-    def _generate_plan_data(self, wizard: WizardInput):
+    def _generate_plan_data(
+        self,
+        wizard: WizardInput,
+        is_edit: bool = False,
+        start_date_override: Optional[date] = None,
+    ):
         """Helper to generate plan data from wizard input."""
         sport = wizard.sport_event.sport
         event_type = wizard.sport_event.event_type
@@ -336,13 +345,17 @@ class PlanBuilderService:
             wizard.goals_focus.weekly_availability, default_sessions
         )
 
-        # Determine start date
-        start_date = self._calculate_start_date(
-            wizard.sport_event.event_date, total_weeks
-        )
+        # Determine start date — prefer an explicit override (edit mode preserves the
+        # existing plan's original start) over a fresh calculation.
+        if start_date_override is not None:
+            start_date = start_date_override
+        else:
+            start_date = self._calculate_start_date(
+                wizard.sport_event.event_date, total_weeks
+            )
 
-        # Reject plans that would start in the past
-        if start_date < date.today():
+        # Reject plans that would start in the past — skip in edit mode
+        if not is_edit and start_date < date.today():
             raise ValueError(
                 f"Plan would start on {start_date.isoformat()} which is in the past. "
                 "Reduce the plan length or move the event date."
@@ -538,9 +551,19 @@ class PlanBuilderService:
         if plan.user_id != user.id:
             raise ValueError("Cannot update a plan that does not belong to you")
 
+        # Anchor to the existing plan's original start date so that an in-progress
+        # plan retains its full length rather than being recalculated from event_date.
+        existing_start = self.session.exec(
+            select(PlanWeek.start_date)
+            .where(PlanWeek.plan_id == plan_id)
+            .order_by(PlanWeek.start_date)
+        ).first()
+
         sport = wizard.sport_event.sport
         zones = self._calculate_zones(wizard)
-        plan_data = self._generate_plan_data(wizard)
+        plan_data = self._generate_plan_data(
+            wizard, is_edit=True, start_date_override=existing_start
+        )
 
         # Delete existing weeks/workouts from this plan
         self.plan_service.delete_plan_contents(plan_id)

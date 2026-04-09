@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getPlan, getContext, getActuals, getContextMarkdown } from '../lib/api'
 import { Sidebar } from '../components/Sidebar'
@@ -11,9 +11,10 @@ import { IntegrationsMenu } from '../components/IntegrationsMenu'
 import { AppBrand, AppDescription, AppFooter } from '../components/AppShell'
 import { PlanWizard } from '../components/wizard'
 import { PlanSwitcher } from '../components/PlanSwitcher'
-import { PanelLeft, X, Plus } from 'lucide-react'
+import { PanelLeft, X, Plus, Settings } from 'lucide-react'
 import type { ContextData, Week, Activity } from '../types/schema'
 import type { WizardInput } from '../types/wizard'
+import { useSSE } from '../hooks/useSSE'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -50,6 +51,9 @@ function Dashboard() {
         return () => clearTimeout(timer);
     }
   }, [fridgeWeekId]);
+
+  // Keep activities in sync with server-pushed Strava webhook events
+  useSSE(auth.isAuthenticated)
 
   const { data: plan, isLoading: planLoading, error: planError } = useQuery({ 
     queryKey: ['plan'], 
@@ -190,6 +194,14 @@ function Dashboard() {
                  <PlanSwitcher onEditPlan={(planId, wizardData) => setEditPlan({ id: planId, data: wizardData })} />
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
                  <IntegrationsMenu />
+                 <div className="h-4 w-px bg-slate-300 mx-1"></div>
+                 <Link
+                    to="/settings"
+                    className="p-1 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-700 transition"
+                    title="Settings"
+                 >
+                    <Settings size={18} />
+                 </Link>
                  <span className="text-xs text-slate-500 font-medium border-l border-slate-300 pl-2">
                      {auth.user?.profile.preferred_username || "User"}
                   </span>
@@ -237,7 +249,7 @@ function Dashboard() {
                     <div className="sticky top-20 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto pb-4 pr-2">
                         <Sidebar context={context as ContextData} markdown={markdown} />
                         {/* RecentActivities moved to be a child of Sidebar or separate is fine, but user complained about "under" */}
-                        <RecentActivities activities={(actuals || []) as Activity[]} />
+                        <RecentActivities activities={(actuals || []) as Activity[]} plan={plan} />
                     </div>
                 </div>
             )}
@@ -277,6 +289,7 @@ function Dashboard() {
         <ActivityModal 
             activity={selectedActivity} 
             context={context as ContextData}
+            plan={plan}
             onClose={() => setSelectedActivity(null)} 
         />
       )}

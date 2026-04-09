@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, create_engine, Session, Relationship
 from sqlalchemy import BigInteger, Column, String
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import os
 from app.models.domain import ActivityType, WorkoutFormat
 
@@ -161,6 +161,27 @@ class RunnerProfile(SQLModel, table=True):
     swim_zones_json: Optional[str] = Field(default=None)
     fueling_json: Optional[str] = Field(default=None)
 
+    # Fitness metrics sourced from integrations
+    resting_hr: Optional[int] = Field(default=None)  # bpm
+    vo2max: Optional[float] = Field(default=None)  # ml/kg/min
+    lactate_threshold_hr: Optional[int] = Field(default=None)  # bpm
+    lactate_threshold_pace: Optional[float] = Field(default=None)  # m/s
+
+    # Running pace zones fetched directly from Garmin Connect (highest priority source).
+    # JSON: list of {zone, lowBoundary_m_s, description} — same shape as training_zones_json pace array.
+    # NULL until a Garmin sync populates it.
+    garmin_running_zones_json: Optional[str] = Field(default=None)
+
+    # Per-source per-field sync preferences.
+    # JSON: { "garmin": { "weight": false, "height": true, "resting_hr": true,
+    #                      "vo2max": true, "lactate_threshold": true },
+    #         "strava": { "weight": true, "ftp": true, "hr_zones": true } }
+    # NULL = use defaults (all enabled; Strava wins for shared fields).
+    profile_sync_prefs_json: Optional[str] = Field(default=None)
+
+    # ISO timestamp of last successful profile sync from any source.
+    profile_last_synced_at: Optional[datetime] = Field(default=None)
+
     user: "User" = Relationship(back_populates="profile")
 
 
@@ -179,6 +200,7 @@ class ActualActivity(SQLModel, table=True):
 
     date: date
     name: str
+    custom_name: Optional[str] = None  # User-set title; survives sync overwrites
     type: str  # running, cycling, etc.
 
     distance_m: float
@@ -210,6 +232,20 @@ class PlanTemplate(SQLModel, table=True):
     level: str  # ExperienceLevel enum value
     default_weeks: int = 14
     structure_json: str  # JSON blob defining phases, session patterns, volume curve
+
+
+class ActivityShare(SQLModel, table=True):
+    """
+    Maps a permanent random token to a single activity for public sharing.
+    One token per activity; upserted on repeated share requests.
+    """
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    activity_id: int = Field(foreign_key="actualactivity.id", index=True)
+    token: str = Field(
+        sa_column=Column(String(64), unique=True, nullable=False, index=True)
+    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # --- Database Connection ---

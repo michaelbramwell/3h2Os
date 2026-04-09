@@ -57,12 +57,9 @@ Add a multi-step wizard interface for creating structured training plans for bot
 - **Weekly availability**: How many days per week they can train (3-7 slider or select)
 - **Longest recent session**: Approximate current longest run/swim distance (helps set starting volume)
 
-### Step 4: Plan Generation Method
+### Step 4: Plan Config
 
-Two modes (this is the key architectural decision -- see section below):
-
-- **Template-based** (default, free): Select from proven, hardcoded periodisation formulas. Deterministic output. Adjustable after generation.
-- **AI-assisted** (premium, future): AI generates a bespoke plan using the collected inputs, constrained by the existing validation engine guardrails. Non-deterministic but reviewed before saving.
+Configure plan parameters: total weeks, taper weeks, generation method (template / AI).
 
 ### Step 5: Review & Confirm
 
@@ -217,17 +214,21 @@ frontend/src/
       StepSportEvent.tsx      # Step 1
       StepAthleteProfile.tsx  # Step 2
       StepGoalsFocus.tsx      # Step 3
-      StepGenerationMethod.tsx # Step 4
-      StepReviewConfirm.tsx   # Step 5
+      StepPlanConfig.tsx      # Step 4
+      StepReview.tsx          # Step 5
       WizardProgress.tsx      # Step indicator bar
+      IntegrationBanner.tsx   # Banner prompting to connect Strava/Garmin for profile defaults
+      index.ts                # Re-exports
     ClonePlanDialog.tsx       # Clone flow (title + date offset)
   hooks/
     useWizard.ts              # Step navigation, form state accumulation
   types/
     wizard.ts                 # TypeScript types for wizard state
+  routes/
+    plans.build.tsx           # Dedicated route -- wizard is NOT a modal
 ```
 
-The wizard does not need its own route. It can be a full-screen dialog/modal launched from the existing dashboard, keeping the single-route architecture.
+The wizard uses a dedicated route at `/plans/build`, not a modal. This was decided during implementation to support direct navigation and bookmarking.
 
 ---
 

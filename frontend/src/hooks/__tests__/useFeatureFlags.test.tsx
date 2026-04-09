@@ -53,7 +53,7 @@ describe('useFeatureFlags', () => {
     });
 
     it('returns resolved flags from the API', async () => {
-        const serverFlags: FeatureFlags = { isSwimmingEnabled: true };
+        const serverFlags: FeatureFlags = { isSwimmingEnabled: true, isGarminEnabled: false };
         mockGetFeatureFlags.mockResolvedValue(serverFlags);
 
         const { result } = renderHook(() => useFeatureFlags(), {
@@ -66,7 +66,7 @@ describe('useFeatureFlags', () => {
     });
 
     it('falls back to defaults when the API returns false values', async () => {
-        const serverFlags: FeatureFlags = { isSwimmingEnabled: false };
+        const serverFlags: FeatureFlags = { isSwimmingEnabled: false, isGarminEnabled: false };
         mockGetFeatureFlags.mockResolvedValue(serverFlags);
 
         const { result } = renderHook(() => useFeatureFlags(), {
@@ -116,6 +116,7 @@ describe('useFeatureFlags', () => {
     it('merges unknown flag keys returned by the server', async () => {
         const serverFlags: FeatureFlags = {
             isSwimmingEnabled: true,
+            isGarminEnabled: false,
             someFutureFlag: true,
         };
         mockGetFeatureFlags.mockResolvedValue(serverFlags);

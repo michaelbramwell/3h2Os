@@ -1,6 +1,6 @@
 # Project Roadmap: 3h2Os
 
-## Current Version: v0.10.0 (Strava & Garmin Integration)
+## Current Version: v0.11.0 (Profile, Activity Editing & Zone Improvements)
 
 ## Phase 1: Foundation (Complete)
 - [x] Structured 14-week training plan in Markdown.
@@ -61,8 +61,8 @@
 - [x] **Plan Preview:** Non-destructive preview endpoint showing phase breakdown and volume curve before committing.
 - [x] **Clone Plan:** Duplicate existing plans with date offsets via `POST /api/plans/{id}/clone`.
 - [x] **Data Model Expansion:** `RunnerProfile`, `RunnerProject`, and `PlanTemplate` tables with Alembic migration.
-- [x] **Frontend Wizard:** 6 step components with `useWizard` hook for state management. Dedicated `/plans/build` route.
-- [x] **Tests:** 219 passing tests including 35 for plan builder template validation.
+- [x] **Frontend Wizard:** Multi-step wizard components with `useWizard` hook for state management. Dedicated `/plans/build` route.
+- [x] **Tests:** Plan builder template generation and validation compliance.
 
 ## Phase 4: Strava & Garmin Integration (Complete)
 - [x] **Strava OAuth2 Integration:** Full authorization code flow with HMAC-signed state tokens. Token auto-refresh (5-min expiry buffer). Disconnect/reconnect support.
@@ -105,16 +105,63 @@
   - [x] `007_add_profile_birthday.sql` — `birthday` on `runnerprofile` for dynamic age calculation.
   - [x] `008_seed_feature_flags.sql` — seed `isSwimmingEnabled` flag.
 - [x] **Cleanup:** Removed 10 legacy scripts (`fetch_actuals.py`, `sync_to_garmin.py`, `generate_garmin_tokens.py`, etc.) and static TypeScript build artifacts. Deleted obsolete test files (`test_sync_logic.py`, `test_zone_logic.py`, `test_timezone.py`).
-- [x] **Tests:** 336 passing tests (up from 219). New coverage: feature flag API (547 lines), feature flag service (235 lines), wizard defaults (241 lines), Strava callback, formatters, calculations.
+- [x] **Tests:** New coverage for feature flag API, feature flag service, wizard defaults, Strava callback, formatters, and calculations.
 - [x] **Data Persistence:** Migrate PostgreSQL data storage from VM local disk to attached Block Storage volume for durability across instance rebuilds.
 
-## Phase 4.5: Code Cleanup (Planned)
-- [ ] **Implementation Plan:** `.ai/code-cleanup.md` — prioritised list of security fixes, type safety improvements, duplication removal, and test gaps identified during PR #45 review.
+## Phase 4.5: Profile, Activity Editing & Zone Improvements (Complete)
+
+### User Profile & Sync Preferences
+- [x] **`GET/PATCH /api/profile`:** Read and manually edit runner profile fields (weight, height, resting HR, VO2max, lactate threshold, FTP).
+- [x] **`PATCH /api/profile/sync-prefs`:** Per-source, per-field toggle controlling whether Garmin or Strava may write each field. Mutual-exclusion enforced for shared fields (weight).
+- [x] **`POST /api/profile/sync-now`:** On-demand profile re-sync from all connected sources.
+- [x] **`profile_sync.py`:** Shared helper module with `load_prefs`, `dump_prefs`, `can_write`, and `apply_toggle` — source-priority logic isolated from routers and services.
+- [x] **Settings page (`/settings`):** Full React UI displaying all profile fields with source-ownership badges (Garmin/Strava), inline edit for unowned fields, sync-pref toggles, and "Sync Now" action.
+
+### Fitness Metrics & Migrations
+- [x] **Migration 011:** `resting_hr`, `vo2max`, `lactate_threshold_hr`, `lactate_threshold_pace`, `profile_sync_prefs_json`, `profile_last_synced_at` columns on `runnerprofile`.
+- [x] **Migration 012:** `garmin_running_zones_json` on `runnerprofile` — stores user's custom Garmin pace zones for highest-priority zone anchoring.
+- [x] **Garmin fitness pull:** `GarminService` fetches lactate threshold (HR + pace), VO2max, resting HR, and running pace zones from Garmin Connect on sync; respects `can_write` prefs.
+
+### Activity Custom Names
+- [x] **Migration 010:** `custom_name TEXT` column on `actualactivity`.
+- [x] **`ActivityModal`:** Inline rename UI — editable name field written back via `PATCH /api/activities/{id}`.
+- [x] **`ActualCard`:** Displays `custom_name` when set, falling back to source name.
+
+### Zone Calculation Improvements
+- [x] **Race-pace–anchored zones:** `calculate_pace_zones()` now derives zones directly from race pace using Jack Daniels / Pfitzinger fractions (Recovery 70%, Easy 75%, Tempo 96%, Threshold 105%, VO2 Max 114%) when a target time is provided, replacing the cruder experience-level multiplier approach.
+
+### Garmin Feature Flag
+- [x] **Migration 013:** Seeds `isGarminEnabled` feature flag defaulting to `[]` (disabled), gating Garmin UI due to IP rate-limiting issues with the unofficial API.
+- [x] **`useFeatureFlags`:** `isGarminEnabled` wired into `IntegrationsMenu` to hide/show Garmin connect and sync controls.
+
+### Tests
+- [x] **`test_profile.py`:** Coverage for `GET /profile`, `PATCH /profile`, `PATCH /profile/sync-prefs`, `POST /profile/sync-now`, and `profile_sync` unit helpers.
+
+---
+
+## Phase 4.6: Code Cleanup (In Progress)
+- [x] **Implementation Plan:** `.ai/code-cleanup.md` — prioritised list of security fixes, type safety improvements, duplication removal, and test gaps identified during PR #45 review.
+
+## Phase 4.7: Data-Driven Zone & Progression Improvements (Planned)
+- [ ] **Lactate Threshold Zone Anchoring:** Use Garmin lactate threshold HR as the primary anchor for HR zone calculation, replacing the Tanaka estimated max HR formula. All 5 HR zones derive from LT HR when available.
+- [ ] **Karvonen HR Zones:** When resting HR (Garmin) is available, apply the Karvonen formula (heart rate reserve) for more physiologically accurate HR zone boundaries.
+- [ ] **Lactate Threshold Pace Zones:** Use Garmin lactate threshold pace as the direct pace zone anchor when no target time is provided, replacing the coarse experience-level fallback paces.
+- [ ] **Strava HR Zone Passthrough:** Feed Strava-imported HR zone boundaries into zone calculation as an override path when no Garmin fitness metrics are present.
+- [ ] **Load-Aware Plan Progression:** Replace pure-distance recalculation (`plans.py`) with stress-based progression using Garmin `aerobic_te`, `anaerobic_te`, and `training_load`, so plan adaptation reflects training intensity not just volume.
+- [ ] **VO2max Volume Ceiling:** Use Garmin VO2max to inform per-athlete peak volume ceilings in template selection, rather than relying solely on `experience_level`.
+
+## Phase 4.7: Comprehensive Test Suite (Planned)
+- [ ] **Parameterised zone tests:** `calculate_zones()` across ages 18–70, both sexes, all experience levels (beginner/intermediate/advanced), all event types (5k/10k/half/marathon/swim), with and without `target_time`.
+- [ ] **HR zone correctness:** Tanaka formula verified at age boundaries; zone boundaries sequential and non-overlapping for every combination.
+- [ ] **Pace zone anchoring:** Target-time-anchored zones verified against expected m/s values; ordering invariant (Recovery < Easy < Tempo < Threshold < Interval) holds across all inputs.
+- [ ] **`_pace_zones_from_lt_pace()`:** Zone boundary correctness across a representative range of LT pace values (3:30–6:30/km).
+- [ ] **`refresh_training_zones()` — all 3 priority paths:** Strava HR zones path, Garmin LT pace path, and default `calculate_zones()` path; edge cases: no sources connected, `lactate_threshold_pace = null`, missing `RunnerProject`.
+- [ ] **`ContextService` zones path:** `trainingZones` populated correctly from `training_zones_json`; swim zones merged from `swim_zones_json`; malformed JSON handled gracefully without raising.
+- [ ] **`SyncService`:** `sync_garmin` and `sync_strava` trigger zone refresh; zone not overwritten if sync pref disabled.
+- [ ] **Shared fixtures:** Rebuild `conftest.py` with reusable `make_user`, `make_profile`, `make_project`, and `app_client` factories to eliminate per-file duplication.
+- [ ] **Mock user matrix:** Extensive parameterised tests covering users of varying sex, age, ability, weight, and experience level across all plan types.
 
 ## Phase 5: Performance Analytics (Planned)
-- [ ] **Efficiency Tracking:** Monitor Pace/HR decoupling for Wednesday Steady runs.
-- [ ] **Cramp Correlation:** Log muscle fatigue levels and correlate with hydration/fueling data.
-- [ ] **Shoe Tracker:** Monitor mileage on race-day shoes to ensure they are "broken in but not broken".
 - [ ] **AI Weekly Retrospective:** Implement a "Sunday Night Review" that analyzes actuals and fueling to suggest plan adjustments for the following week.
 
 ## Phase 6: AI-Assisted Plan Generation (Planned)

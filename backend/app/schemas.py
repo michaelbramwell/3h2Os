@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from typing import List, Dict, Any, Literal, Optional
-from datetime import date
+from datetime import date, datetime
 from app.models.domain import (
     ActivityType,
     WorkoutFormat,
@@ -448,8 +448,10 @@ class HrZone(BaseModel):
 
 
 class ActivitySchema(BaseModel):
+    id: Optional[int] = None  # ActualActivity database PK; used for share endpoint
     date: str
     name: str
+    custom_name: Optional[str] = None  # User-set title; survives sync overwrites
     type: str
     distance_m: float
     duration_s: float
@@ -568,3 +570,116 @@ class WizardDefaultsResponse(BaseModel):
     goals_focus: WizardGoalsFocusDefaults = Field(
         default_factory=WizardGoalsFocusDefaults
     )
+
+
+# ---------------------------------------------------------------------------
+# Profile API schemas
+# ---------------------------------------------------------------------------
+
+
+class GarminSyncPrefs(BaseModel):
+    """Per-field sync preferences for the Garmin source."""
+
+    weight: bool = False  # Strava wins by default
+    height: bool = True
+    resting_hr: bool = True
+    vo2max: bool = True
+    lactate_threshold: bool = True
+
+
+class StravaSyncPrefs(BaseModel):
+    """Per-field sync preferences for the Strava source."""
+
+    weight: bool = True
+    ftp: bool = True
+    hr_zones: bool = True
+
+
+class ProfileSyncPrefs(BaseModel):
+    """Combined sync preferences for all sources."""
+
+    garmin: GarminSyncPrefs = Field(default_factory=GarminSyncPrefs)
+    strava: StravaSyncPrefs = Field(default_factory=StravaSyncPrefs)
+
+
+class ProfileResponse(BaseModel):
+    """Full profile response for GET /api/profile."""
+
+    # Bio
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    height_cm: Optional[int] = None
+    birthday: Optional[date] = None
+    weight_kg: Optional[float] = None
+
+    # Performance
+    ftp: Optional[int] = None
+    resting_hr: Optional[int] = None
+    vo2max: Optional[float] = None
+    lactate_threshold_hr: Optional[int] = None
+    lactate_threshold_pace: Optional[float] = None
+
+    # Training preferences
+    experience_level: Optional[str] = None
+    weekly_availability: Optional[int] = None
+
+    # Sync metadata
+    sync_prefs: ProfileSyncPrefs = Field(default_factory=ProfileSyncPrefs)
+    profile_last_synced_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProfilePatch(BaseModel):
+    """
+    Fields the user may manually edit via PATCH /api/profile.
+    A source-owned field submitted here is silently ignored (enforcement in router).
+    """
+
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    height_cm: Optional[int] = None
+    weight_kg: Optional[float] = None
+    ftp: Optional[int] = None
+    resting_hr: Optional[int] = None
+    vo2max: Optional[float] = None
+    lactate_threshold_hr: Optional[int] = None
+    lactate_threshold_pace: Optional[float] = None
+    experience_level: Optional[str] = None
+    weekly_availability: Optional[int] = None
+
+    @field_validator("age")
+    @classmethod
+    def validate_age(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and (v < 10 or v > 100):
+            raise ValueError("age must be between 10 and 100")
+        return v
+
+    @field_validator("gender")
+    @classmethod
+    def validate_gender(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("male", "female", "other", "unknown"):
+            raise ValueError("gender must be male, female, other, or unknown")
+        return v
+
+    @field_validator("height_cm")
+    @classmethod
+    def validate_height(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and (v < 50 or v > 300):
+            raise ValueError("height_cm must be between 50 and 300")
+        return v
+
+    @field_validator("weekly_availability")
+    @classmethod
+    def validate_weekly_availability(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and (v < 1 or v > 7):
+            raise ValueError("weekly_availability must be between 1 and 7")
+        return v
+
+
+class SyncPrefsUpdate(BaseModel):
+    """Payload for PATCH /api/profile/sync-prefs — toggle a single source/field."""
+
+    source: Literal["garmin", "strava"]
+    field: str
+    enabled: bool

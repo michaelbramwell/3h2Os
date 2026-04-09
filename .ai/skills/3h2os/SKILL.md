@@ -33,11 +33,9 @@ Retrieves recent completed activities from Garmin Connect and persists them to t
 - **Outputs**: Updates PostgreSQL. Includes detailed metric splits and zone distribution.
 
 ### Reflect & Validate
-Compares executed workouts against the plan. Enforces safety guardrails (15% volume cap, 80/20 intensity distribution) and creates adaptations for future weeks if necessary.
-- **Script**: `backend/scripts/reflect_and_validate.py`
-- **Command**: `cd backend && uv run scripts/reflect_and_validate.py`
-- **Inputs**: Database (Plan and Actuals)
-- **Outputs**: Updates database, logs validation warnings.
+Enforces safety guardrails (15% volume cap, long run ratio, 80/20 intensity distribution) on every workout save/update.
+- **Location**: `backend/app/core/validation.py` (`ValidationEngine` class) — runs inline in the service layer, not as a standalone script.
+- **Legacy script**: `backend/scripts/reflect_and_validate.py` — exists as a CLI tool for manual checks but is not the canonical validation path.
 
 ### Sync to Garmin
 Pushes structured workouts from the plan to the Garmin Connect Calendar.
@@ -85,7 +83,7 @@ Starts the React frontend for local development.
 - **Address**: `http://localhost:5173`
 
 ### Run Tests
-- **Backend**: `cd backend && uv run pytest` (219 tests)
+- **Backend**: `cd backend && uv run pytest` (378 tests)
 - **Frontend**: `cd frontend && npm test`
 
 ### Docker Stack

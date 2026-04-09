@@ -1,7 +1,8 @@
 import axios from 'axios';
-import type { Week, ContextData, Activity, FeatureFlags } from '../types/schema';
+import type { Week, ContextData, Activity, FeatureFlags, UserProfile, ProfileSyncPrefs } from '../types/schema';
 import type { WizardInput, PlanPreview, ClonePlanRequest, WizardDefaultsResponse } from '../types/wizard';
 import { userManager } from './auth';
+import { GARMIN_TOKEN_KEY } from '../hooks/useGarminToken';
 
 const api = axios.create({
   baseURL:
@@ -23,6 +24,75 @@ api.interceptors.request.use(async (config) => {
     }
     return config;
 });
+
+/**
+ * Response interceptor: silently refresh the Garmin OAuth2 token on 401.
+ *
+ * When a Garmin-authenticated request returns 401 the OAuth2 token has likely
+ * expired (~1 hour TTL). We refresh it using the stored OAuth1 token (~1 year
+ * TTL) via a server-side token exchange that requires no SSO / credentials.
+ * On success the new token is persisted to localStorage and the original
+ * request is retried once. On failure the token is cleared so the connect
+ * form reappears on next interaction.
+ */
+let _garminRefreshInFlight: Promise<string> | null = null;
+
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        const hadGarminToken = !!originalRequest.headers?.['X-Garmin-Token'];
+
+        // Never attempt a refresh for the refresh endpoint itself — doing so would
+        // recurse infinitely if that endpoint also returns 401.
+        const isRefreshEndpoint = originalRequest.url?.includes('/api/garmin/token/refresh');
+
+        if (
+            error.response?.status === 401 &&
+            hadGarminToken &&
+            !originalRequest._garminRetried &&
+            !isRefreshEndpoint
+        ) {
+            originalRequest._garminRetried = true;
+            const currentToken = localStorage.getItem(GARMIN_TOKEN_KEY);
+            if (!currentToken) {
+                return Promise.reject(error);
+            }
+
+            try {
+                // Deduplicate concurrent refresh requests (e.g. two syncs firing simultaneously)
+                if (!_garminRefreshInFlight) {
+                    _garminRefreshInFlight = api
+                        .post<{ token: string }>(
+                            '/api/garmin/token/refresh',
+                            {},
+                            { headers: { 'X-Garmin-Token': currentToken } }
+                        )
+                        .then((res) => res.data.token)
+                        .finally(() => {
+                            _garminRefreshInFlight = null;
+                        });
+                }
+
+                const newToken = await _garminRefreshInFlight;
+
+                // Persist refreshed token and notify hooks across the page
+                localStorage.setItem(GARMIN_TOKEN_KEY, newToken);
+                window.dispatchEvent(new Event('garmin-token-change'));
+                originalRequest.headers['X-Garmin-Token'] = newToken;
+
+                return api(originalRequest);
+            } catch {
+                // Refresh failed — OAuth1 token also expired; force re-login
+                localStorage.removeItem(GARMIN_TOKEN_KEY);
+                window.dispatchEvent(new Event('garmin-token-change'));
+                return Promise.reject(error);
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export const getPlan = async (): Promise<Week[]> => {
   const response = await api.get<Week[]>('/api/plan.json');
@@ -98,6 +168,15 @@ export const getGarminToken = async (email: string, password: string): Promise<s
     return response.data.token;
 };
 
+export const refreshGarminToken = async (token: string): Promise<string> => {
+    const response = await api.post<{token: string}>(
+        '/api/garmin/token/refresh',
+        {},
+        { headers: { 'X-Garmin-Token': token } }
+    );
+    return response.data.token;
+};
+
 export const syncActivities = async (days: number = 7): Promise<{ count: number; message: string }> => {
     const token = localStorage.getItem('garmin_token');
     const headers = token ? { 'X-Garmin-Token': token } : {};
@@ -107,8 +186,9 @@ export const syncActivities = async (days: number = 7): Promise<{ count: number;
 
 // --- Wizard API ---
 
-export const wizardPreview = async (input: WizardInput): Promise<PlanPreview> => {
-    const response = await api.post<PlanPreview>('/api/plans/generate-preview', input);
+export const wizardPreview = async (input: WizardInput, planId?: number): Promise<PlanPreview> => {
+    const url = planId ? `/api/plans/generate-preview?plan_id=${planId}` : '/api/plans/generate-preview';
+    const response = await api.post<PlanPreview>(url, input);
     return response.data;
 };
 
@@ -175,6 +255,49 @@ export const syncStravaActivities = async (days: number = 7): Promise<{ synced: 
     const response = await api.post<{ synced: number; days: number }>(
         `/api/integrations/strava/sync?days=${days}`
     );
+    return response.data;
+};
+
+export const syncBothActivities = async (days: number = 7): Promise<{ strava_synced: number; garmin_enriched: number; days: number }> => {
+    const token = localStorage.getItem('garmin_token');
+    const headers = token ? { 'X-Garmin-Token': token } : {};
+    const response = await api.post<{ strava_synced: number; garmin_enriched: number; days: number }>(
+        `/api/integrations/sync?days=${days}`, {}, { headers }
+    );
+    return response.data;
+};
+
+export const createActivityShare = async (activityId: number): Promise<{ token: string; url: string }> => {
+    const response = await api.post<{ token: string; url: string }>(`/api/activities/${activityId}/share`);
+    return response.data;
+};
+
+export const updateActivityName = async (activityId: number, name: string | null): Promise<{ id: number; name: string; custom_name: string | null }> => {
+    const response = await api.patch<{ id: number; name: string; custom_name: string | null }>(`/api/activities/${activityId}`, { name });
+    return response.data;
+};
+
+
+// --- Profile ---
+
+export const getProfile = async (): Promise<UserProfile> => {
+    const response = await api.get<UserProfile>('/api/profile');
+    return response.data;
+};
+
+export const patchProfile = async (data: Partial<Omit<UserProfile, 'sync_prefs' | 'profile_last_synced_at' | 'birthday'>>): Promise<UserProfile> => {
+    const response = await api.patch<UserProfile>('/api/profile', data);
+    return response.data;
+};
+
+export const patchSyncPrefs = async (source: 'garmin' | 'strava', field: string, enabled: boolean): Promise<ProfileSyncPrefs> => {
+    const response = await api.patch<ProfileSyncPrefs>('/api/profile/sync-prefs', { source, field, enabled });
+    return response.data;
+};
+
+export const syncProfileNow = async (garminToken?: string): Promise<{ synced: boolean; message: string }> => {
+    const headers = garminToken ? { 'X-Garmin-Token': garminToken } : {};
+    const response = await api.post<{ synced: boolean; message: string }>('/api/profile/sync-now', {}, { headers });
     return response.data;
 };
 

@@ -2,6 +2,8 @@
 
 Status: Planned -- identified during PR #45 review (Strava & Garmin Integration).
 
+Item status key: **[OPEN]** not yet addressed | **[DONE]** resolved in codebase
+
 This document catalogues all code quality, security, type safety, duplication, and test
 coverage issues found during the comprehensive review of the Phase 4 feature branch.
 Items are grouped by priority and ordered for incremental implementation.
@@ -12,7 +14,7 @@ Items are grouped by priority and ordered for incremental implementation.
 
 These should be addressed before the next production deploy.
 
-### 1.1 Missing authorization on plan mutation endpoints
+### 1.1 Missing authorization on plan mutation endpoints **[OPEN]**
 
 `backend/app/routers/plans.py`
 
@@ -24,7 +26,7 @@ These should be addressed before the next production deploy.
 **Fix:** Add user dependency to `set_active_plan`. Pass `user.id` to the service layer in
 all three endpoints and scope the DB queries to `WHERE user_id = :user_id`.
 
-### 1.2 DEFAULT_USERNAME environment guard
+### 1.2 DEFAULT_USERNAME environment guard **[OPEN]**
 
 `backend/app/routers/deps.py:26-28`
 
@@ -34,7 +36,7 @@ in production, all unauthenticated requests silently resolve to that user.
 
 **Fix:** Add `and os.environ.get("ENVIRONMENT") == "development"` to the condition.
 
-### 1.3 Error detail leaks internal state
+### 1.3 Error detail leaks internal state **[OPEN]**
 
 Multiple routers return `detail=str(e)` in HTTP responses:
 
@@ -51,7 +53,7 @@ except Exception as e:
     raise HTTPException(status_code=502, detail="External service error")
 ```
 
-### 1.4 JWT token expiry verification
+### 1.4 JWT token expiry verification **[OPEN]**
 
 `backend/app/core/auth.py:199`
 
@@ -65,7 +67,7 @@ expired token and confirming a 401 response.
 
 ## Priority 2: Backend Code Quality
 
-### 2.1 Replace deprecated `datetime.utcnow()`
+### 2.1 Replace deprecated `datetime.utcnow()` **[OPEN]**
 
 Appears in: `strava.py:173,180,195,196,237`, `database.py:18,62,63,97`.
 
@@ -75,7 +77,7 @@ issues on Postgres if timezone interpretation ever differs.
 **Fix:** Replace all occurrences with `datetime.now(timezone.utc)`. Import `timezone` from
 `datetime` module.
 
-### 2.2 Webhook handler does sync inline
+### 2.2 Webhook handler does sync inline **[OPEN]**
 
 `backend/app/services/strava.py:668-692` (via `routers/strava.py`)
 
@@ -95,7 +97,7 @@ async def strava_webhook(
     return {"status": "ok"}
 ```
 
-### 2.3 Extract duplicated swimming guard
+### 2.3 Extract duplicated swimming guard **[OPEN]**
 
 `backend/app/routers/wizard.py:45-51, 74-80, 138-144`
 
@@ -112,7 +114,7 @@ def _check_swimming_flag(wizard_input: WizardInput, user: User, flag_service: Fe
         raise HTTPException(status_code=403, detail="Swimming plans are not enabled for your account.")
 ```
 
-### 2.4 Rename `HrZone` schema to `ZoneDistribution`
+### 2.4 Rename `HrZone` schema to `ZoneDistribution` **[OPEN]**
 
 `backend/app/schemas.py:439-447`
 
@@ -122,7 +124,7 @@ def _check_swimming_flag(wizard_input: WizardInput, user: User, flag_service: Fe
 **Fix:** Rename to `ZoneDistribution` (or `ZoneBucket`). Update all references in
 `schemas.py`, `activities.py`, and `strava.py`.
 
-### 2.5 Add pagination safety limit to Strava fetch
+### 2.5 Add pagination safety limit to Strava fetch **[OPEN]**
 
 `backend/app/services/strava.py:410-429`
 
@@ -131,7 +133,7 @@ response (always returning a full page) would loop forever.
 
 **Fix:** Add `max_pages = 50` guard (5000 activities is more than sufficient).
 
-### 2.6 Clean up inline imports and dead code
+### 2.6 Clean up inline imports and dead code **[OPEN]**
 
 - `strava.py:305-306` -- redundant `from datetime import date as date_type` (already
   imported at module level).
@@ -142,7 +144,7 @@ response (always returning a full page) would loop forever.
 - `activities.py:240-246` -- unreachable second `if not user` branch (dead code).
 - `auth.py:219` -- unnecessary f-string prefix `f"Could not validate credentials"`.
 
-### 2.7 Validate feature flag user types
+### 2.7 Validate feature flag user types **[OPEN]**
 
 `backend/app/services/feature_flags.py` `set_flag` method (line ~86)
 
@@ -151,7 +153,7 @@ No validation that `enabled_for` values are from the valid set (`standard`, `alp
 
 **Fix:** Validate against `USER_TYPES` (from `database.py`) plus `"*"`.
 
-### 2.8 Type hint accuracy in strava.py
+### 2.8 Type hint accuracy in strava.py **[OPEN]**
 
 `backend/app/services/strava.py:698-700`
 
@@ -163,7 +165,7 @@ power_thresholds: List[Dict] = None,
 
 Should be `Optional[List[Dict]] = None` for type safety.
 
-### 2.9 Inconsistent error response shapes
+### 2.9 Inconsistent error response shapes **[OPEN]**
 
 Three different patterns exist across routers:
 1. Typed Pydantic response models (Strava auth, flags).
@@ -173,7 +175,7 @@ Three different patterns exist across routers:
 **Fix:** Define response models for the ad-hoc endpoints (`DisconnectResponse`,
 `SyncResponse`). Low priority but improves OpenAPI documentation.
 
-### 2.10 `sync_strava` ignores power thresholds
+### 2.10 `sync_strava` ignores power thresholds **[OPEN]**
 
 `backend/app/services/sync.py:67-83`
 
@@ -182,7 +184,7 @@ has power zones configured, they won't be used for Strava stream-based zone comp
 
 **Fix:** Load power zone boundaries from `RunnerProfile` alongside HR and pace thresholds.
 
-### 2.11 `dump_zones` silently swallows all exceptions
+### 2.11 `dump_zones` silently swallows all exceptions **[OPEN]**
 
 `backend/app/services/activities.py:37-45`
 
@@ -199,7 +201,7 @@ If zone data is corrupted, this silently returns `None` with no log message.
 
 ## Priority 3: Frontend Type Safety
 
-### 3.1 Define `Split` interface
+### 3.1 Define `Split` interface **[OPEN]**
 
 `frontend/src/types/schema.ts:159` — `splits: Record<string, any>[] | null`
 
@@ -208,14 +210,14 @@ The split data has a known shape (`averageSpeed`, `distance`, `averageHR`, `movi
 
 **Fix:** Define a `Split` interface in `schema.ts` and replace `Record<string, any>[]`.
 
-### 3.2 Define `CustomZones` interfaces
+### 3.2 Define `CustomZones` interfaces **[OPEN]**
 
 `frontend/src/types/wizard.ts:157,239` — `custom_zones: Record<string, any>`
 
 This flows through `useWizard`, `StepAthleteProfile`, and the API. Define `CustomZones`,
 `HrZoneInput`, `PaceZoneInput`, `PowerZoneInput` interfaces.
 
-### 3.3 Remove `FeatureFlags` index signature
+### 3.3 Remove `FeatureFlags` index signature **[OPEN]**
 
 `frontend/src/types/schema.ts:174` — `[key: string]: boolean`
 
@@ -224,7 +226,7 @@ This makes the type essentially `Record<string, boolean>`, defeating the purpose
 
 **Fix:** Remove the index signature. Add named properties as flags are created.
 
-### 3.4 Type API return values
+### 3.4 Type API return values **[OPEN]**
 
 `frontend/src/lib/api.ts` — lines 47, 66, 71, 76, 81, 86 return `Promise<any>`.
 
@@ -232,7 +234,7 @@ This makes the type essentially `Record<string, boolean>`, defeating the purpose
 `updateWorkout`, `createWorkout`. Move `PlanMeta` and `StravaStatus` from `api.ts` to
 `types/`.
 
-### 3.5 Use `unknown` in catch blocks
+### 3.5 Use `unknown` in catch blocks **[OPEN]**
 
 `frontend/src/hooks/useWizard.ts:278,298` — `catch (err: any)`.
 `frontend/src/components/IntegrationsMenu.tsx:93` — `(error as any).response?.data?.detail`.
@@ -240,7 +242,7 @@ This makes the type essentially `Record<string, boolean>`, defeating the purpose
 **Fix:** Use `unknown` and narrow. Extract a shared `extractApiError(err: unknown): string`
 utility.
 
-### 3.6 Fix uncontrolled pace zone inputs
+### 3.6 Fix uncontrolled pace zone inputs **[OPEN]**
 
 `frontend/src/components/wizard/StepAthleteProfile.tsx:447`
 
@@ -249,7 +251,7 @@ defaults arrive after mount (e.g., user connects Strava), the inputs show stale 
 
 **Fix:** Switch to controlled inputs with `value` and `onChange`.
 
-### 3.7 Fix `isPool` evaluation for "No Event"
+### 3.7 Fix `isPool` evaluation for "No Event" **[DONE]**
 
 `frontend/src/components/wizard/StepSportEvent.tsx:26`
 
@@ -264,7 +266,7 @@ badges display incorrectly.
 
 ## Priority 4: Frontend Duplication
 
-### 4.1 Extract `useSyncMutations()` hook
+### 4.1 Extract `useSyncMutations()` hook **[OPEN]**
 
 Sync mutation definitions are copy-pasted between:
 - `frontend/src/components/RecentActivities.tsx:42-54`
@@ -272,7 +274,7 @@ Sync mutation definitions are copy-pasted between:
 
 **Fix:** Create `frontend/src/hooks/useSyncMutations.ts` returning `{ garminSync, stravaSync }`.
 
-### 4.2 Extract `useIntegrationStatus()` hook
+### 4.2 Extract `useIntegrationStatus()` hook **[OPEN]**
 
 `useStravaStatus()` + `useGarminToken()` + priority logic repeated in:
 - `RecentActivities.tsx`
@@ -283,13 +285,13 @@ Sync mutation definitions are copy-pasted between:
 **Fix:** Create `useIntegrationStatus()` returning
 `{ stravaConnected, garminConnected, preferredSource, canSync }`.
 
-### 4.3 Extract `useStravaErrorToast()` hook
+### 4.3 Extract `useStravaErrorToast()` hook **[OPEN]**
 
 Strava error toast from URL params duplicated between:
 - `frontend/src/components/IntegrationsMenu.tsx:52-61`
 - `frontend/src/components/StravaSettings.tsx:22-32`
 
-### 4.4 Consolidate Strava brand color
+### 4.4 Consolidate Strava brand color **[OPEN]**
 
 Hardcoded `#FC4C02` in 3+ files. Add to Tailwind config:
 
@@ -300,7 +302,7 @@ colors: {
 }
 ```
 
-### 4.5 Remove or deprecate `StravaSettings.tsx`
+### 4.5 Remove or deprecate `StravaSettings.tsx` **[OPEN]**
 
 `frontend/src/components/StravaSettings.tsx` appears to be superseded by
 `IntegrationsMenu.tsx` which handles both Strava and Garmin. If `StravaSettings` is no longer
@@ -310,7 +312,7 @@ imported anywhere, remove it. If it is, consolidate.
 
 ## Priority 5: Test Gaps
 
-### 5.1 Backend test improvements
+### 5.1 Backend test improvements **[OPEN]**
 
 - `test_feature_flag_api.py:87-93` -- `_set_user_types` helper defined but never called
   (dead test code).
@@ -321,7 +323,7 @@ imported anywhere, remove it. If it is, consolidate.
 - Missing: test for `set_flag` with empty/invalid flag names.
 - Missing: test for malformed `training_zones_json` in wizard defaults endpoint.
 
-### 5.2 Frontend test improvements
+### 5.2 Frontend test improvements **[OPEN]**
 
 - `StepSportEvent.test.tsx` -- uses `toBeDefined()` instead of `toBeInTheDocument()` on
   `getByText()` results. The assertion is redundant (getByText throws on miss).
@@ -335,7 +337,7 @@ imported anywhere, remove it. If it is, consolidate.
 
 ## Priority 6: Minor Improvements (Nice-to-Have)
 
-### 6.1 Backend
+### 6.1 Backend **[OPEN]**
 
 - `strava.py:604` -- Log unknown sport types instead of silently converting.
 - `strava.py:746-766` -- HR zone and power zone mapping blocks are nearly identical; extract
@@ -355,7 +357,7 @@ imported anywhere, remove it. If it is, consolidate.
 - `schemas.py:365-367` -- `WeekUpdate.status` is unvalidated string.
 - `deps.py:31-38` -- User email never updated if it changes in Keycloak.
 
-### 6.2 Frontend
+### 6.2 Frontend **[OPEN]**
 
 - `ActivityModal.tsx:137` -- Use `z.zoneNumber` as key instead of array index.
 - `ActivityModal.tsx:103-104` -- Zone field fallback aliases (`zoneLow ?? zoneLowBoundary`)
@@ -389,5 +391,5 @@ Recommended order for incremental implementation:
 6. **Test improvements** (5.1-5.2) -- fill coverage gaps.
 7. **Nice-to-haves** (6.1-6.2) -- as time allows.
 
-Each priority group can be a single PR. Run `cd backend && uv run pytest` (336 tests) and
+Each priority group can be a single PR. Run `cd backend && uv run pytest` (378 tests) and
 `cd frontend && npm run build` after each group to verify no regressions.

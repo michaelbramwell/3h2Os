@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
 from sqlmodel import Session
 import logging
 
@@ -33,6 +34,9 @@ def get_feature_flag_service(
 @router.post("/plans/generate-preview", response_model=PlanPreview)
 async def wizard_preview(
     wizard_input: WizardInput,
+    plan_id: Optional[int] = Query(
+        default=None, description="Set when previewing an existing plan in edit mode"
+    ),
     user: User = Depends(get_current_user),
     service: PlanBuilderService = Depends(get_plan_builder_service),
     flag_service: FeatureFlagService = Depends(get_feature_flag_service),
@@ -40,6 +44,7 @@ async def wizard_preview(
     """
     Generate a plan preview from wizard inputs without saving to the database.
     Returns phase breakdown, volume curve, and calculated zones.
+    Pass plan_id when editing an existing plan to skip the past-start-date check.
     """
     try:
         if wizard_input.sport_event.sport == "swimming" and not flag_service.is_enabled(
@@ -49,7 +54,7 @@ async def wizard_preview(
                 status_code=403,
                 detail="Swimming plans are not enabled for your account.",
             )
-        return service.generate_preview(wizard_input)
+        return service.generate_preview(wizard_input, is_edit=plan_id is not None)
     except HTTPException:
         raise
     except ValueError as e:

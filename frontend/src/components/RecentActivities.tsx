@@ -1,19 +1,21 @@
-import { useState } from 'react';
-import type { Activity } from '../types/schema';
+import { useState, useEffect } from 'react';
+import type { Activity, Week } from '../types/schema';
 import { ActivityModal } from './ActivityModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { syncActivities, syncStravaActivities } from '../lib/api';
+import { syncActivities, syncStravaActivities, syncBothActivities } from '../lib/api';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { useGarminToken } from '../hooks/useGarminToken';
 import { useStravaStatus } from '../hooks/useStravaStatus';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { formatDistance, formatPace } from '../lib/formatters'
 
 interface RecentActivitiesProps {
     activities: Activity[];
+    plan?: Week[];
 }
 
-function SourceBadge({ source }: { source?: string }) {
-    if (!source || source === 'garmin') {
+function SourceBadge({ source, garminEnabled }: { source?: string; garminEnabled: boolean }) {
+    if (garminEnabled && (!source || source === 'garmin')) {
         return (
             <span className="inline-block text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-700 leading-none">
                 G
@@ -33,11 +35,24 @@ function SourceBadge({ source }: { source?: string }) {
     return null;
 }
 
-export function RecentActivities({ activities }: RecentActivitiesProps) {
+export function RecentActivities({ activities, plan }: RecentActivitiesProps) {
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
     const queryClient = useQueryClient();
     const { hasToken: hasGarminToken } = useGarminToken();
     const { connected: stravaConnected } = useStravaStatus();
+    const flags = useFeatureFlags();
+
+    // Only consider Garmin connected when the feature is enabled
+    const garminActive = flags.isGarminEnabled && hasGarminToken;
+
+    // Keep selectedActivity in sync when the actuals prop updates (e.g. after a rename)
+    useEffect(() => {
+        if (!selectedActivity) return;
+        const fresh = activities?.find(a => a.id === selectedActivity.id);
+        if (fresh && (fresh.name !== selectedActivity.name || fresh.custom_name !== selectedActivity.custom_name)) {
+            setSelectedActivity(fresh);
+        }
+    }, [activities, selectedActivity]);
 
     const garminSyncMutation = useMutation({
         mutationFn: () => syncActivities(7),
@@ -53,14 +68,22 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
         }
     });
 
+    const bothSyncMutation = useMutation({
+        mutationFn: () => syncBothActivities(7),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['actuals'] });
+        }
+    });
+
     // Sort by date descending, default to empty array if null
     const sortedActivities = activities ? [...activities].sort((a, b) =>
         new Date(b.date).getTime() - new Date(a.date).getTime()
     ) : [];
 
-    // When both are connected, show only the Strava button (Strava takes precedence)
-    const showStravaSyncButton = stravaConnected;
-    const showGarminSyncButton = !stravaConnected && hasGarminToken;
+    const bothConnected = stravaConnected && garminActive;
+    const showBothSyncButton = bothConnected;
+    const showStravaSyncButton = !bothConnected && stravaConnected;
+    const showGarminSyncButton = !bothConnected && !stravaConnected && garminActive;
 
     return (
         <>
@@ -68,6 +91,18 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Recent Activities</h3>
                     <div className="flex items-center gap-3">
+                        {showBothSyncButton && (
+                            <button
+                                onClick={() => bothSyncMutation.mutate()}
+                                disabled={bothSyncMutation.isPending}
+                                className="flex items-center gap-2 text-xs font-medium text-white disabled:opacity-50 transition-colors px-2 py-1 rounded"
+                                style={{ backgroundColor: '#FC4C02' }}
+                                title="Fetch latest activities from Strava and enrich with Garmin data"
+                            >
+                                {bothSyncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                {bothSyncMutation.isPending ? 'Syncing...' : 'Scan activities'}
+                            </button>
+                        )}
                         {showStravaSyncButton && (
                             <button
                                 onClick={() => stravaSyncMutation.mutate()}
@@ -77,7 +112,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                                 title="Fetch latest activities from Strava"
                             >
                                 {stravaSyncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                {stravaSyncMutation.isPending ? 'Syncing...' : 'Scan via Strava'}
+                                {stravaSyncMutation.isPending ? 'Syncing...' : 'Scan activities'}
                             </button>
                         )}
                         {showGarminSyncButton && (
@@ -88,14 +123,14 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                                 title="Fetch latest activities from Garmin"
                             >
                                 {garminSyncMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                {garminSyncMutation.isPending ? 'Syncing...' : 'Scan for new runs'}
+                                {garminSyncMutation.isPending ? 'Syncing...' : 'Scan activities'}
                             </button>
                         )}
                     </div>
                 </div>
 
                 {sortedActivities.length === 0 ? (
-                    <div className="text-gray-500 text-sm italic py-4 text-center">No recent activities found. Click scan to sync from Garmin or Strava.</div>
+                    <div className="text-gray-500 text-sm italic py-4 text-center">No recent activities found. Click scan to sync from {flags.isGarminEnabled ? 'Garmin or Strava' : 'Strava'}.</div>
                 ) : (
                     <div className="divide-y divide-slate-100">
                         {sortedActivities.slice(0, 5).map((activity, idx) => {
@@ -114,9 +149,9 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
                                             {date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' })}
                                         </span>
                                         <span className="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
-                                            {activity.name}
+                                            {activity.custom_name ?? activity.name}
                                         </span>
-                                        <SourceBadge source={activity.source} />
+                                        <SourceBadge source={activity.source} garminEnabled={flags.isGarminEnabled} />
                                     </div>
                                     {/* Bottom line: stats + View on Strava */}
                                     <div className="flex items-center gap-3 mt-0.5">
@@ -154,6 +189,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
             {selectedActivity && (
                 <ActivityModal
                     activity={selectedActivity}
+                    plan={plan}
                     onClose={() => setSelectedActivity(null)}
                 />
             )}
