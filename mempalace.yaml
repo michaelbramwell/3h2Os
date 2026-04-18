@@ -1,0 +1,50 @@
+wing: 3h2os
+rooms:
+- name: migrations
+  description: Files from migrations/
+  keywords:
+  - migrations
+  - migrations
+- name: app
+  description: Files from app/
+  keywords:
+  - app
+  - app
+- name: frontend
+  description: Files from frontend/
+  keywords:
+  - frontend
+  - frontend
+- name: backend
+  description: Files from backend/
+  keywords:
+  - backend
+  - backend
+- name: documentation
+  description: Files from docs/
+  keywords:
+  - documentation
+  - docs
+- name: certs
+  description: Files from certs/
+  keywords:
+  - certs
+  - certs
+- name: test_bicep
+  description: Files from test_bicep/
+  keywords:
+  - test_bicep
+  - test_bicep
+- name: testing
+  description: Files from tests/
+  keywords:
+  - testing
+  - tests
+- name: scripts
+  description: Files from scripts/
+  keywords:
+  - scripts
+  - scripts
+- name: general
+  description: Files that don't fit other rooms
+  keywords: []

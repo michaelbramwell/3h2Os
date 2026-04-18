@@ -32,3 +32,4 @@ debug_routes.py
 .vars
 .docker/
 *.tmp
+!AGENTS.md
