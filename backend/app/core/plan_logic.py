@@ -35,8 +35,10 @@ def create_domain_week(
     'workouts' can be PlanWorkout DB objects or any object with:
     name, activity_type/type, distance_m, time_of_day, date
     """
-    # Group by Day Name
+    # Group by Day Name — use actual weekday of each date so mapping is
+    # correct even when week_start is not a Monday.
     days_map = {k: [] for k in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]}
+    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
     # Populate workouts
     for w in workouts:
@@ -60,15 +62,15 @@ def create_domain_week(
             w_date = w_date.date()
 
         days_diff = (w_date - week_start).days
-        day_keys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         if 0 <= days_diff < 7:
-            days_map[day_keys[days_diff]].append(d_work)
+            d_key = day_names[w_date.weekday()]
+            days_map[d_key].append(d_work)
 
-    # Build Domain Days
+    # Build Domain Days — derive label from actual weekday of each date
     domain_days = {}
-    day_keys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    for i, key in enumerate(day_keys):
+    for i in range(7):
         d_date = week_start + timedelta(days=i)
+        key = day_names[d_date.weekday()]
         domain_days[key] = DomainDay(date=d_date.isoformat(), workouts=days_map[key])
 
     return DomainWeek(

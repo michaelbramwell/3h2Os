@@ -158,12 +158,14 @@ def relational_to_plan(session: Session, plan_id: int) -> List[Dict[str, Any]]:
         }
 
         # Initialize empty days for structure consistency (Mon-Sun)
-        # This part ensures we return the structure frontend expects even if no workouts
+        # Derive the label from each date's actual weekday so that the
+        # mapping is correct even when start_date is not a Monday.
         base_date = w.start_date
         day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-        for i, d_name in enumerate(day_names):
+        for i in range(7):
             current_date = base_date + timedelta(days=i)
+            d_name = day_names[current_date.weekday()]
             week_dict["days"][d_name] = {
                 "date": current_date.strftime("%Y-%m-%d"),
                 "workouts": [],

@@ -49,7 +49,7 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
     const isCurrentWeek = weekDatesSet.has(todayStr);
 
     const status = week.status?.toLowerCase() || 'normal';
-    const isCompleted = status === 'completed' || (!isCurrentWeek && new Date(week.weekStarting) < new Date(todayStr));
+    const isCompleted = status === 'completed' || (!isCurrentWeek && new Date(week.weekStarting + 'T00:00:00') < new Date(todayStr + 'T00:00:00'));
     
     // Helper to determine week status color
      const getWeekStyle = (status: string, isCurrentWeek: boolean) => {
@@ -99,7 +99,7 @@ export function WeekCard({ week, actuals, todayStr, isFridgeMode, onFridgeClick,
             {/* Days Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 {Object.entries(week.days)
-                    .sort((a,b) => new Date(a[1].date).getTime() - new Date(b[1].date).getTime())
+                    .sort((a,b) => new Date(a[1].date + 'T00:00:00').getTime() - new Date(b[1].date + 'T00:00:00').getTime())
                     .map(([dayName, day]: [string, Day]) => {
                     
                     const dayActuals = actuals?.filter((a: Activity) => a.date === day.date) || [];

@@ -421,11 +421,12 @@ def generate_plan_from_template(
         if total_share == 0:
             total_share = 1.0
 
-        # Build days map
+        # Build days map — derive label from actual weekday of each date
         days = {}
-        for i, day_name in enumerate(day_names):
+        for i in range(7):
             day_date = week_start + timedelta(days=i)
-            days[day_name] = {
+            d_name = day_names[day_date.weekday()]
+            days[d_name] = {
                 "date": day_date.strftime("%Y-%m-%d"),
                 "workouts": [],
             }

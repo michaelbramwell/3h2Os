@@ -71,7 +71,7 @@ export function WeekStats({
             <div>
                 <div className="flex items-center gap-3">
                     <h3 className={`text-lg font-bold flex items-center ${isCurrentWeek ? 'text-orange-900' : 'text-slate-800'}`}>
-                        Week of {new Date(weekStarting).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
+                        Week of {new Date(weekStarting + 'T00:00:00').toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })}
                         {(status === 'race' || status === 'marathon') && <span className="ml-2 text-yellow-600">🏆</span>}
                         {status === 'taper' && <span className="ml-2 text-purple-600">📉</span>}
                         {status === 'peak' && <span className="ml-2 text-rose-600">⛰️</span>}

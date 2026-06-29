@@ -226,7 +226,7 @@ function SharePage() {
 }
 
 function ActivityDetail({ activity }: { activity: Activity }) {
-    const dateStr = new Date(activity.date).toLocaleDateString('en-AU', {
+    const dateStr = new Date(activity.date + 'T00:00:00').toLocaleDateString('en-AU', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',

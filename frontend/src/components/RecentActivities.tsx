@@ -77,7 +77,7 @@ export function RecentActivities({ activities, plan }: RecentActivitiesProps) {
 
     // Sort by date descending, default to empty array if null
     const sortedActivities = activities ? [...activities].sort((a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
+        new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime()
     ) : [];
 
     const bothConnected = stravaConnected && garminActive;
@@ -134,7 +134,7 @@ export function RecentActivities({ activities, plan }: RecentActivitiesProps) {
                 ) : (
                     <div className="divide-y divide-slate-100">
                         {sortedActivities.slice(0, 5).map((activity, idx) => {
-                            const date = new Date(activity.date);
+                            const date = new Date(activity.date + 'T00:00:00');
                             const distanceKm = activity.distance_m / 1000;
 
                             return (

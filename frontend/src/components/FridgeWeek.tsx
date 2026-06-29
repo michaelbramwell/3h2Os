@@ -50,7 +50,7 @@ export function FridgeWeek({ week, weekIndex, context }: FridgeWeekProps) {
                     if (!dayData) return null;
                     
                     const workouts = dayData.workouts || [];
-                    const date = new Date(dayData.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+                    const date = new Date(dayData.date + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
                     
                     return (
                         <div key={dayName} className="flex items-start gap-6 border-b border-slate-100 pb-2 print:gap-4 print:pb-1">

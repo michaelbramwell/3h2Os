@@ -67,7 +67,7 @@ export function DayCard({ dayName, day, actuals, todayStr, weekStatus, onActivit
                             <Plus size={20} />
                         </button>
                     )}
-                    <span className={`text-[10px] font-mono ${(isToday || isRaceDay || isMarathonDay) ? 'text-slate-700 font-bold' : 'text-slate-400'}`}>{new Date(day.date).getDate()}</span>
+                    <span className={`text-[10px] font-mono ${(isToday || isRaceDay || isMarathonDay) ? 'text-slate-700 font-bold' : 'text-slate-400'}`}>{new Date(day.date + 'T00:00:00').getDate()}</span>
                 </div>
             </div>
             

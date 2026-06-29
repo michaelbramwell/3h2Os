@@ -270,7 +270,7 @@ export function ActivityModal({ activity, context, plan, onClose }: ActivityModa
         }
     }
 
-    const dateStr = new Date(activity.date).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+    const dateStr = new Date(activity.date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
     const distKm = formatDistance(activity.distance_m, 2);
     const isSwim = isType(activity.type, ActivityType.SWIMMING);
     

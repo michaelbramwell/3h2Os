@@ -131,16 +131,24 @@ function getPhasePattern(
 
 // --- Helpers ---
 
+/** Format a Date as YYYY-MM-DD using local date components (timezone-safe). */
+function localDateStr(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 function mondayOfWeek(weekIndex: number, startDate: Date): string {
     const d = new Date(startDate);
     d.setDate(d.getDate() + weekIndex * 7);
-    return d.toISOString().split('T')[0];
+    return localDateStr(d);
 }
 
 function dateOfDay(weekStarting: string, dayIndex: number): string {
     const d = new Date(weekStarting + 'T00:00:00');
     d.setDate(d.getDate() + dayIndex);
-    return d.toISOString().split('T')[0];
+    return localDateStr(d);
 }
 
 function createEmptyWeek(weekStarting: string): Week {
@@ -994,7 +1002,7 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
         const daysAhead = (7 - today.getDay() + 1) % 7 || 7;
         const nextMonday = new Date(today);
         nextMonday.setDate(today.getDate() + daysAhead);
-        return [createEmptyWeek(nextMonday.toISOString().split('T')[0])];
+        return [createEmptyWeek(localDateStr(nextMonday))];
     }
 
     const totalWeeks = input.plan_config.total_weeks;
