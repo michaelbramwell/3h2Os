@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPlans, activatePlan, deletePlan, getWizardSettings } from '../lib/api';
+import { getPlans, activatePlan, deletePlan, getWizardSettings, parseApiError } from '../lib/api';
 import { ChevronDown, Check, Loader2, Calendar, Trash2, Copy, Pencil } from 'lucide-react';
 import { ClonePlanDialog } from './ClonePlanDialog';
 import { toast } from 'sonner';
@@ -24,11 +24,13 @@ export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
 
     const activateMutation = useMutation({
         mutationFn: activatePlan,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['plan'] }); // Active plan content
-            queryClient.invalidateQueries({ queryKey: ['plans'] }); // Plan list (active status)
-            queryClient.invalidateQueries({ queryKey: ['actuals'] }); // Refetch actuals based on new plan type
-            queryClient.invalidateQueries({ queryKey: ['context'] }); // Refresh sidebar project context
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.refetchQueries({ queryKey: ['plan'], exact: true }),
+                queryClient.refetchQueries({ queryKey: ['plans'], exact: true }),
+                queryClient.refetchQueries({ queryKey: ['actuals'], exact: true }),
+                queryClient.refetchQueries({ queryKey: ['context'], exact: true }),
+            ]);
             setIsOpen(false);
         },
     });
@@ -69,11 +71,11 @@ export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
             setIsOpen(false);
             onEditPlan(planId, wizardData);
         } catch (err: any) {
-            const detail = err?.response?.data?.detail;
+            const msg = parseApiError(err, 'Failed to load plan settings.');
             if (err?.response?.status === 404) {
-                toast.error(detail || 'This plan was not created with the wizard and cannot be edited here.');
+                toast.error(msg || 'This plan cannot be edited because its saved setup could not be loaded.');
             } else {
-                toast.error(detail || 'Failed to load plan settings.');
+                toast.error(msg);
             }
         } finally {
             setLoadingEditId(null);
@@ -112,7 +114,6 @@ export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
                             </div>
                         ) : (
                             plans.map((plan) => {
-                                const isManual = plan.wizard_input_json?.includes('"event_type":"none"') || plan.wizard_input_json?.includes('"event_type": "none"');
                                 return (
                                 <div 
                                     key={plan.id}
@@ -143,11 +144,11 @@ export function PlanSwitcher({ onEditPlan }: PlanSwitcherProps) {
                                     </button>
                                     
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100 transition-all">
-                                        {onEditPlan && !isManual && (
+                                        {onEditPlan && (
                                             <button
                                                 onClick={(e) => handleEdit(e, plan.id)}
                                                 className="p-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-md transition-all"
-                                                title="Edit Plan Settings"
+                                                title="Edit Plan"
                                                 disabled={loadingEditId === plan.id}
                                             >
                                                 {loadingEditId === plan.id ? (

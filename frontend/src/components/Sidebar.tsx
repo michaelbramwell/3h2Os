@@ -8,12 +8,19 @@ interface SidebarProps {
 }
 
 function GoalCard({ project }: { project: ContextData['project'] }) {
-    if (!project) return null;
+    if (!project?.event) return null;
+
+    const hasGoalDetails = Boolean(project.goal) && Boolean(project.eventDate);
+
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Goal</h2>
             <p className="text-2xl font-bold text-slate-900">{project.event}</p>
-            <p className="text-sm text-slate-500 mt-1">{project.goal} • {new Date(project.eventDate).toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+            {hasGoalDetails && (
+                <p className="text-sm text-slate-500 mt-1">
+                    {project.goal} • {new Date(project.eventDate).toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+            )}
         </div>
     );
 }

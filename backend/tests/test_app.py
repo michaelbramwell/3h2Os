@@ -3,7 +3,9 @@ from sqlmodel import Session, SQLModel, create_engine, select, delete
 from sqlalchemy.pool import StaticPool
 import pytest
 from app.main import app
-from app.core.database import get_session, RunnerPlan, User
+from app.core.plan_context import MANUAL_EVENT_LABEL
+from app.core.database import get_session, RunnerPlan, RunnerProject, User
+from app.models.domain import PrimaryGoal
 from app.routers.deps import get_current_user
 from app.core.auth import verify_jwt_middleware
 from fastapi import Request
@@ -239,3 +241,158 @@ def test_create_plan_v2_endpoint(client):
     response = client.get("/api/plan.json")
     fetched = response.json()
     assert fetched[0]["weekStarting"] == "2026-03-01"
+
+
+def test_manual_plan_create_persists_trimmed_wizard_metadata(client):
+    payload = {
+        "title": "MRU",
+        "type": "running",
+        "weeks": [
+            {
+                "weekStarting": "2026-03-01",
+                "days": {"Mon": {"date": "2026-03-01", "workouts": []}},
+            }
+        ],
+        "wizard_input": {
+            "sport_event": {
+                "plan_name": "MRU",
+                "sport": "running",
+                "event_type": "none",
+                "event_name": "Base Build",
+                "event_date": "2026-06-27",
+            },
+            "athlete_profile": {
+                "experience_level": "intermediate",
+                "age": 48,
+                "weight_kg": 97,
+                "events_completed": 0,
+                "use_calculated_zones": True,
+            },
+            "goals_focus": {
+                "primary_goal": "consistency",
+                "pain_points": [],
+                "weekly_availability": 6,
+                "longest_recent_distance_m": 0,
+            },
+            "plan_config": {
+                "total_weeks": 16,
+                "generation_method": "manual_weekly",
+            },
+        },
+    }
+
+    response = client.post("/api/plans", json=payload)
+    assert response.status_code == 200
+    plan_id = response.json()["id"]
+
+    with Session(app.state.test_engine) as session:
+        plan = session.get(RunnerPlan, plan_id)
+        assert plan is not None
+        assert plan.title == "MRU"
+        assert plan.event == MANUAL_EVENT_LABEL
+        assert plan.goal == PrimaryGoal.CONSISTENCY.value.capitalize()
+        assert str(plan.event_date) == "2026-06-27"
+        assert plan.wizard_input_json is not None
+
+
+def test_manual_plan_update_by_id_updates_weeks_and_metadata(client):
+    create_payload = {
+        "title": "MRU",
+        "type": "running",
+        "weeks": [
+            {
+                "weekStarting": "2026-03-01",
+                "days": {"Mon": {"date": "2026-03-01", "workouts": []}},
+            }
+        ],
+        "wizard_input": {
+            "sport_event": {
+                "plan_name": "MRU",
+                "sport": "running",
+                "event_type": "none",
+                "event_name": "Base Build",
+                "event_date": "2026-06-27",
+            },
+            "athlete_profile": {
+                "experience_level": "intermediate",
+                "age": 48,
+                "weight_kg": 97,
+                "events_completed": 0,
+                "use_calculated_zones": True,
+            },
+            "goals_focus": {
+                "primary_goal": "consistency",
+                "pain_points": [],
+                "weekly_availability": 6,
+                "longest_recent_distance_m": 0,
+            },
+            "plan_config": {
+                "total_weeks": 16,
+                "generation_method": "manual_weekly",
+            },
+        },
+    }
+    create_response = client.post("/api/plans", json=create_payload)
+    plan_id = create_response.json()["id"]
+
+    client.put(f"/api/plans/{plan_id}/activate")
+
+    update_payload = {
+        "title": "MRU Updated",
+        "type": "running",
+        "weeks": [
+            {
+                "weekStarting": "2026-04-01",
+                "status": "normal",
+                "days": {"Mon": {"date": "2026-04-01", "workouts": []}},
+            }
+        ],
+        "wizard_input": {
+            "sport_event": {
+                "plan_name": "MRU Updated",
+                "sport": "running",
+                "event_type": "none",
+                "event_name": "Maintenance Block",
+                "event_date": "2026-07-15",
+            },
+            "athlete_profile": {
+                "experience_level": "intermediate",
+                "age": 48,
+                "weight_kg": 97,
+                "events_completed": 0,
+                "use_calculated_zones": True,
+            },
+            "goals_focus": {
+                "primary_goal": "enjoyment",
+                "pain_points": [],
+                "weekly_availability": 5,
+                "longest_recent_distance_m": 0,
+            },
+            "plan_config": {
+                "total_weeks": 12,
+                "generation_method": "manual_weekly",
+            },
+        },
+    }
+
+    update_response = client.put(f"/api/plans/{plan_id}", json=update_payload)
+    assert update_response.status_code == 200
+
+    weeks_response = client.get(f"/api/plans/{plan_id}")
+    assert weeks_response.status_code == 200
+    assert weeks_response.json()[0]["weekStarting"] == "2026-04-01"
+
+    with Session(app.state.test_engine) as session:
+        plan = session.get(RunnerPlan, plan_id)
+        assert plan is not None
+        assert plan.title == "MRU Updated"
+        assert plan.goal == PrimaryGoal.ENJOYMENT.value.capitalize()
+        assert str(plan.event_date) == "2026-07-15"
+
+        user = session.exec(select(User).where(User.username == "test_runner")).first()
+        project = session.exec(
+            select(RunnerProject).where(RunnerProject.user_id == user.id)
+        ).first()
+        assert project is not None
+        assert project.goal == PrimaryGoal.ENJOYMENT.value.capitalize()
+        assert project.event == MANUAL_EVENT_LABEL

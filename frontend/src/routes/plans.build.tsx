@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Plus, Trash2, ChevronDown, ChevronUp, ArrowLeft, Copy, Loader2 } from 'lucide-react';
 import type { WizardInput, EventType, ExperienceLevel } from '../types/wizard';
-import { defaultTaperWeeks } from '../types/wizard';
+import { defaultTaperWeeks, EventLabels } from '../types/wizard';
 import type { Week, Day, Workout, ActivityType, WorkoutFormat } from '../types/schema';
-import { createPlan, wizardPreview } from '../lib/api';
+import { createPlan, getPlanById, updatePlanById, wizardPreview, getWizardSettings, parseApiError } from '../lib/api';
 
 export const Route = createFileRoute('/plans/build')({
+    validateSearch: (search: Record<string, unknown>) => ({
+        planId: search.planId ? Number(search.planId) : undefined,
+    }),
     component: ManualPlanBuilder,
 });
 
@@ -24,7 +27,8 @@ const WORKOUT_FORMATS: WorkoutFormat[] = [
     'Steady', 'WarmUp', 'CoolDown', 'TimeTrial',
 ];
 
-const WEEK_STATUSES = ['normal', 'recovery', 'taper', 'race'] as const;
+const WEEK_STATUSES = ['normal', 'recovery', 'peak', 'taper', 'race'] as const;
+const MANUAL_EVENT_TYPE = 'none' as const;
 
 // Event distances in metres (mirrors backend EVENT_DISTANCES_M)
 const EVENT_DISTANCES_M: Record<string, number> = {
@@ -40,15 +44,6 @@ const EVENT_DISTANCES_M: Record<string, number> = {
     'ow_2.5km': 2500,
     'ow_5km': 5000,
     'ow_10km': 10000,
-};
-
-// Event name labels for race workout naming
-const EVENT_LABELS: Record<string, string> = {
-    '5k': '5K',
-    '10k': '10K',
-    'half_marathon': 'Half Marathon',
-    'marathon': 'Marathon',
-    'ultra': 'Ultra',
 };
 
 // --- Session template definitions for prefill ---
@@ -190,9 +185,10 @@ interface WorkoutEditorProps {
     onChange: (workout: Workout) => void;
     onRemove: () => void;
     sport: string;
+    readOnly?: boolean;
 }
 
-function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProps) {
+function WorkoutEditor({ workout, onChange, onRemove, sport, readOnly }: WorkoutEditorProps) {
     const relevantTypes = sport === 'swimming'
         ? ACTIVITY_TYPES.filter(t => ['Swimming', 'Rest', 'Cross', 'Other'].includes(t))
         : ACTIVITY_TYPES;
@@ -216,30 +212,34 @@ function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProp
     };
 
     return (
-        <div className="bg-white border border-slate-200 rounded-lg p-2 space-y-2 relative group">
+        <div className={`bg-white border border-slate-200 rounded-lg p-2 space-y-2 relative group ${readOnly ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between gap-1">
                 <input
                     type="text"
                     value={workout.name}
                     onChange={e => onChange({ ...workout, name: e.target.value })}
                     placeholder="Workout name"
-                    className="w-full text-xs font-medium border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    readOnly={readOnly}
+                    className="w-full text-xs font-medium border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 read-only:bg-slate-50 read-only:cursor-default"
                 />
-                <button
-                    type="button"
-                    onClick={onRemove}
-                    className="p-1 text-slate-300 hover:text-red-500 bg-white absolute -top-1 -right-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Remove workout"
-                >
-                    <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                {!readOnly && (
+                    <button
+                        type="button"
+                        onClick={onRemove}
+                        className="p-1 text-slate-300 hover:text-red-500 bg-white absolute -top-1 -right-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove workout"
+                    >
+                        <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                )}
             </div>
 
             <div className="space-y-1.5">
                 <select
                     value={workout.type}
                     onChange={e => onChange({ ...workout, type: e.target.value as ActivityType })}
-                    className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    disabled={readOnly}
+                    className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:cursor-default"
                 >
                     {relevantTypes.map(t => (
                         <option key={t} value={t}>{t}</option>
@@ -248,7 +248,8 @@ function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProp
                 <select
                     value={workout.format || ''}
                     onChange={e => onChange({ ...workout, format: (e.target.value || undefined) as WorkoutFormat | undefined })}
-                    className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    disabled={readOnly}
+                    className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:cursor-default"
                 >
                     <option value="">No format</option>
                     {WORKOUT_FORMATS.map(f => (
@@ -270,12 +271,14 @@ function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProp
                         setLocalDistance(workout.distance_m > 0 ? (workout.distance_m / 1000).toString() : '');
                     }}
                     placeholder="km"
-                    className="w-full flex-1 text-xs border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    readOnly={readOnly}
+                    className="w-full flex-1 text-xs border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 read-only:bg-slate-50 read-only:cursor-default [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <select
                     value={workout.timeOfDay}
                     onChange={e => onChange({ ...workout, timeOfDay: e.target.value })}
-                    className="w-12 shrink-0 text-xs border border-slate-200 rounded px-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    disabled={readOnly}
+                    className="w-12 shrink-0 text-xs border border-slate-200 rounded px-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:cursor-default"
                 >
                     <option value="AM">AM</option>
                     <option value="PM">PM</option>
@@ -287,7 +290,8 @@ function WorkoutEditor({ workout, onChange, onRemove, sport }: WorkoutEditorProp
                 onChange={e => onChange({ ...workout, description: e.target.value })}
                 placeholder="Description"
                 rows={2}
-                className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                readOnly={readOnly}
+                className="w-full text-xs border border-slate-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none read-only:bg-slate-50 read-only:cursor-default"
             />
         </div>
     );
@@ -298,9 +302,10 @@ interface DayColumnProps {
     day: Day;
     onChange: (day: Day) => void;
     sport: string;
+    readOnly?: boolean;
 }
 
-function DayColumn({ dayLabel, day, onChange, sport }: DayColumnProps) {
+function DayColumn({ dayLabel, day, onChange, sport, readOnly }: DayColumnProps) {
     const defaultType: ActivityType = sport === 'swimming' ? 'Swimming' : 'Run';
 
     const addWorkout = () => {
@@ -343,17 +348,20 @@ function DayColumn({ dayLabel, day, onChange, sport }: DayColumnProps) {
                         onChange={w => updateWorkout(i, w)}
                         onRemove={() => removeWorkout(i)}
                         sport={sport}
+                        readOnly={readOnly}
                     />
                 ))}
             </div>
 
-            <button
-                type="button"
-                onClick={addWorkout}
-                className="mt-2 w-full flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-slate-500 border border-dashed border-slate-300 rounded-lg hover:border-blue-400 hover:text-blue-600 transition-colors"
-            >
-                <Plus className="w-3 h-3" /> Add
-            </button>
+            {!readOnly && (
+                <button
+                    type="button"
+                    onClick={addWorkout}
+                    className="mt-2 w-full flex items-center justify-center gap-1 px-2 py-1.5 text-xs text-slate-500 border border-dashed border-slate-300 rounded-lg hover:border-blue-400 hover:text-blue-600 transition-colors"
+                >
+                    <Plus className="w-3 h-3" /> Add
+                </button>
+            )}
         </div>
     );
 }
@@ -365,9 +373,10 @@ interface WeekRowProps {
     onRemove: () => void;
     onDuplicate: () => void;
     sport: string;
+    readOnly?: boolean;
 }
 
-function WeekRow({ week, weekIndex, onChange, onRemove, onDuplicate, sport }: WeekRowProps) {
+function WeekRow({ week, weekIndex, onChange, onRemove, onDuplicate, sport, readOnly }: WeekRowProps) {
     const [collapsed, setCollapsed] = useState(false);
     const vol = weekVolume(week);
 
@@ -376,7 +385,7 @@ function WeekRow({ week, weekIndex, onChange, onRemove, onDuplicate, sport }: We
     };
 
     return (
-        <div className="border border-slate-200 rounded-xl bg-white shadow-sm">
+        <div className={`border rounded-xl shadow-sm ${readOnly ? 'border-slate-100 bg-slate-50 opacity-60' : 'border-slate-200 bg-white'}`}>
             {/* Week header */}
             <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-t-xl border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -393,6 +402,9 @@ function WeekRow({ week, weekIndex, onChange, onRemove, onDuplicate, sport }: We
                     <span className="text-xs text-slate-400">
                         w/c {week.weekStarting}
                     </span>
+                    {readOnly && (
+                        <span className="text-xs text-slate-400 italic">past</span>
+                    )}
                     {vol > 0 && (
                         <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
                             {formatDistance(vol)}
@@ -404,28 +416,33 @@ function WeekRow({ week, weekIndex, onChange, onRemove, onDuplicate, sport }: We
                     <select
                         value={week.status}
                         onChange={e => onChange({ ...week, status: e.target.value })}
-                        className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        disabled={readOnly}
+                        className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:cursor-default"
                     >
                         {WEEK_STATUSES.map(s => (
                             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                         ))}
                     </select>
-                    <button
-                        type="button"
-                        onClick={onDuplicate}
-                        className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors"
-                        title="Duplicate week"
-                    >
-                        <Copy className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onRemove}
-                        className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
-                        title="Remove week"
-                    >
-                        <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {!readOnly && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={onDuplicate}
+                                className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors"
+                                title="Duplicate week"
+                            >
+                                <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onRemove}
+                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                title="Remove week"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -439,6 +456,7 @@ function WeekRow({ week, weekIndex, onChange, onRemove, onDuplicate, sport }: We
                             day={week.days[dayLabel] || { date: '', workouts: [] }}
                             onChange={day => updateDay(dayLabel, day)}
                             sport={sport}
+                            readOnly={readOnly}
                         />
                     ))}
                 </div>
@@ -450,8 +468,10 @@ function WeekRow({ week, weekIndex, onChange, onRemove, onDuplicate, sport }: We
 // --- Main page component ---
 
 function ManualPlanBuilder() {
+    const { planId } = Route.useSearch();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const isEditMode = typeof planId === 'number' && !Number.isNaN(planId);
 
     // Load wizard input from sessionStorage
     const [wizardInput, setWizardInput] = useState<WizardInput | null>(null);
@@ -460,22 +480,75 @@ function ManualPlanBuilder() {
     const [saving, setSaving] = useState(false);
     const [loadingTemplate, setLoadingTemplate] = useState(false);
 
+    const { data: existingWeeks } = useQuery({
+        queryKey: ['planById', planId],
+        queryFn: () => getPlanById(planId as number),
+        enabled: isEditMode,
+    });
+
     useEffect(() => {
         const stored = sessionStorage.getItem('wizardInput');
         if (stored) {
             try {
                 const input = JSON.parse(stored) as WizardInput;
                 setWizardInput(input);
-                setTitle(input.sport_event.plan_name || `${input.sport_event.event_name || EVENT_LABELS[input.sport_event.event_type] || input.sport_event.event_type} Plan`);
+                setTitle(input.sport_event.plan_name || `${input.sport_event.event_name || EventLabels[input.sport_event.event_type] || input.sport_event.event_type} Plan`);
 
-                // Build prefilled weeks
-                const prefilled = buildPrefilledWeeks(input);
-                setWeeks(prefilled);
+                if (!isEditMode) {
+                    const prefilled = buildPrefilledWeeks(input);
+                    setWeeks(prefilled);
+                }
             } catch {
                 // Invalid JSON -- ignore
             }
+        } else if (isEditMode && planId != null) {
+            // sessionStorage cleared (e.g. page refresh) -- fetch from API
+            getWizardSettings(planId).then(input => {
+                setWizardInput(input);
+                setTitle(input.sport_event.plan_name || `${input.sport_event.event_name || EventLabels[input.sport_event.event_type] || input.sport_event.event_type} Plan`);
+            }).catch(() => {
+                toast.error('Could not load plan settings. Please navigate back and try again.');
+            });
         }
-    }, []);
+    }, [isEditMode, planId]);
+
+    useEffect(() => {
+        if (isEditMode && existingWeeks) {
+            // Auto-rebase if the first week is in the past
+            const firstWeek = existingWeeks[0];
+            if (firstWeek) {
+                const weekStart = new Date(firstWeek.weekStarting + 'T00:00:00');
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (weekStart < today) {
+                    const eventDate = wizardInput?.sport_event.event_date;
+                    let anchorMonday: Date;
+                    if (eventDate) {
+                        anchorMonday = calculateStartDate(String(eventDate), existingWeeks.length);
+                    } else {
+                        const daysAhead = (7 - today.getDay() + 1) % 7 || 7;
+                        anchorMonday = new Date(today);
+                        anchorMonday.setDate(today.getDate() + daysAhead);
+                    }
+                    const rebased = existingWeeks.map((week, i) => {
+                        const ws = mondayOfWeek(i, anchorMonday);
+                        const updatedDays: Record<string, Day> = {};
+                        for (let d = 0; d < 7; d++) {
+                            const dayLabel = DAY_LABELS[d];
+                            updatedDays[dayLabel] = {
+                                date: dateOfDay(ws, d),
+                                workouts: week.days[dayLabel]?.workouts || [],
+                            };
+                        }
+                        return { ...week, weekStarting: ws, days: updatedDays };
+                    });
+                    setWeeks(rebased);
+                    return;
+                }
+            }
+            setWeeks(existingWeeks);
+        }
+    }, [existingWeeks, isEditMode, wizardInput]);
 
     const sport = wizardInput?.sport_event.sport || 'running';
 
@@ -567,11 +640,44 @@ function ManualPlanBuilder() {
             setTitle(preview.title);
             toast.success('Loaded template structure with workouts. Edit as needed.');
         } catch (err: any) {
-            const msg = err?.response?.data?.detail || err?.message || 'Failed to load template';
-            toast.error(msg);
+            toast.error(parseApiError(err, 'Failed to load template'));
         } finally {
             setLoadingTemplate(false);
         }
+    }, [wizardInput]);
+
+    const rebaseToToday = useCallback(() => {
+        setWeeks(prev => {
+            if (prev.length === 0) return prev;
+
+            let anchorMonday: Date;
+            const eventDate = wizardInput?.sport_event.event_date;
+            if (eventDate) {
+                // Always anchor to event date -- last week lands on/before the event.
+                // This preserves the event date regardless of current calendar position.
+                anchorMonday = calculateStartDate(String(eventDate), prev.length);
+            } else {
+                const today = new Date();
+                const daysAhead = (7 - today.getDay() + 1) % 7 || 7;
+                anchorMonday = new Date(today);
+                anchorMonday.setDate(today.getDate() + daysAhead);
+            }
+
+            const rebased = prev.map((week, i) => {
+                const ws = mondayOfWeek(i, anchorMonday);
+                const updatedDays: Record<string, Day> = {};
+                for (let d = 0; d < 7; d++) {
+                    const dayLabel = DAY_LABELS[d];
+                    updatedDays[dayLabel] = {
+                        date: dateOfDay(ws, d),
+                        workouts: week.days[dayLabel]?.workouts || [],
+                    };
+                }
+                return { ...week, weekStarting: ws, days: updatedDays };
+            });
+            return rebased;
+        });
+        toast.success(wizardInput?.sport_event.event_date ? 'Weeks rebased to event date.' : 'Weeks rebased to next Monday.');
     }, [wizardInput]);
 
     const addWeek = useCallback(() => {
@@ -632,16 +738,31 @@ function ManualPlanBuilder() {
 
         setSaving(true);
         try {
-            const result = await createPlan(title, sport, weeks);
-            toast.success(`Plan "${result.title || title}" created.`);
+            if (!wizardInput) {
+                throw new Error('Missing wizard input for manual plan save');
+            }
+
+            const trimmedWizardInput = {
+                ...wizardInput,
+                sport_event: {
+                    ...wizardInput.sport_event,
+                    plan_name: title,
+                },
+            };
+
+            const result = isEditMode
+                ? await updatePlanById(planId as number, title, sport, weeks, trimmedWizardInput)
+                : await createPlan(title, sport, weeks, trimmedWizardInput);
+
+            toast.success(`Plan "${result.title || title}" ${isEditMode ? 'updated' : 'created'}.`);
             sessionStorage.removeItem('wizardInput');
             queryClient.invalidateQueries({ queryKey: ['plan'] });
             queryClient.invalidateQueries({ queryKey: ['plans'] });
             queryClient.invalidateQueries({ queryKey: ['context'] });
+            queryClient.invalidateQueries({ queryKey: ['planById', planId] });
             navigate({ to: '/' });
         } catch (err: any) {
-            const msg = err?.response?.data?.detail || err?.message || 'Failed to save plan';
-            toast.error(msg);
+            toast.error(parseApiError(err, 'Failed to save plan'));
         } finally {
             setSaving(false);
         }
@@ -687,12 +808,22 @@ function ManualPlanBuilder() {
                                 placeholder="Plan title"
                             />
                             <p className="text-xs text-slate-400">
-                                {weeks.length} weeks -- {formatDistance(totalVolume)} total volume
+                                {weeks.length} weeks -- {formatDistance(totalVolume)} total volume{isEditMode ? ' -- editing plan' : ' -- plan builder'}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
+                        {isEditMode && (
+                            <button
+                                type="button"
+                                onClick={rebaseToToday}
+                                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
+                                title="Shift all week dates to start from next Monday"
+                            >
+                                Rebase to Today
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={loadFromTemplate}
@@ -700,7 +831,7 @@ function ManualPlanBuilder() {
                             className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 disabled:opacity-50 transition-colors flex items-center gap-2"
                         >
                             {loadingTemplate && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                            Start from Template
+                            Load Template
                         </button>
                         <button
                             type="button"
@@ -709,7 +840,7 @@ function ManualPlanBuilder() {
                             className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                         >
                             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                            Save Plan
+                            {isEditMode ? 'Update Plan' : 'Create Plan'}
                         </button>
                     </div>
                 </div>
@@ -717,17 +848,24 @@ function ManualPlanBuilder() {
 
             {/* Week list */}
             <div className="max-w-[1800px] mx-auto px-4 py-6 space-y-4">
-                {weeks.map((week, i) => (
-                    <WeekRow
-                        key={`${week.weekStarting}-${i}`}
-                        week={week}
-                        weekIndex={i}
-                        onChange={w => updateWeek(i, w)}
-                        onRemove={() => removeWeek(i)}
-                        onDuplicate={() => duplicateWeek(i)}
-                        sport={sport}
-                    />
-                ))}
+                {weeks.map((week, i) => {
+                    const weekStart = new Date(week.weekStarting + 'T00:00:00');
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const isPast = weekStart < today;
+                    return (
+                        <WeekRow
+                            key={`${week.weekStarting}-${i}`}
+                            week={week}
+                            weekIndex={i}
+                            onChange={w => updateWeek(i, w)}
+                            onRemove={() => removeWeek(i)}
+                            onDuplicate={() => duplicateWeek(i)}
+                            sport={sport}
+                            readOnly={isPast}
+                        />
+                    );
+                })}
 
                 <button
                     type="button"
@@ -793,7 +931,7 @@ function createRaceWorkout(
     activityType: ActivityType,
     timeOfDay: string
 ): Workout {
-    const label = EVENT_LABELS[eventType] || eventType;
+    const label = EventLabels[eventType] || eventType;
     return {
         name: `${label} Race Day`,
         type: activityType,
@@ -847,7 +985,7 @@ function populateWeekWorkouts(
 
 // Build the full set of prefilled weeks from wizard input
 function buildPrefilledWeeks(input: WizardInput): Week[] {
-    const isManualWeekly = input.plan_config.generation_method === 'manual_weekly' || input.sport_event.event_type === 'none';
+    const isManualWeekly = input.plan_config.generation_method === 'manual_weekly' || input.sport_event.event_type === MANUAL_EVENT_TYPE;
     const isManual = input.plan_config.generation_method === 'manual';
 
     if (isManualWeekly) {
@@ -874,9 +1012,23 @@ function buildPrefilledWeeks(input: WizardInput): Week[] {
 
     const raceDistance = EVENT_DISTANCES_M[eventType] || 42195;
 
-    const startDate = input.sport_event.event_date
+    const rawStartDate = input.sport_event.event_date
         ? calculateStartDate(input.sport_event.event_date, totalWeeks)
         : new Date();
+
+    // If the calculated start is more than one week in the past, clamp to next Monday.
+    // This prevents a manual plan from opening with weeks entirely in the past.
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    let startDate: Date;
+    if (rawStartDate < oneWeekAgo) {
+        const today = new Date();
+        const daysAhead = (7 - today.getDay() + 1) % 7 || 7;
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() + daysAhead);
+    } else {
+        startDate = rawStartDate;
+    }
 
     // Phase structure: race=1 week (last), taper=N weeks before that, rest split as base/build/peak
     const raceWeeksCount = 1;

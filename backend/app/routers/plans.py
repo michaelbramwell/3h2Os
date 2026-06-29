@@ -54,6 +54,7 @@ async def create_plan(
             title=plan_create.title,
             plan_type=plan_create.type,
             activate=False,
+            wizard_input=plan_create.wizard_input,
         )
         return {
             "status": "success",
@@ -94,6 +95,50 @@ async def set_active_plan(
             "status": "success",
             "message": f"Plan {plan_id} activated",
             "id": activated.id,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/plans/{plan_id}", response_model=List[WeekSchema])
+async def get_plan_by_id(
+    plan_id: int,
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user),
+):
+    try:
+        return service.get_plan_by_id(plan_id, user)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/plans/{plan_id}", response_model=PlanUpdateResponse)
+async def update_plan_by_id(
+    plan_id: int,
+    plan_create: PlanCreate,
+    service: PlanService = Depends(get_plan_service),
+    user: User = Depends(get_current_user),
+):
+    try:
+        plan_dicts = [w.model_dump() for w in plan_create.weeks]
+        plan = service.update_plan_by_id(
+            plan_id,
+            plan_dicts,
+            user=user,
+            title=plan_create.title,
+            plan_type=plan_create.type,
+            wizard_input=plan_create.wizard_input,
+        )
+        return {
+            "status": "success",
+            "message": "Plan updated",
+            "id": plan.id,
+            "title": plan.title,
+            "type": plan.type,
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

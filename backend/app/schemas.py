@@ -182,6 +182,28 @@ class WizardInput(BaseModel):
     goals_focus: WizardGoalsFocus
     plan_config: WizardPlanConfig
 
+    @model_validator(mode="after")
+    def validate_plan_fits_event(self) -> "WizardInput":
+        from datetime import date, datetime, timedelta, timezone
+
+        event_date = self.sport_event.event_date
+        total_weeks = self.plan_config.total_weeks
+
+        if event_date and self.sport_event.event_type != "none":
+            awst = timezone(timedelta(hours=8))
+            today = datetime.now(awst).date()
+            event = event_date
+            delta = event - today
+            weeks_available = delta.days // 7
+
+            if total_weeks > weeks_available:
+                raise ValueError(
+                    f"Plan ({total_weeks} weeks) is longer than time to event ({weeks_available} weeks). "
+                    f"Select a shorter plan or set a later event date."
+                )
+
+        return self
+
 
 class PhasePreview(BaseModel):
     """A single phase in the plan preview."""
@@ -371,6 +393,7 @@ class PlanCreate(BaseModel):
     title: str = "New Plan"
     type: str = "running"
     weeks: List[WeekSchema]
+    wizard_input: Optional[WizardInput] = None
 
     @field_validator("weeks")
     @classmethod

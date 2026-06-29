@@ -10,6 +10,7 @@ export interface IntegrationSources {
  * integrations. Only renders when at least one integration is connected.
  */
 export function IntegrationBanner({ sources }: { sources: IntegrationSources }) {
+    // hasGarmin is already gated by the feature flag in PlanWizard
     const { hasStrava, hasGarmin, hasDefaults } = sources;
     const anyConnected = hasStrava || hasGarmin;
 

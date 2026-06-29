@@ -58,6 +58,7 @@ function PlanWizardContent({
     const navigate = useNavigate();
     const flags = useFeatureFlags();
     const swimmingEnabled = flags.isSwimmingEnabled;
+    const aiEnabled = flags.isAiEnabled;
     const { connected: stravaConnected } = useStravaStatus();
     const { hasToken: garminConnected } = useGarminToken();
 
@@ -65,7 +66,7 @@ function PlanWizardContent({
     const integrationSources: IntegrationSources | undefined = isCreateMode
         ? {
             hasStrava: stravaConnected,
-            hasGarmin: garminConnected,
+            hasGarmin: garminConnected && flags.isGarminEnabled,
             hasDefaults: profileDefaults !== undefined,
           }
         : undefined;
@@ -104,7 +105,7 @@ function PlanWizardContent({
             };
             sessionStorage.setItem('wizardInput', JSON.stringify(updatedInput));
             handleClose();
-            navigate({ to: '/plans/build' });
+            navigate({ to: '/plans/build', search: { planId: undefined } });
             return;
         }
 
@@ -112,7 +113,7 @@ function PlanWizardContent({
             // Store wizard state for the manual builder page
             sessionStorage.setItem('wizardInput', JSON.stringify(wizard.wizardInput));
             handleClose();
-            navigate({ to: '/plans/build' });
+            navigate({ to: '/plans/build', search: { planId: undefined } });
             return;
         }
         wizard.goNext();
@@ -158,6 +159,8 @@ function PlanWizardContent({
                         errors={wizard.stepErrors}
                         experienceLevel={wizard.athleteProfile.experience_level}
                         eventType={wizard.sportEvent.event_type}
+                        eventDate={wizard.sportEvent.event_date}
+                        isAiEnabled={aiEnabled}
                     />
                 );
             case 'review':

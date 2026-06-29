@@ -4,6 +4,21 @@ import type { WizardInput, PlanPreview, ClonePlanRequest, WizardDefaultsResponse
 import { userManager } from './auth';
 import { GARMIN_TOKEN_KEY } from '../hooks/useGarminToken';
 
+/**
+ * Extract a human-readable error message from an Axios error response.
+ * Handles Pydantic validation arrays, string details, and generic fallback.
+ */
+export function parseApiError(err: any, fallback = 'An error occurred'): string {
+    const detail = err?.response?.data?.detail;
+    if (Array.isArray(detail)) {
+        return detail.map((e: any) => e?.msg || String(e)).join('; ');
+    }
+    if (typeof detail === 'string') {
+        return detail;
+    }
+    return err?.message || fallback;
+}
+
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
@@ -114,8 +129,18 @@ export const getContextMarkdown = async (): Promise<string> => {
     return response.data.content;
 };
 
-export const createPlan = async (title: string, type: string, weeks: Week[] = []): Promise<any> => {
-  const response = await api.post('/api/plans', { title, type, weeks });
+export const createPlan = async (title: string, type: string, weeks: Week[] = [], wizardInput?: WizardInput): Promise<any> => {
+  const response = await api.post('/api/plans', { title, type, weeks, ...(wizardInput ? { wizard_input: wizardInput } : {}) });
+  return response.data;
+};
+
+export const getPlanById = async (id: number): Promise<Week[]> => {
+  const response = await api.get<Week[]>(`/api/plans/${id}`);
+  return response.data;
+};
+
+export const updatePlanById = async (id: number, title: string, type: string, weeks: Week[] = [], wizardInput?: WizardInput): Promise<any> => {
+  const response = await api.put(`/api/plans/${id}`, { title, type, weeks, ...(wizardInput ? { wizard_input: wizardInput } : {}) });
   return response.data;
 };
 

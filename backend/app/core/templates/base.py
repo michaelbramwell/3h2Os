@@ -208,7 +208,7 @@ def _calculate_weekly_volumes(
             # Maintain near-peak volume with higher intensity
             for i in range(num_weeks):
                 vol = peak_volume_m * volume_factor
-                weekly_data.append((vol, phase_name, "normal"))
+                weekly_data.append((vol, phase_name, "peak"))
 
         elif phase_name == "taper":
             # Progressive volume reduction
@@ -486,6 +486,7 @@ def get_preview_volumes(
     total_weeks: int,
     peak_volume_override: Optional[float] = None,
     taper_weeks_override: Optional[int] = None,
+    race_distance_m: Optional[float] = None,
 ) -> List[float]:
     """Get just the volume curve for preview without generating full plan."""
     peak_volume = peak_volume_override or template.peak_volume_m
@@ -500,4 +501,31 @@ def get_preview_volumes(
         template.stepback_frequency,
         template.stepback_factor,
     )
-    return [v[0] for v in weekly_data]
+    volumes = [v[0] for v in weekly_data]
+
+    # Replace race week volume with race distance + non-race training volume
+    if race_distance_m is not None:
+        race_week_tmpl = template.week_templates.get("race")
+        if race_week_tmpl is not None:
+            # Handle both single WeekTemplate and list of WeekTemplate
+            tmpl = (
+                race_week_tmpl[0]
+                if isinstance(race_week_tmpl, list)
+                else race_week_tmpl
+            )
+            total_share = sum(s[1].volume_share for s in tmpl.sessions) or 1.0
+            non_race_share = sum(
+                s[1].volume_share
+                for s in tmpl.sessions
+                if s[1].workout_format != "Race"
+            )
+            for i, (curve_vol, phase_name, _) in enumerate(weekly_data):
+                if phase_name == "race":
+                    non_race_volume = curve_vol * (non_race_share / total_share)
+                    volumes[i] = race_distance_m + non_race_volume
+        else:
+            for i, (_, phase_name, _) in enumerate(weekly_data):
+                if phase_name == "race":
+                    volumes[i] = race_distance_m
+
+    return volumes

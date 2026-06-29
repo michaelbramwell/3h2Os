@@ -6,6 +6,7 @@ import type { FeatureFlags } from '../types/schema';
 const DEFAULT_FLAGS: FeatureFlags = {
     isSwimmingEnabled: false,
     isGarminEnabled: false,
+    isAiEnabled: false,
 };
 
 /**

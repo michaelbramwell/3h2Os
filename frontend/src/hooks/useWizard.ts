@@ -11,7 +11,7 @@ import type {
     WizardDefaultsResponse,
 } from '../types/wizard';
 import { WIZARD_STEPS, defaultTaperWeeks } from '../types/wizard';
-import { wizardPreview, wizardCreatePlan, wizardUpdatePlan } from '../lib/api';
+import { wizardPreview, wizardCreatePlan, wizardUpdatePlan, parseApiError } from '../lib/api';
 
 export type StepErrors = Record<string, string>;
 
@@ -296,8 +296,7 @@ export function useWizard(options?: UseWizardOptions): UseWizardReturn {
                 return { id: result.id, title: result.title };
             }
         } catch (err: any) {
-            const msg = err?.response?.data?.detail || err?.message || 'Failed to save plan';
-            setSubmitError(msg);
+            setSubmitError(parseApiError(err, 'Failed to save plan'));
             return null;
         } finally {
             setSubmitting(false);

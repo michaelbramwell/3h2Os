@@ -1,10 +1,9 @@
 from sqlmodel import Session, select
 import json
-import os
 
 import logging
 
-from app.core.database import User
+from app.core.database import RunnerPlan, User
 from app.schemas import (
     ContextSchema,
     ProjectContext,
@@ -29,14 +28,30 @@ class ContextService:
                 "get_context requires a User — caller must resolve the user first"
             )
 
-        if user.project and user.profile:
+        if user.profile:
             return self._map_to_schema(user)
 
         # Empty
         return self._empty_context()
 
     def _map_to_schema(self, user: User) -> ContextSchema:
-        project_ctx = ProjectContext.model_validate(user.project)
+        active_plan = self.session.exec(
+            select(RunnerPlan)
+            .where(RunnerPlan.user_id == user.id)
+            .where(RunnerPlan.is_active == True)
+        ).first()
+
+        if active_plan:
+            project_ctx = ProjectContext(
+                name=user.project.name if user.project else active_plan.title,
+                goal=active_plan.goal or "",
+                event=active_plan.event or active_plan.title,
+                eventDate=active_plan.event_date or "",
+            )
+        elif user.project:
+            project_ctx = ProjectContext.model_validate(user.project)
+        else:
+            project_ctx = ProjectContext(name="", goal="", event="", eventDate="")
 
         zones = None
         if user.profile.training_zones_json:

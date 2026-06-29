@@ -4,6 +4,7 @@ import json
 from typing import List, Dict, Any
 
 from app.core import plan_logic
+from app.core.plan_context import project_snapshot_from_wizard
 from app.core.database import (
     RunnerPlan,
     User,
@@ -13,7 +14,13 @@ from app.core.database import (
     RunnerProject,
 )
 from app.core.mappers import plan_to_relational, relational_to_plan
-from app.schemas import WeekSchema, WorkoutUpdate, WorkoutCreate, WeekUpdate
+from app.schemas import (
+    WeekSchema,
+    WorkoutUpdate,
+    WorkoutCreate,
+    WeekUpdate,
+    WizardInput,
+)
 from app.core.validation import ValidationEngine, ValidationWarningError
 from app.models.domain import (
     Week as DomainWeek,
@@ -93,6 +100,94 @@ class PlanService:
         statement = select(RunnerPlan).where(RunnerPlan.user_id == user.id)
         return self.session.exec(statement).all()
 
+    def get_plan_by_id(self, plan_id: int, user: User) -> List[WeekSchema]:
+        plan = self.session.get(RunnerPlan, plan_id)
+        if not plan:
+            raise ValueError(f"Plan with ID {plan_id} not found")
+        if plan.user_id != user.id:
+            raise ValueError("Cannot access a plan that does not belong to you")
+
+        return [
+            WeekSchema.model_validate(w)
+            for w in relational_to_plan(self.session, plan.id)
+        ]
+
+    def rewrite_existing_plan(
+        self,
+        plan: RunnerPlan,
+        plan_data: List[Dict[str, Any]],
+        *,
+        title: str | None = None,
+        plan_type: str | None = None,
+        wizard_input: WizardInput | None = None,
+        sync_project_context: bool = True,
+    ) -> RunnerPlan:
+        if title:
+            plan.title = title
+        if plan_type:
+            plan.type = plan_type
+
+        if wizard_input:
+            snapshot = project_snapshot_from_wizard(wizard_input)
+            plan.event = snapshot["event"]
+            plan.goal = snapshot["goal"]
+            plan.event_date = snapshot["event_date"]
+            plan.wizard_input_json = wizard_input.model_dump_json()
+
+            if sync_project_context and plan.is_active:
+                project = self.session.exec(
+                    select(RunnerProject).where(RunnerProject.user_id == plan.user_id)
+                ).first()
+                if not project:
+                    project = RunnerProject(
+                        user_id=plan.user_id,
+                        name=snapshot["name"],
+                        goal=snapshot["goal"],
+                        event=snapshot["event"],
+                        event_date=snapshot["event_date"],
+                    )
+                project.name = snapshot["name"]
+                project.goal = snapshot["goal"]
+                project.event = snapshot["event"]
+                project.event_date = snapshot["event_date"]
+                self.session.add(project)
+
+        self.session.add(plan)
+        self.session.flush()
+
+        self.delete_plan_contents(plan.id)
+        try:
+            self.populate_plan_weeks(plan, plan_data)
+        except Exception:
+            self.session.rollback()
+            raise
+        self.session.commit()
+        self.session.refresh(plan)
+        return plan
+
+    def update_plan_by_id(
+        self,
+        plan_id: int,
+        plan_data: List[Dict[str, Any]],
+        user: User,
+        title: str | None = None,
+        plan_type: str | None = None,
+        wizard_input: WizardInput | None = None,
+    ) -> RunnerPlan:
+        plan = self.session.get(RunnerPlan, plan_id)
+        if not plan:
+            raise ValueError(f"Plan with ID {plan_id} not found")
+        if plan.user_id != user.id:
+            raise ValueError("Cannot update a plan that does not belong to you")
+
+        return self.rewrite_existing_plan(
+            plan,
+            plan_data,
+            title=title,
+            plan_type=plan_type,
+            wizard_input=wizard_input,
+        )
+
     def create_or_update_plan(
         self,
         plan_data: List[Dict[str, Any]],
@@ -100,6 +195,7 @@ class PlanService:
         title: str = None,
         plan_type: str = "running",
         activate: bool = False,
+        wizard_input: WizardInput | None = None,
     ) -> RunnerPlan:
         """
         Creates a new plan version. Optionally activates it.
@@ -122,16 +218,41 @@ class PlanService:
         if not title:
             title = f"Plan Update {datetime.now().strftime('%Y-%m-%d %H:%M')}"
 
+        snapshot = project_snapshot_from_wizard(wizard_input) if wizard_input else None
+
         new_plan = RunnerPlan(
             title=title,
             type=plan_type,
             is_active=activate,
             plan_json=json.dumps(plan_data),
+            event=snapshot["event"] if snapshot else None,
+            goal=snapshot["goal"] if snapshot else None,
+            event_date=snapshot["event_date"] if snapshot else None,
+            wizard_input_json=wizard_input.model_dump_json() if wizard_input else None,
             user_id=user.id,
         )
         self.session.add(new_plan)
         self.session.commit()
         self.session.refresh(new_plan)
+
+        if activate and snapshot:
+            project = self.session.exec(
+                select(RunnerProject).where(RunnerProject.user_id == user.id)
+            ).first()
+            if not project:
+                project = RunnerProject(
+                    user_id=user.id,
+                    name=snapshot["name"],
+                    goal=snapshot["goal"],
+                    event=snapshot["event"],
+                    event_date=snapshot["event_date"],
+                )
+            project.name = snapshot["name"]
+            project.goal = snapshot["goal"]
+            project.event = snapshot["event"]
+            project.event_date = snapshot["event_date"]
+            self.session.add(project)
+            self.session.commit()
 
         try:
             plan_to_relational(self.session, new_plan, plan_data)

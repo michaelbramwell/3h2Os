@@ -16,6 +16,9 @@ import type { ContextData, Week, Activity } from '../types/schema'
 import type { WizardInput } from '../types/wizard'
 import { useSSE } from '../hooks/useSSE'
 
+const MANUAL_EVENT_TYPE = 'none' as const
+const MANUAL_GENERATION_METHODS = new Set<string>(['manual', 'manual_weekly'])
+
 export const Route = createFileRoute('/')({
   component: Dashboard,
 })
@@ -24,6 +27,7 @@ import { useAuth } from 'react-oidc-context'
 
 function Dashboard() {
   const auth = useAuth();
+  const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
   const [fridgeWeekId, setFridgeWeekId] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -191,7 +195,14 @@ function Dashboard() {
                     <Plus size={18} />
                  </button>
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
-                 <PlanSwitcher onEditPlan={(planId, wizardData) => setEditPlan({ id: planId, data: wizardData })} />
+                  <PlanSwitcher onEditPlan={(planId, wizardData) => {
+                    if (MANUAL_GENERATION_METHODS.has(wizardData.plan_config.generation_method) || wizardData.sport_event.event_type === MANUAL_EVENT_TYPE) {
+                      sessionStorage.setItem('wizardInput', JSON.stringify(wizardData));
+                      navigate({ to: '/plans/build', search: { planId } });
+                      return;
+                    }
+                    setEditPlan({ id: planId, data: wizardData });
+                  }} />
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>
                  <IntegrationsMenu />
                  <div className="h-4 w-px bg-slate-300 mx-1"></div>

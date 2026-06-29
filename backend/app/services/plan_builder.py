@@ -23,6 +23,7 @@ from app.core.database import (
     RunnerProfile,
     RunnerProject,
 )
+from app.core.plan_context import project_snapshot_from_wizard
 from app.core.templates import (
     RUNNING_TEMPLATES,
     SWIMMING_TEMPLATES,
@@ -282,8 +283,20 @@ class PlanBuilderService:
         ]
 
         # Volume curve
+        try:
+            from app.models.domain import EventType, EVENT_DISTANCES_M
+
+            race_distance_m = EVENT_DISTANCES_M.get(
+                EventType(wizard.sport_event.event_type)
+            )
+        except (ValueError, KeyError):
+            race_distance_m = None
+
         weekly_volumes = get_preview_volumes(
-            template, total_weeks, taper_weeks_override=taper_weeks
+            template,
+            total_weeks,
+            taper_weeks_override=taper_weeks,
+            race_distance_m=race_distance_m,
         )
         peak_volume = max(weekly_volumes) if weekly_volumes else template.peak_volume_m
 
@@ -391,12 +404,8 @@ class PlanBuilderService:
             title=title,
             plan_type=sport,
             activate=True,
+            wizard_input=wizard,
         )
-
-        # Store wizard input on the plan for future editing
-        plan.wizard_input_json = wizard.model_dump_json()
-        self.session.add(plan)
-        self.session.commit()
 
         # Update profile and project
         self._update_profile(wizard, user, zones)
@@ -469,46 +478,21 @@ class PlanBuilderService:
             select(RunnerProject).where(RunnerProject.user_id == user.id)
         ).first()
 
-        event_labels = {
-            "5k": "5K",
-            "10k": "10K",
-            "half_marathon": "Half Marathon",
-            "marathon": "Marathon",
-            "ultra": "Ultra",
-            "pool_400m": "400m Pool",
-            "pool_800m": "800m Pool",
-            "pool_1500m": "1500m Pool",
-            "ow_1km": "1km Open Water",
-            "ow_2.5km": "2.5km Open Water",
-            "ow_5km": "5km Open Water",
-            "ow_10km": "10km Open Water",
-            "none": "No Event (Build Weekly)",
-        }
-        event_label = event_labels.get(
-            wizard.sport_event.event_type, wizard.sport_event.event_type
-        )
-
-        goal_label = wizard.goals_focus.primary_goal.replace("_", " ").capitalize()
-        if wizard.goals_focus.target_time:
-            goal_label = f"Target: {wizard.goals_focus.target_time}"
-
-        event_date = wizard.sport_event.event_date or (
-            date.today() + timedelta(weeks=wizard.plan_config.total_weeks)
-        )
+        snapshot = project_snapshot_from_wizard(wizard)
 
         if not project:
             project = RunnerProject(
                 user_id=user.id,
-                name=wizard.sport_event.event_name or f"{event_label} Training",
-                goal=goal_label,
-                event=event_label,
-                event_date=event_date,
+                name=snapshot["name"],
+                goal=snapshot["goal"],
+                event=snapshot["event"],
+                event_date=snapshot["event_date"],
             )
 
-        project.name = wizard.sport_event.event_name or f"{event_label} Training"
-        project.goal = goal_label
-        project.event = event_label
-        project.event_date = event_date
+        project.name = snapshot["name"]
+        project.goal = snapshot["goal"]
+        project.event = snapshot["event"]
+        project.event_date = snapshot["event_date"]
         project.event_type = wizard.sport_event.event_type
         project.target_time = wizard.goals_focus.target_time
         project.primary_goal = wizard.goals_focus.primary_goal
@@ -517,9 +501,10 @@ class PlanBuilderService:
 
         # Snapshot project context onto the plan
         if plan:
-            plan.event = event_label
-            plan.goal = goal_label
-            plan.event_date = event_date
+            plan.event = snapshot["event"]
+            plan.goal = snapshot["goal"]
+            plan.event_date = snapshot["event_date"]
+            plan.wizard_input_json = wizard.model_dump_json()
             self.session.add(plan)
 
         self.session.commit()
@@ -537,7 +522,42 @@ class PlanBuilderService:
             raise ValueError("Cannot access a plan that does not belong to you")
 
         if not plan.wizard_input_json:
-            return None
+            # Synthesize a minimal WizardInput for legacy manual plans that
+            # pre-date wizard_input_json persistence.  This allows the manual
+            # builder to open and edit them without a 404.
+            sport = plan.type if plan.type in ("running", "swimming") else "running"
+            return {
+                "sport_event": {
+                    "plan_name": plan.title,
+                    "sport": sport,
+                    "event_type": "none",
+                    "event_name": None,
+                    "event_date": None,
+                },
+                "athlete_profile": {
+                    "experience_level": "intermediate",
+                    "age": 35,
+                    "weight_kg": 70.0,
+                    "events_completed": 0,
+                    "preferred_time_of_day": None,
+                    "preferred_training_days": None,
+                    "preferred_long_run_day": None,
+                    "use_calculated_zones": True,
+                    "custom_zones": None,
+                },
+                "goals_focus": {
+                    "primary_goal": "finish",
+                    "target_time": None,
+                    "pain_points": [],
+                    "weekly_availability": 5,
+                    "longest_recent_distance_m": 0,
+                },
+                "plan_config": {
+                    "total_weeks": 14,
+                    "taper_weeks": None,
+                    "generation_method": "manual",
+                },
+            }
 
         return json.loads(plan.wizard_input_json)
 
@@ -565,16 +585,14 @@ class PlanBuilderService:
             wizard, is_edit=True, start_date_override=existing_start
         )
 
-        # Delete existing weeks/workouts from this plan
-        self.plan_service.delete_plan_contents(plan_id)
-
-        # Update plan metadata
-        plan.title = self._build_plan_title(wizard)
-        plan.type = sport
-        plan.wizard_input_json = wizard.model_dump_json()
-
-        # Re-populate the plan with new weeks/workouts
-        self.plan_service.populate_plan_weeks(plan, plan_data)
+        self.plan_service.rewrite_existing_plan(
+            plan,
+            plan_data,
+            title=self._build_plan_title(wizard),
+            plan_type=sport,
+            wizard_input=wizard,
+            sync_project_context=False,
+        )
 
         # Update profile and project
         self._update_profile(wizard, user, zones)

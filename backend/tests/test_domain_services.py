@@ -1,8 +1,9 @@
 import pytest
+from datetime import date
 from sqlmodel import Session
 from app.services.plans import PlanService
 from app.services.context import ContextService
-from app.core.database import User
+from app.core.database import RunnerPlan, RunnerProfile, RunnerProject, User
 # Removed unused imports: User, RunnerPlan, PlanWeek, PlanWorkout
 
 
@@ -105,3 +106,81 @@ def test_context_service_defaults(session):
     assert ctx.runner.age == 0
     assert ctx.project.name == ""
     assert ctx.project.event == ""
+
+
+def test_context_service_uses_active_plan_snapshot_for_project(session):
+    service = ContextService(session)
+    user = User(username="context_plan_user", email="context-plan@test.com")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    profile = RunnerProfile(user_id=user.id, age=35, gender="male", height_cm=180)
+    project = RunnerProject(
+        user_id=user.id,
+        name="Old Project",
+        goal="Old Goal",
+        event="10K",
+        event_date=date(2026, 1, 1),
+    )
+    active_plan = RunnerPlan(
+        user_id=user.id,
+        title="Marathon Build",
+        type="running",
+        is_active=True,
+        event="Marathon",
+        goal="Finish",
+        event_date=date(2026, 6, 27),
+    )
+    session.add(profile)
+    session.add(project)
+    session.add(active_plan)
+    session.commit()
+    session.refresh(user)
+
+    ctx = service.get_context(user=user)
+
+    assert ctx.project.name == "Old Project"
+    assert ctx.project.event == "Marathon"
+    assert ctx.project.goal == "Finish"
+    assert ctx.project.event_date == "2026-06-27"
+
+
+def test_context_service_uses_active_plan_title_for_manual_plan_without_snapshot(
+    session,
+):
+    service = ContextService(session)
+    user = User(username="manual_plan_user", email="manual-plan@test.com")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    profile = RunnerProfile(user_id=user.id, age=35, gender="male", height_cm=180)
+    project = RunnerProject(
+        user_id=user.id,
+        name="Old Project",
+        goal="Finish",
+        event="Marathon",
+        event_date=date(2026, 6, 27),
+    )
+    active_plan = RunnerPlan(
+        user_id=user.id,
+        title="MRU",
+        type="running",
+        is_active=True,
+        event=None,
+        goal=None,
+        event_date=None,
+    )
+    session.add(profile)
+    session.add(project)
+    session.add(active_plan)
+    session.commit()
+    session.refresh(user)
+
+    ctx = service.get_context(user=user)
+
+    assert ctx.project.name == "Old Project"
+    assert ctx.project.event == "MRU"
+    assert ctx.project.goal == ""
+    assert ctx.project.event_date == ""
