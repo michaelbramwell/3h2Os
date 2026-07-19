@@ -11,6 +11,7 @@ services:
       - ./backend/app:/app/app:ro
       - ./backend/scripts:/app/scripts:ro
       - ./backend/db:/app/db:ro
+      - ./backend/tests:/app/tests:ro
     env_file:
       - .env
     environment:
@@ -21,6 +22,11 @@ services:
       - CORS_ORIGINS=http://localhost:5173,http://localhost:8000
       # IDP_URL should point to keycloak service inside docker network for backend
       - IDP_URL=http://keycloak:8080
+      # Mark this compose stack as development so dev-only fallbacks
+      # (DEFAULT_USERNAME, TrustedHostMiddleware allowlist, Strava webhook
+      # secrets not required) are active. Production uses
+      # docker-compose.prod.yml with ENVIRONMENT=production.
+      - ENVIRONMENT=development
     # Migrations run automatically via app lifespan on startup
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
     depends_on:
@@ -48,7 +54,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d running_db"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5

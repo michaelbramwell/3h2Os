@@ -1,3 +1,20 @@
+# Production compose stack for 3h2os.
+#
+# Images are pinned to an immutable tag via IMAGE_TAG (default: latest for
+# local convenience). The deploy workflow sets IMAGE_TAG to the commit SHA
+# so production always runs a specific, reproducible build.
+#
+# Required environment variables (validated at parse time with ${VAR:?}):
+#   IMAGE_NAME, IMAGE_TAG, DOMAIN, ACME_EMAIL, VOLUME_PATH,
+#   POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB,
+#   KEYCLOAK_ADMIN, KEYCLOAK_ADMIN_PASSWORD
+#
+# DATABASE_URL is built from POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB.
+# If POSTGRES_PASSWORD contains reserved URL characters (e.g. @, :, /, ?, #),
+# set POSTGRES_PASSWORD_ENCODED to the percent-encoded version for use in
+# DATABASE_URL. POSTGRES_PASSWORD remains the raw password for the postgres
+# container. If the password has no special characters, leave
+# POSTGRES_PASSWORD_ENCODED unset.
 services:
   caddy:
     image: caddy:alpine
@@ -7,30 +24,46 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      - DOMAIN=${DOMAIN}
-      - ACME_EMAIL=${ACME_EMAIL}
+      - DOMAIN=${DOMAIN:?DOMAIN is required}
+      - ACME_EMAIL=${ACME_EMAIL:?ACME_EMAIL is required}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      - frontend
-      - backend
-      - keycloak
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - default
 
   frontend:
-    image: ghcr.io/${IMAGE_NAME}-frontend:latest
+    image: ghcr.io/${IMAGE_NAME:?IMAGE_NAME is required}-frontend:${IMAGE_TAG:-latest}
     container_name: running_frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - default
 
   backend:
-    image: ghcr.io/${IMAGE_NAME}-backend:latest
+    image: ghcr.io/${IMAGE_NAME:?IMAGE_NAME is required}-backend:${IMAGE_TAG:-latest}
     container_name: running_app
     restart: unless-stopped
     volumes:
@@ -38,13 +71,19 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_ENCODED:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       - JWT_VERIFY_SIGNATURE=true
       - IDP_URL=http://keycloak:8080
     command: /bin/sh -c "uv run python -m db.migrate && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - default
 
@@ -53,14 +92,14 @@ services:
     container_name: running_db
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/db/init_keycloak.sql:/docker-entrypoint-initdb.d/init_keycloak.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -72,21 +111,28 @@ services:
     container_name: running_idp
     restart: unless-stopped
     environment:
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:?KEYCLOAK_ADMIN is required}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://db:5432/keycloak
-      KC_DB_USERNAME: ${POSTGRES_USER}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HOSTNAME: https://auth.${DOMAIN}
+      KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      KC_HOSTNAME: https://auth.${DOMAIN:?DOMAIN is required}
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: "true"
     command: start --import-realm
     volumes:
       - ./keycloak-realm.prod.json:/opt/keycloak/data/import/realm.json:ro
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     networks:
       - default
 
@@ -96,25 +142,25 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${VOLUME_PATH}/caddy_data
+      device: ${VOLUME_PATH:?VOLUME_PATH is required}/caddy_data
   caddy_config:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${VOLUME_PATH}/caddy_config
+      device: ${VOLUME_PATH:?VOLUME_PATH is required}/caddy_config
   postgres_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${VOLUME_PATH}/postgres_data
+      device: ${VOLUME_PATH:?VOLUME_PATH is required}/postgres_data
   backend_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${VOLUME_PATH}/backend_data
+      device: ${VOLUME_PATH:?VOLUME_PATH is required}/backend_data
 
 networks:
   default:

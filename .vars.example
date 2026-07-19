@@ -9,3 +9,11 @@ VITE_AUTH_CLIENT_ID=running-app
 VOLUME_PATH=/path/to/your/volume
 STRAVA_CLIENT_ID=
 STRAVA_REDIRECT_URI=https://your_domain_here/strava/callback
+# OIDC identity validation (production). Set all three for full JWT verification.
+OIDC_ISSUER=https://auth.your_domain_here/realms/running-realm
+OIDC_AUDIENCE=account
+OIDC_AUTHORIZED_CLIENT_ID=3h2os-frontend
+# TrustedHostMiddleware allowlist (comma-separated). Falls back to DOMAIN.
+TRUSTED_HOSTS=your_domain_here,www.your_domain_here
+# How often (seconds) the webhook worker polls for pending Strava webhook jobs.
+STRAVA_WEBHOOK_WORKER_INTERVAL_SECS=5

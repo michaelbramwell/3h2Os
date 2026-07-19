@@ -48,4 +48,4 @@ This project uses [MemPalace](https://github.com/anomalyco/mempalace) as a persi
 3. **Project name**: "3h2os" (lowercase o and s).
 4. **Docker-first**: the app runs in containers. Use `docker exec running_app uv run ...` for backend commands.
 5. **PostgreSQL is the single source of truth**. No legacy JSON.
-6. **AWST (UTC+8)** for all date/time logic.
+6. **Time model**: All instants are timezone-aware UTC (`TIMESTAMPTZ`). Calendar dates are timezone-neutral `DATE`. Each user has an IANA timezone stored on `RunnerProfile.timezone_name`. Calendar business rules use the user's timezone, not the container's. Display instants in the browser's timezone and locale. Fall back to UTC when the timezone is absent or invalid.

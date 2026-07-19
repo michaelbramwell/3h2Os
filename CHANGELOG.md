@@ -1,5 +1,54 @@
 # Release Notes
 
+## [Unreleased] - Platform Hardening
+
+This entry supersedes prior Garmin, AWST, and AI-plan entries without rewriting history.
+Historical entries below are retained as-is. Migration `015_platform_hardening.sql`
+encodes the schema portion of this work.
+
+### Migration
+- **`015_platform_hardening.sql`**: adds `user.oidc_issuer` + `user.oidc_subject` (unique identity pair); `runnerprofile.timezone_name` (IANA); `actualactivity.started_at` (`TIMESTAMPTZ` UTC instant for Strava activity start, distinct from the provider-local `DATE`); new `strava_oauth_state` table (single-use, user-bound OAuth state); new `strava_webhook_job` table (durable, idempotent webhook jobs); converts all instant columns from `TIMESTAMP` to `TIMESTAMPTZ` (interpreting existing naive values as UTC); partial unique index ensuring at most one active plan per user; unique constraints on `runnerprofile.user_id`, `runnerproject.user_id`, `activityshare.activity_id`; deletes `isGarminEnabled` and `isAiEnabled` flag rows; strips the `garmin` key from existing `profile_sync_prefs_json`; drops `runnerprofile.garmin_running_zones_json`; changes the default `actualactivity.source` from `'garmin'` to `'manual'`; preserves historical Garmin rows and legacy Garmin columns as read-only.
+
+### Removed
+- **Garmin integration**: removed entirely from backend, frontend, dependencies, and tests. Historical Garmin activity rows (`source='garmin'`) are preserved as read-only records. No Garmin write paths exist. The `isGarminEnabled` feature flag and `garmin_running_zones_json` column were dropped.
+- **AI plan option**: removed from the frontend. New requests with `generation_method='ai'` are rejected with 422 by Pydantic. Legacy plans with `generation_method='ai'` can still be opened and edited (normalized to `template` on edit). The `isAiEnabled` feature flag was dropped.
+
+### Security
+- **Host header bypass fix**: malformed `Host` authentication bypass closed. `TrustedHostMiddleware` added; allowed hosts are derived from `CORS_ORIGINS` / `DOMAIN`.
+- **Tenant ownership enforcement**: all plan/week/workout mutations now enforce tenant ownership. Cross-tenant access returns 404.
+- **JWT validation strengthened**: issuer, audience, and authorized party (`azp`) claims are now enforced in production. Users are resolved by `(oidc_issuer, oidc_subject)` on the `User` model; `username` and `email` are mutable profile attributes, not identity keys.
+
+### Strava Webhook Integrity
+- **Single-use OAuth state**: Strava OAuth state is now persisted, user-bound, and single-use. The nonce is hashed before storage; reuse or replay is rejected.
+- **Durable webhook jobs**: webhook events are persisted as `strava_webhook_job` rows and processed idempotently by a background worker (`_strava_webhook_worker_loop` in `main.py`). The POST endpoint returns 200 immediately to meet Strava's ~2s acknowledgement requirement.
+- **Share revocation**: delete events remove the activity row and revoke its public shares transactionally. Privacy update events refetch the activity; if inaccessible, the row and its shares are deleted. Deauthorization events delete the Strava token, revoke shares for all the user's Strava activities, and delete Strava-sourced activity rows. Historical Garmin/manual rows are preserved.
+- **Exact-activity refetch**: ordinary update/create events refetch the exact activity by ID instead of scanning a 2-day window.
+- **SSE fan-out**: events are pushed to browsers only after the worker successfully commits.
+
+### Time Architecture
+- **UTC TIMESTAMPTZ**: all instant columns converted from `TIMESTAMP` to `TIMESTAMPTZ` (existing naive values interpreted as UTC). APIs serialize instants as RFC 3339 with `Z` or `+00:00`.
+- **Timezone-neutral DATE**: calendar dates remain `DATE` (`YYYY-MM-DD`). Examples: workout date, week start date, event date, birthday, provider-local activity date.
+- **Per-user IANA timezone**: `RunnerProfile.timezone_name` stores an IANA timezone. Backend calendar business rules (current workout/week, past restrictions, next-Monday scheduling, race-day placement) use the user's timezone, not the container's. Falls back to UTC when absent or invalid.
+- **Strava `started_at` vs `date`**: Strava activity `started_at` (UTC instant from `start_date`) is stored separately from `date` (provider-local calendar date from `start_date_local`). Plan completion is matched by `date`.
+- **Browser display**: `frontend/src/lib/dateTime.ts` centralizes formatting. `formatInstant()` renders in the browser's timezone and locale; `formatCalendarDate()` is timezone-invariant. Hardcoded `en-AU` removed. Browser IANA timezone is synced to `RunnerProfile.timezone_name`. AWST (Perth, UTC+8) is no longer a project mandate.
+
+### Plans
+- **Atomic writes**: plan create/replace/activate/progression each run in a single transaction.
+- **Sport-specific progression**: progression recalculation is sport-specific; the 62km fallback has been removed.
+- **Race-day scheduling**: race workouts are scheduled on the exact event date for all 7 weekdays.
+- **Safe frontend editing**: no destructive replace on plan-load failure; no auto-rebase.
+- **Active-plan uniqueness**: a partial unique index ensures at most one active plan per user.
+
+### Repository Hygiene
+- **Tracked SQLite database removed from Git**. Per-context `.dockerignore` files added.
+
+### Deployment Hardening
+- **Test-gated**: deploy workflow runs backend and frontend test suites before building images. Failing tests block deploy.
+- **Immutable images**: production images are tagged with the commit SHA; `:latest` is never used in prod.
+- **Health-checked**: deploy waits for `GET /healthz` to return 200 on the new container before switching traffic.
+- **Rollback on smoke-test failure**: post-deploy smoke test failure triggers automatic rollback to the previous image.
+- **`/healthz` endpoint**: unauthenticated `{"status":"ok"}` probe added for container healthchecks and external smoke tests.
+
 ## [v1.2.0] - 2026-04-07
 
 ### Features & Enhancements

@@ -8,6 +8,19 @@ auth.{$DOMAIN} {
 }
 
 {$DOMAIN} {
+    # Backend health probe (unauthenticated, for container + smoke tests)
+    handle /healthz {
+        reverse_proxy backend:8000
+    }
+
+    # Backend API docs and OpenAPI schema (public for smoke tests)
+    handle /docs {
+        reverse_proxy backend:8000
+    }
+    handle /openapi.json {
+        reverse_proxy backend:8000
+    }
+
     # Backend API — match /api/ prefix but not static assets that start with /api
     handle /api/* {
         reverse_proxy backend:8000

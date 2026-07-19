@@ -18,7 +18,14 @@ Thumbs.db
 # (fridge/ is tracked for GitHub Actions sync)
 
 # Data Persistence
+# SQLite databases must never be committed — PostgreSQL is the source of
+# truth. Match any *.db or *.sqlite file under backend/data/ (and any
+# other data directory) so local dev artifacts do not leak into Git.
 data/database.db
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+backend/data/temp_gen.db
 
 # Site Builds (Generated at root)
 # /plan.json
@@ -33,3 +40,15 @@ debug_routes.py
 .docker/
 *.tmp
 !AGENTS.md
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+*.coverage
+
+# Editor / IDE
+.idea/
+*.swp
+*.swo

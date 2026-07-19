@@ -1,19 +1,19 @@
 # 3h2Os
 
-A multi-sport training plan platform for running and swimming. Create periodised training plans via a guided wizard, track progress against targets, and sync with Garmin Connect.
+A training plan platform for running. Create periodised training plans via a guided wizard, track progress against targets, and sync with Strava.
 
 **Production**: [3h2os.com](https://3h2os.com)
 
 ## Features
 
-- **Plan Builder Wizard** -- guided multi-step flow to create periodised training plans for running (5K to Ultra) and swimming (pool and open water events)
-- **Template Engine** -- 39 plan templates (15 running + 24 swimming) across beginner/intermediate/advanced levels with auto-calculated training zones
-- **Multi-Plan Support** -- manage multiple concurrent plans (e.g. a marathon plan and a swim plan) with plan switching
-- **Workout Management** -- full CRUD for workouts with validation guardrails (volume progression, intensity ratio, long run cap)
-- **Strava Integration** -- OAuth connect, activity sync with zone distribution, webhook-driven auto-sync on new activity with real-time SSE push to connected browsers
-- **Garmin Connect Integration** -- sync actual activities from Garmin, with zone distribution and telemetry enrichment
+- **Plan Builder Wizard** -- guided multi-step flow to create periodised training plans for running (5K to Ultra) using template, manual, or manual-weekly generation
+- **Template Engine** -- 15 running plan templates across beginner/intermediate/advanced levels with auto-calculated training zones
+- **Multi-Plan Support** -- manage multiple concurrent plans (e.g. a 5K plan and a marathon plan) with plan switching
+- **Workout Management** -- full CRUD for workouts with validation guardrails (volume progression, intensity ratio, long run cap). Plan writes are atomic (single transaction per create/replace/activate/progression).
+- **Strava Integration** -- OAuth connect (single-use, user-bound state), activity sync with zone distribution, webhook-driven auto-sync with durable idempotent jobs, and real-time SSE push to connected browsers. Historical Garmin activity rows are preserved as read-only records; no Garmin write paths exist.
 - **Clone Plans** -- duplicate an existing plan with date offsets for reuse
-- **Authentication** -- Keycloak OIDC with JWT (RS256) for multi-user support
+- **Authentication** -- Keycloak OIDC with JWT (RS256) for multi-user support. Issuer, audience, and authorized party (`azp`) claims are enforced. Users are resolved by `(oidc_issuer, oidc_subject)`; username/email are mutable profile attributes.
+- **Health Probe** -- `GET /healthz` (unauthenticated) for container healthchecks and external smoke tests.
 
 ## Tech Stack
 
@@ -34,25 +34,25 @@ A multi-sport training plan platform for running and swimming. Create periodised
   backend/
     app/
       routers/          # FastAPI endpoints (thin controllers)
-      services/         # Business logic (PlanService, PlanBuilderService, GarminService, etc.)
+      services/         # Business logic (PlanService, PlanBuilderService, StravaService, etc.)
       core/
         database.py     # SQLModel tables (User, RunnerPlan, PlanWeek, PlanWorkout, etc.)
-        templates/      # Plan template engine (running.py, swimming.py, base.py)
+        templates/      # Plan template engine (running.py, base.py)
         validation.py   # Training guardrails (volume cap, intensity ratio, long run ratio)
-        zones.py        # Zone calculator (HR, pace, swim CSS)
-        auth.py         # JWT/Keycloak auth middleware
+        zones.py        # Zone calculator (HR, pace)
+        auth.py         # JWT/Keycloak auth middleware (issuer/audience/azp enforced)
       models/           # Domain dataclasses and enums
       schemas.py        # Pydantic DTOs
-    scripts/            # Automation (Garmin sync, validation, plan updates)
-    migrations/         # Alembic database migrations
+    scripts/            # Automation (validation, plan updates)
+    db/migrations/      # Forward-only SQL migrations
     tests/              # pytest test suite
   frontend/
     src/
       routes/           # TanStack file-based routes
       components/       # UI components (WeekCard, WorkoutCard, Sidebar, etc.)
         wizard/         # Plan builder wizard (6 step components)
-      hooks/            # Custom hooks (useWizard, useWorkoutForm, useGarminToken, useSSE)
-      lib/              # API client, auth, formatters, calculations
+      hooks/            # Custom hooks (useWizard, useWorkoutForm, useSSE)
+      lib/              # API client, auth, dateTime, formatters, calculations
       types/            # TypeScript type definitions
       providers/        # Auth context provider
   docker-compose.yml    # Dev stack (backend, frontend, postgres, keycloak)
@@ -112,6 +112,7 @@ npm test
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| `GET` | `/healthz` | Unauthenticated health probe for container healthchecks and smoke tests |
 | `GET` | `/api/plans` | List all plans for the current user |
 | `POST` | `/api/plans` | Create a new empty plan |
 | `DELETE` | `/api/plans/{id}` | Delete a plan |
@@ -126,16 +127,14 @@ npm test
 | `PUT` | `/api/workouts/{id}` | Update a workout |
 | `DELETE` | `/api/workouts/{id}` | Delete a workout |
 | `POST` | `/api/plans/generate-preview` | Preview a plan from wizard inputs (no save) |
-| `POST` | `/api/plans/from-wizard` | Generate and save a plan from wizard inputs |
+| `POST` | `/api/plans/from-wizard` | Generate and save a plan from wizard inputs (`generation_method` accepts `template`, `manual`, `manual_weekly`; `ai` is rejected with 422) |
 | `POST` | `/api/plans/{id}/clone` | Clone an existing plan |
-| `POST` | `/api/garmin/token` | Authenticate with Garmin (returns OAuth token) |
-| `POST` | `/api/integrations/garmin/sync` | Sync activities from Garmin Connect |
 | `GET` | `/api/strava/auth-url` | Get Strava OAuth authorization URL |
-| `POST` | `/api/strava/exchange` | Exchange Strava auth code for tokens |
+| `POST` | `/api/strava/exchange` | Exchange Strava auth code for tokens (single-use state) |
 | `GET` | `/api/strava/status` | Check Strava connection status |
 | `DELETE` | `/api/strava/disconnect` | Disconnect Strava |
 | `POST` | `/api/integrations/strava/sync` | Manual sync from Strava |
-| `GET/POST` | `/strava/webhook/{secret}` | Strava webhook (verify + event receiver) |
+| `GET/POST` | `/strava/webhook/{secret}` | Strava webhook (verify + event receiver; events persisted as jobs and processed by a background worker) |
 | `GET` | `/api/events` | SSE stream — real-time push events for the current user |
 
 ## Validation Engine
@@ -145,6 +144,16 @@ The training guardrails enforce safe progression on every workout save/update:
 - **Volume Progression**: weekly volume increase capped at 15%
 - **Long Run Ratio**: single long run must not exceed 40% of weekly volume
 - **Intensity Ratio**: high intensity work must not exceed 25% of weekly volume
+
+## Time Model
+
+The platform distinguishes instants from calendar dates to avoid timezone bugs:
+
+- **Instants** are timezone-aware UTC (`TIMESTAMPTZ`), serialized as RFC 3339 with a `Z` or `+00:00` suffix. Examples: plan creation timestamps, Strava token timestamps, profile sync timestamps, activity share creation, migration application, exact activity start (`actualactivity.started_at`).
+- **Calendar dates** are timezone-neutral `DATE` values (`YYYY-MM-DD`). Examples: workout date, week start date, event date, birthday, provider-local activity date.
+- **User timezone**: each user has an IANA timezone on `RunnerProfile.timezone_name`. Backend calendar business rules (current workout/week, past restrictions, next-Monday scheduling, race-day placement) use the user's timezone, not the container's. Falls back to UTC when absent or invalid.
+- **Strava activities**: `started_at` (UTC instant from `start_date`) is stored separately from `date` (provider-local calendar date from `start_date_local`). Plan completion is matched by `date`.
+- **Browser display**: `frontend/src/lib/dateTime.ts` formats instants in the browser's timezone and locale (`formatInstant`) and formats calendar dates timezone-invariantly (`formatCalendarDate`). The browser IANA timezone is synced to `RunnerProfile.timezone_name`.
 
 ## Environment Configuration
 
@@ -248,6 +257,10 @@ Production runs on Hetzner Cloud with the following architecture:
 - **3h2os.com** routes to the frontend container (static assets) and `/api` to the backend
 - **auth.3h2os.com** routes to Keycloak
 - **GitHub Actions** builds Docker images, pushes to GHCR, and deploys via SSH
+- **Test-gated**: the deploy workflow runs the backend and frontend test suites before building images. A failing test blocks the deploy.
+- **Immutable images**: production images are tagged with the commit SHA; `:latest` is never used in prod.
+- **Health-checked**: the deploy waits for `GET /healthz` to return 200 on the new container before switching traffic.
+- **Rollback on smoke-test failure**: if the post-deploy smoke test fails, the workflow rolls back to the previous image.
 
 ## Architecture Diagrams
 
@@ -276,7 +289,7 @@ graph TB
     end
 
     subgraph External
-        Garmin[Garmin Connect<br/>API]
+        Strava[Strava<br/>OAuth2 API]
         GHCR[GitHub Container<br/>Registry]
         GHA[GitHub Actions<br/>CI/CD]
     end
@@ -288,7 +301,7 @@ graph TB
     Caddy -->|auth subdomain| KC
     BE --> Postgres
     KC --> Postgres
-    BE -->|OAuth Token| Garmin
+    BE -->|OAuth2 + Webhook| Strava
     FE -->|OIDC| KC
     BE -->|JWKS| KC
     GHA -->|Deploy| GHCR
@@ -303,19 +316,19 @@ graph TB
         Routes[Routes<br/>index.tsx, plans.build.tsx]
         Components[Components<br/>WeekCard, WorkoutCard,<br/>Sidebar, PlanSwitcher]
         WizardUI[Wizard Components<br/>StepSportEvent, StepAthleteProfile,<br/>StepGoalsFocus, StepPlanConfig,<br/>StepReview]
-        Hooks[Hooks<br/>useWizard, useWorkoutForm,<br/>useGarminToken, useSSE]
+        Hooks[Hooks<br/>useWizard, useWorkoutForm,<br/>useSSE]
         APIClient[API Client<br/>lib/api.ts]
         AuthProv[Auth Provider<br/>OIDC / Keycloak]
     end
 
     subgraph BackendLayer [Backend]
-        Routers[Routers<br/>api.py - thin controllers<br/>events.py - SSE stream]
-        Services[Services<br/>PlanService, PlanBuilderService,<br/>ActivityService, ContextService,<br/>GarminService]
-        Templates[Template Engine<br/>base.py, running.py,<br/>swimming.py]
-        Zones[Zone Calculator<br/>HR, Pace, Swim CSS]
+        Routers[Routers<br/>api.py - thin controllers<br/>events.py - SSE stream<br/>health.py - /healthz]
+        Services[Services<br/>PlanService, PlanBuilderService,<br/>ActivityService, ContextService,<br/>StravaService, ShareService]
+        Templates[Template Engine<br/>base.py, running.py]
+        Zones[Zone Calculator<br/>HR, Pace]
         Validation[Validation Engine<br/>Volume, Intensity,<br/>Long Run Ratio]
         DB[Database Layer<br/>SQLModel Tables]
-        AuthMW[Auth Middleware<br/>JWT / JWKS]
+        AuthMW[Auth Middleware<br/>JWT / JWKS<br/>issuer/audience/azp]
     end
 
     Routes --> Components
@@ -348,7 +361,7 @@ flowchart TD
     CreateNew --> W1
 
     subgraph WizardFlow [Plan Builder Wizard]
-        W1[Step 1: Sport and Event<br/>Running or Swimming<br/>Event Type and Date]
+        W1[Step 1: Sport and Event<br/>Running<br/>Event Type and Date]
         W2[Step 2: Athlete Profile<br/>Experience Level, Age<br/>Training Zones]
         W3[Step 3: Goals and Focus<br/>Primary Goal, Pain Points<br/>Weekly Availability]
         W4[Step 4: Plan Config<br/>Total Weeks, Peak Volume<br/>Start Date]
@@ -371,10 +384,6 @@ flowchart TD
     Guardrails -->|Warning| ShowWarning[Show Warning<br/>Allow Override]
     SaveWorkout --> Dashboard
     ShowWarning --> Dashboard
-
-    Dashboard --> GarminSync[Garmin Sync<br/>Fetch Actuals]
-    GarminSync --> FetchActivities[Fetch Activities<br/>garmin sync endpoint]
-    FetchActivities --> Dashboard
 
     Dashboard --> DeletePlan[Delete Plan]
     DeletePlan --> Dashboard
