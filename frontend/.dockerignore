@@ -1,0 +1,42 @@
+# frontend/.dockerignore
+#
+# This file is applied when `docker build ./frontend` is used because the
+# build context is the `frontend/` directory (see docker-compose.yml).
+# It prevents local node_modules, build artifacts, and editor files from
+# entering the production image.
+
+# Git
+.git
+.gitignore
+
+# Node
+node_modules/
+dist/
+build/
+.npm/
+.pnpm-store/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Environment
+.env
+.env.local
+.env.example
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+.dockerignore

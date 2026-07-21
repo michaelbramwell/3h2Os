@@ -1,9 +1,8 @@
 // --- Wizard enums ---
 
-export type Sport = "running" | "swimming";
+export type Sport = "running";
 export const Sport = {
   RUNNING: "running",
-  SWIMMING: "swimming",
 } as const;
 
 export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
@@ -19,14 +18,7 @@ export type EventType =
   | "10k"
   | "half_marathon"
   | "marathon"
-  | "ultra"
-  | "pool_400m"
-  | "pool_800m"
-  | "pool_1500m"
-  | "ow_1km"
-  | "ow_2.5km"
-  | "ow_5km"
-  | "ow_10km";
+  | "ultra";
 
 export const RunningEvents: EventType[] = [
   "none",
@@ -37,25 +29,6 @@ export const RunningEvents: EventType[] = [
   "ultra",
 ];
 
-export const SwimmingPoolEvents: EventType[] = [
-  "none",
-  "pool_400m",
-  "pool_800m",
-  "pool_1500m",
-];
-
-export const SwimmingOWEvents: EventType[] = [
-  "ow_1km",
-  "ow_2.5km",
-  "ow_5km",
-  "ow_10km",
-];
-
-export const SwimmingEvents: EventType[] = [
-  ...SwimmingPoolEvents,
-  ...SwimmingOWEvents,
-];
-
 export const EventLabels: Record<EventType, string> = {
   none: "No Event (Build Weekly)",
   "5k": "5K",
@@ -63,13 +36,6 @@ export const EventLabels: Record<EventType, string> = {
   half_marathon: "Half Marathon",
   marathon: "Marathon",
   ultra: "Ultra",
-  pool_400m: "400m Pool",
-  pool_800m: "800m Pool",
-  pool_1500m: "1500m Pool",
-  ow_1km: "1km Open Water",
-  "ow_2.5km": "2.5km Open Water",
-  ow_5km: "5km Open Water",
-  ow_10km: "10km Open Water",
 };
 
 export type PrimaryGoal =
@@ -101,10 +67,7 @@ export type PainPoint =
   | "injury"
   | "mental_fatigue"
   | "recovery"
-  | "speed_final_third"
-  | "breathing"
-  | "open_water_anxiety"
-  | "stroke_efficiency";
+  | "speed_final_third";
 
 export const PainPointLabels: Record<PainPoint, string> = {
   cramping: "Cramping",
@@ -114,9 +77,6 @@ export const PainPointLabels: Record<PainPoint, string> = {
   mental_fatigue: "Mental fatigue",
   recovery: "Recovery between sessions",
   speed_final_third: "Slowing in the final third",
-  breathing: "Breathing technique",
-  open_water_anxiety: "Open water anxiety",
-  stroke_efficiency: "Stroke efficiency",
 };
 
 // --- Helpers ---
@@ -165,10 +125,24 @@ export interface WizardGoalsFocus {
   longest_recent_distance_m: number;
 }
 
+/**
+ * generation_method for new plans. The 'ai' value is intentionally absent --
+ * the backend rejects it with 422 and the UI no longer offers it. Legacy plans
+ * with generation_method='ai' may still be read from the database; use
+ * {@link LegacyGenerationMethod} when deserializing historical data.
+ */
+export type GenerationMethod = "template" | "manual" | "manual_weekly";
+
+/**
+ * Read-only union that includes the legacy 'ai' value. Use this only when
+ * deserializing persisted plans; never use it for new plan input.
+ */
+export type LegacyGenerationMethod = GenerationMethod | "ai";
+
 export interface WizardPlanConfig {
   total_weeks: number;
   taper_weeks?: number; // 1-3, undefined = use template default
-  generation_method: "template" | "ai" | "manual" | "manual_weekly";
+  generation_method: GenerationMethod;
 }
 
 export interface WizardInput {

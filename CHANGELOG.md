@@ -1,5 +1,27 @@
 # Release Notes
 
+## [Unreleased] - Remove Swimming
+
+Swimming has been removed as a supported sport. The platform is now running-only.
+Historical entries below (including the prior `[Unreleased] - Platform Hardening`,
+Garmin, AWST, and AI-plan entries) are preserved as-is; this entry does not rewrite
+history. Migration `016_remove_swimming.sql` encodes the schema portion of this work.
+
+### Migration
+- **`016_remove_swimming.sql`** (destructive): deletes existing `RunnerPlan` rows where `type='swimming'` (cascading weeks/workouts); deletes existing `ActualActivity` rows where `type` in `('swimming', 'swim', 'pool', 'lap_swimming', 'open_water_swimming')`; drops `runnerprofile.swim_zones_json`; deletes the `isSwimmingEnabled` feature flag row. Back up the production database before applying.
+
+### Removed
+- **Swimming as a supported sport**: no new swim plans can be created. The wizard is running-only and no longer renders a sport selector. The 24 swimming plan templates and `backend/app/core/templates/swimming.py` were deleted. `PlanType.SWIMMING`, `SwimmingVenue`, `SWIMMING_POOL_EVENTS`, `SWIMMING_OW_EVENTS`, `SWIMMING_EVENTS`, `SWIM_ACTIVITY_TYPES`, swim entries in `EVENT_DISTANCES_M` and `EventType`, and the swim-specific `PainPoint` values (`BREATHING`, `OPEN_WATER_ANXIETY`, `STROKE_EFFICIENCY`) were removed. Swim branches were removed from `zones.calculate_zones`, `plans._get_last_actual_volume`, `plans.get_active_plan_activity_types`, `plan_builder._resolve_template`, `context.get_context` (swim zones merge), `mappers._normalize_activity_type`, and `schemas._SPORT_TYPE_MAP`. Frontend `Sport.SWIMMING`, swim event types, `SwimmingPoolEvents`/`SwimmingOWEvents`/`SwimmingEvents` arrays, swim `EventLabels`, `swimPace` from `ContextSchema`, `isSwimmingEnabled` from `FeatureFlags`, and the `swimmingEnabled` prop chain through the wizard components were removed.
+- **`isSwimmingEnabled` feature flag**: deleted. The `FeatureFlag` table, `FeatureFlagService`, `/api/flags` endpoints, and the `useFeatureFlags` hook remain in place for future flags; only the `isSwimmingEnabled` row is deleted.
+- **`runnerprofile.swim_zones_json` column**: dropped.
+- **Swimming guard in wizard router**: the 3 duplicated `isSwimmingEnabled` checks in `routers/wizard.py` were deleted entirely (no refactor needed).
+
+### Retained (Historical Display)
+- **Strava swim activity import**: `_SPORT_TYPE_MAP["Swim"] = "swimming"` is retained in `strava.py` so future Strava swim activities continue to import as historical actuals with `type='swimming'`. They appear in the activities list with a generic "Imported" badge and are excluded from volume calculations. They cannot be matched to a plan because no swim plans exist.
+- **`ActivityType.SWIMMING = "Swimming"` enum member**: retained in `backend/app/models/domain.py` and the frontend `ActivityType` enum for display comparisons in `ActivityModal`, `ActualCard`, `WorkoutCard`, and `share.$token.tsx`. Historical Strava swim activities use this enum value for icon and pace formatting.
+- **`formatSwimPace` formatter**: retained in `frontend/src/lib/formatters.ts` for historical display of swim activity paces (sec/100m).
+- **Historical Garmin, AWST, and AI-plan CHANGELOG entries**: preserved unchanged. This entry supersedes the prior swimming-related entries without rewriting them.
+
 ## [Unreleased] - Platform Hardening
 
 This entry supersedes prior Garmin, AWST, and AI-plan entries without rewriting history.

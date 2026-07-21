@@ -4,6 +4,7 @@ import type { Activity, HrZone } from '../types/schema';
 import { ActivityType } from '../types/schema';
 import { formatPace, formatSwimPace, formatDistance } from '../lib/formatters';
 import { AppBrand, AppDescription, AppFooter } from '../components/AppShell';
+import { formatCalendarDate } from '../lib/dateTime';
 
 export const Route = createFileRoute('/share/$token')({
     component: SharePage,
@@ -226,7 +227,7 @@ function SharePage() {
 }
 
 function ActivityDetail({ activity }: { activity: Activity }) {
-    const dateStr = new Date(activity.date + 'T00:00:00').toLocaleDateString('en-AU', {
+    const dateStr = formatCalendarDate(activity.date, {
         weekday: 'long',
         day: 'numeric',
         month: 'long',

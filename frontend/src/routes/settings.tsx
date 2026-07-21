@@ -5,7 +5,7 @@ import { useAuth } from 'react-oidc-context'
 import { ArrowLeft, RefreshCw, Check, Lock } from 'lucide-react'
 import { getProfile, patchProfile, patchSyncPrefs, syncProfileNow } from '../lib/api'
 import type { UserProfile, ProfileSyncPrefs } from '../types/schema'
-import { useFeatureFlags } from '../hooks/useFeatureFlags'
+import { formatInstant } from '../lib/dateTime'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
@@ -25,24 +25,19 @@ function formatPace(mps: number | null): string {
 
 function formatDate(iso: string | null): string {
   if (!iso) return 'Never'
-  return new Date(iso).toLocaleString()
+  try {
+    return formatInstant(iso, { dateStyle: 'medium', timeStyle: 'short' })
+  } catch {
+    // Defensive fallback for legacy naive timestamps without an offset.
+    return new Date(iso).toLocaleString()
+  }
 }
 
-// Which source (if any) owns a given field
-function ownerOf(prefs: ProfileSyncPrefs, field: keyof UserProfile, garminEnabled: boolean): 'garmin' | 'strava' | null {
-  const garminFields: Array<keyof ProfileSyncPrefs['garmin']> = [
-    'weight', 'height', 'resting_hr', 'vo2max', 'lactate_threshold',
-  ]
+// Which source (if any) owns a given field. Only Strava remains as an
+// automatic sync source now that the Garmin integration has been removed.
+function ownerOf(prefs: ProfileSyncPrefs, field: keyof UserProfile): 'strava' | null {
   const stravaFields: Array<keyof ProfileSyncPrefs['strava']> = ['weight', 'ftp', 'hr_zones']
-
-  // Map profile field name → sync pref key
-  const garminKey = field === 'height_cm' || field === 'weight_kg' ? 'height'
-    : field === 'lactate_threshold_hr' || field === 'lactate_threshold_pace' ? 'lactate_threshold'
-    : field as keyof ProfileSyncPrefs['garmin']
-
   const stravaKey = field as keyof ProfileSyncPrefs['strava']
-
-  if (garminEnabled && garminFields.includes(garminKey) && prefs.garmin[garminKey]) return 'garmin'
   if (stravaFields.includes(stravaKey) && prefs.strava[stravaKey]) return 'strava'
   return null
 }
@@ -54,13 +49,13 @@ function ownerOf(prefs: ProfileSyncPrefs, field: keyof UserProfile, garminEnable
 interface FieldRowProps {
   label: string
   value: string | number | null | undefined
-  owner: 'garmin' | 'strava' | null
+  owner: 'strava' | null
   editNode?: React.ReactNode
 }
 
 function FieldRow({ label, value, owner, editNode }: FieldRowProps) {
   const badge = owner ? (
-    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide ${owner === 'garmin' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide bg-orange-100 text-orange-700">
       {owner}
     </span>
   ) : null
@@ -188,7 +183,6 @@ function SettingsPage() {
   const auth = useAuth()
   const queryClient = useQueryClient()
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
-  const flags = useFeatureFlags()
 
   const { data: profile, isLoading, error } = useQuery<UserProfile>({
     queryKey: ['profile'],
@@ -202,18 +196,13 @@ function SettingsPage() {
   })
 
   const prefsMutation = useMutation({
-    mutationFn: ({ source, field, enabled }: { source: 'garmin' | 'strava'; field: string; enabled: boolean }) =>
+    mutationFn: ({ source, field, enabled }: { source: 'strava'; field: string; enabled: boolean }) =>
       patchSyncPrefs(source, field, enabled),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['profile'] }),
   })
 
   const syncMutation = useMutation({
-    mutationFn: () => {
-      const garminToken = flags.isGarminEnabled
-        ? (localStorage.getItem('garmin_token') ?? undefined)
-        : undefined
-      return syncProfileNow(garminToken)
-    },
+    mutationFn: () => syncProfileNow(),
     onSuccess: (data) => {
       setSyncMsg(data.message)
       queryClient.invalidateQueries({ queryKey: ['profile'] })
@@ -255,7 +244,7 @@ function SettingsPage() {
     patchMutation.mutate({ [field]: value } as Parameters<typeof patchProfile>[0])
   }
 
-  const toggle = (source: 'garmin' | 'strava', field: string, enabled: boolean) => {
+  const toggle = (source: 'strava', field: string, enabled: boolean) => {
     prefsMutation.mutate({ source, field, enabled })
   }
 
@@ -308,7 +297,7 @@ function SettingsPage() {
           <FieldRow
             label="Height (cm)"
             value={profile.height_cm}
-            owner={ownerOf(prefs, 'height_cm', flags.isGarminEnabled)}
+            owner={null}
             editNode={
               <EditableNumber
                 value={profile.height_cm}
@@ -321,7 +310,7 @@ function SettingsPage() {
           <FieldRow
             label="Weight (kg)"
             value={profile.weight_kg !== null ? `${profile.weight_kg} kg` : null}
-            owner={ownerOf(prefs, 'weight_kg', flags.isGarminEnabled)}
+            owner={ownerOf(prefs, 'weight_kg')}
             editNode={
               <EditableNumber
                 value={profile.weight_kg}
@@ -369,7 +358,7 @@ function SettingsPage() {
           <FieldRow
             label="Resting HR (bpm)"
             value={profile.resting_hr}
-            owner={ownerOf(prefs, 'resting_hr', flags.isGarminEnabled)}
+            owner={null}
             editNode={
               <EditableNumber
                 value={profile.resting_hr}
@@ -382,7 +371,7 @@ function SettingsPage() {
           <FieldRow
             label="FTP (watts)"
             value={profile.ftp}
-            owner={ownerOf(prefs, 'ftp', flags.isGarminEnabled)}
+            owner={ownerOf(prefs, 'ftp')}
             editNode={
               <EditableNumber
                 value={profile.ftp}
@@ -395,7 +384,7 @@ function SettingsPage() {
           <FieldRow
             label="VO2max (ml/kg/min)"
             value={profile.vo2max !== null ? profile.vo2max?.toFixed(1) : null}
-            owner={ownerOf(prefs, 'vo2max', flags.isGarminEnabled)}
+            owner={null}
             editNode={
               <EditableNumber
                 value={profile.vo2max}
@@ -408,7 +397,7 @@ function SettingsPage() {
           <FieldRow
             label="Lactate threshold HR"
             value={profile.lactate_threshold_hr !== null ? `${profile.lactate_threshold_hr} bpm` : null}
-            owner={ownerOf(prefs, 'lactate_threshold_hr', flags.isGarminEnabled)}
+            owner={null}
             editNode={
               <EditableNumber
                 value={profile.lactate_threshold_hr}
@@ -421,52 +410,13 @@ function SettingsPage() {
           <FieldRow
             label="Lactate threshold pace"
             value={formatPace(profile.lactate_threshold_pace)}
-            owner={ownerOf(prefs, 'lactate_threshold_pace', flags.isGarminEnabled)}
+            owner={null}
           />
         </section>
 
         {/* ── Section 2: Data Sources ─────────────────────────────────────── */}
         <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Data Sources</h2>
-
-          {/* Garmin — only shown when the feature flag is enabled */}
-          {flags.isGarminEnabled && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-sm font-semibold text-slate-700">Garmin</span>
-              <span className="text-xs text-slate-400">(syncs on each activity import)</span>
-            </div>
-            <div className="pl-4 space-y-0">
-              <Toggle
-                label="Weight (mutual exclusion with Strava)"
-                checked={prefs.garmin.weight}
-                disabled={prefs.strava.weight}
-                onChange={v => toggle('garmin', 'weight', v)}
-              />
-              <Toggle
-                label="Height"
-                checked={prefs.garmin.height}
-                onChange={v => toggle('garmin', 'height', v)}
-              />
-              <Toggle
-                label="Resting heart rate"
-                checked={prefs.garmin.resting_hr}
-                onChange={v => toggle('garmin', 'resting_hr', v)}
-              />
-              <Toggle
-                label="VO2max"
-                checked={prefs.garmin.vo2max}
-                onChange={v => toggle('garmin', 'vo2max', v)}
-              />
-              <Toggle
-                label="Lactate threshold"
-                checked={prefs.garmin.lactate_threshold}
-                onChange={v => toggle('garmin', 'lactate_threshold', v)}
-              />
-            </div>
-          </div>
-          )}
 
           {/* Strava */}
           <div>
@@ -496,7 +446,6 @@ function SettingsPage() {
 
           <p className="mt-4 text-xs text-slate-400 leading-relaxed">
             When a source toggle is ON, that field is managed automatically and cannot be edited manually.
-            {flags.isGarminEnabled && ' Weight can only be managed by one source at a time — enabling Strava disables Garmin automatically.'}
           </p>
         </section>
 
@@ -526,8 +475,7 @@ function SettingsPage() {
           )}
 
           <p className="mt-4 text-xs text-slate-400 leading-relaxed">
-            Strava is synced automatically each day. Garmin data syncs when you import activities.
-            "Sync now" triggers a fresh Strava profile pull immediately.
+            Strava is synced automatically each day. "Sync now" triggers a fresh Strava profile pull immediately.
           </p>
         </section>
 

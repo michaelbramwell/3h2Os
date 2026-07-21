@@ -34,7 +34,6 @@ src/
     CreatePlanDialog.tsx    # Simple plan creation dialog
     ClonePlanDialog.tsx     # Plan clone with date offset
     ContextSection.tsx      # User context display
-    GarminSettings.tsx      # Garmin Connect configuration
     FridgeWeek.tsx          # Print-friendly weekly view
     ui/
       ConfirmDialog.tsx     # Reusable confirmation dialog
@@ -50,10 +49,10 @@ src/
   hooks/
     useWizard.ts            # Wizard step navigation and form state
     useWorkoutForm.ts       # Workout form state management
-    useGarminToken.ts       # Garmin OAuth token management
   lib/
     api.ts                  # API client (fetch wrapper)
     auth.ts                 # Auth configuration
+    dateTime.ts             # Central date/time helpers (formatInstant, formatCalendarDate)
     calculations.ts         # Client-side calculations
     formatters.ts           # Display formatting utilities
   types/

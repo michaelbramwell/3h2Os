@@ -99,7 +99,6 @@ export interface RunnerContext {
   trainingZones?: {
       pace: TrainingZone[];
       heartRate: TrainingZone[];
-      swimPace?: TrainingZone[];
   };
 }
 
@@ -144,9 +143,9 @@ export interface Activity {
     type: string;  // Backend returns lowercase ('running', 'swimming'); use isType() for comparisons
     distance_m: number;
     duration_s: number;
-    activityId?: number | null;      // Garmin activity ID; null for Strava-only records
-    stravaActivityId?: number | null; // Strava activity ID; null for Garmin-only records
-    source?: string;                  // 'garmin' | 'strava' | 'manual'
+    activityId?: number | null;      // Legacy Garmin activity ID; retained for historical rows
+    stravaActivityId?: number | null; // Strava activity ID; null for legacy Garmin-only records
+    source?: string;                  // 'garmin' (legacy read-only) | 'strava' | 'manual'
     average_pace_m_s?: number;
     average_hr?: number;
     max_hr?: number;
@@ -169,14 +168,6 @@ export interface Activity {
 
 // Profile / Settings
 
-export interface GarminSyncPrefs {
-  weight: boolean;
-  height: boolean;
-  resting_hr: boolean;
-  vo2max: boolean;
-  lactate_threshold: boolean;
-}
-
 export interface StravaSyncPrefs {
   weight: boolean;
   ftp: boolean;
@@ -184,7 +175,6 @@ export interface StravaSyncPrefs {
 }
 
 export interface ProfileSyncPrefs {
-  garmin: GarminSyncPrefs;
   strava: StravaSyncPrefs;
 }
 
@@ -207,6 +197,10 @@ export interface UserProfile {
   experience_level: string | null;
   weekly_availability: number | null;
 
+  // User's IANA timezone (e.g. 'Australia/Perth'). Set by the frontend
+  // from the browser timezone and used for calendar business rules.
+  timezone_name?: string | null;
+
   // Sync metadata
   sync_prefs: ProfileSyncPrefs;
   profile_last_synced_at: string | null;
@@ -217,8 +211,5 @@ export interface UserProfile {
 export type UserType = 'standard' | 'alpha' | 'beta' | 'premium';
 
 export interface FeatureFlags {
-    isSwimmingEnabled: boolean;
-    isGarminEnabled: boolean;
-    isAiEnabled: boolean;
     [key: string]: boolean;
 }
